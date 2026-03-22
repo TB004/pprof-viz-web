@@ -1,0 +1,17 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background: Deep Navy Rounded Square -->
+  <!-- <rect width="512" height="512" rx="112" fill="#0F172A"/> -->
+  
+  <!-- Hexagonal Frame (Scaled Up) -->
+  <path d="M256 30L460 148V364L256 482L52 364V148L256 30Z" stroke="#334155" stroke-width="24" stroke-linejoin="round"/>
+  
+  <!-- Pulse Line Glow (Subtle Cyan Bloom) -->
+  <path d="M90 256H160L215 400L290 112L350 256H422" stroke="#22D3EE" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" opacity="0.2" filter="blur(12px)"/>
+  
+  <!-- Main Pulse Line (Forms a sharp 'V' peak, Scaled Up) -->
+  <path d="M90 256H160L215 400L290 112L350 256H422" stroke="#22D3EE" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Real-time Data Point (Active Sample) -->
+  <circle cx="422" cy="256" r="22" fill="#F8FAFC"/>
+  <circle cx="422" cy="256" r="12" fill="#22D3EE"/>
+</svg>

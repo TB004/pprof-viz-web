@@ -1,0 +1,19 @@
+{
+  "name": "Pprof-Viz",
+  "short_name": "Pprof-Viz",
+  "description": "Visualize Go runtime profiles in the browser.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/logo_bg.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

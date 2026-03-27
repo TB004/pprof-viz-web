@@ -1,69 +1,69 @@
 <script lang="ts">
-    import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-    import {
-        ActivityIcon,
-        CpuIcon,
-        LayersIcon,
-        HistoryIcon,
-        PackageIcon,
-        SettingsIcon,
-        Settings2Icon,
-    } from "@lucide/svelte";
-    import Separator from "./ui/separator/separator.svelte";
-    import * as Card from "$lib/components/ui/card/index.js";
-    import { Button } from "$lib/components/ui/button/index.js";
-    import * as Select from "$lib/components/ui/select/index.js";
+import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+import {
+	ActivityIcon,
+	CpuIcon,
+	LayersIcon,
+	HistoryIcon,
+	PackageIcon,
+	SettingsIcon,
+	Settings2Icon,
+} from "@lucide/svelte";
+import Separator from "./ui/separator/separator.svelte";
+import * as Card from "$lib/components/ui/card/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as Select from "$lib/components/ui/select/index.js";
 
-    const menuItems = [
-        {
-            title: "CPU",
-            url: "/cpu",
-            icon: CpuIcon,
-        },
-        {
-            title: "GC",
-            url: "/gc",
-            icon: ActivityIcon,
-        },
-        {
-            title: "Memory",
-            url: "/memory",
-            icon: LayersIcon,
-        },
-        {
-            title: "Scheduler",
-            url: "/scheduler",
-            icon: HistoryIcon,
-        },
-        {
-            title: "Miscellaneous",
-            url: "/miscellaneous",
-            icon: PackageIcon,
-        },
-    ];
+const menuItems = [
+	{
+		title: "CPU",
+		url: "/cpu",
+		icon: CpuIcon,
+	},
+	{
+		title: "GC",
+		url: "/gc",
+		icon: ActivityIcon,
+	},
+	{
+		title: "Memory",
+		url: "/memory",
+		icon: LayersIcon,
+	},
+	{
+		title: "Scheduler",
+		url: "/scheduler",
+		icon: HistoryIcon,
+	},
+	{
+		title: "Miscellaneous",
+		url: "/miscellaneous",
+		icon: PackageIcon,
+	},
+];
 
-    const collectionProfiles = [
-        {
-            value: "p1",
-            label: "Profile 1"
-        },
-        {
-            value: "p2",
-            label: "Profile 2"
-        },
-        {
-            value: "p3",
-            label: "Profile 3"
-        },
-    ];
+const collectionProfiles = [
+	{
+		value: "p1",
+		label: "Profile 1",
+	},
+	{
+		value: "p2",
+		label: "Profile 2",
+	},
+	{
+		value: "p3",
+		label: "Profile 3",
+	},
+];
 
-    let collectionStarted = $state(false);
-    let selectedProfile = $state("");
+let collectionStarted = $state(false);
+let selectedProfile = $state("");
 
-    const triggerContent = $derived(
-        collectionProfiles.find((p) => p.value === selectedProfile)?.label ??
-            "Select a profile",
-    );
+const triggerContent = $derived(
+	collectionProfiles.find((p) => p.value === selectedProfile)?.label ??
+		"Select a profile",
+);
 </script>
 
 <Sidebar.Root variant="floating">

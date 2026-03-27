@@ -8,7 +8,7 @@ default:
 # Build docker images
 [group('Build')]
 build:
-    - docker buildx bake -f ./docker/docker-bake.hcl default
+    - docker buildx bake -f ./docker/docker-bake.hcl default ${DOCKER_BAKE_FLAGS:-}
 
 # Run tests with code coverage
 [group('Quality')]

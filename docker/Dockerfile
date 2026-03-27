@@ -11,7 +11,7 @@ RUN bun run build
 FROM dhi.io/caddy:2.11.2-debian13
 
 COPY --from=build /app/build /usr/share/caddy
-COPY Caddyfile /etc/caddy/Caddyfile
+COPY docker/Caddyfile /etc/caddy/Caddyfile
 
 EXPOSE 80
 CMD ["run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]

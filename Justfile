@@ -5,6 +5,11 @@
 default:
 	@just --list
 
+# Build docker images
+[group('Build')]
+build:
+    - docker buildx bake -f ./docker/docker-bake.hcl default
+
 # Run tests with code coverage
 [group('Quality')]
 cover:

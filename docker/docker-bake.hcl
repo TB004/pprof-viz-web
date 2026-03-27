@@ -4,7 +4,7 @@ variable "IMAGE_TAG" {
 
 target default {
   context = "."
-  dockerfile = "Dockerfile"
+  dockerfile = "docker/Dockerfile"
   platforms = ["linux/amd64", "linux/arm64"]
   tags = ["pprof-viz:${IMAGE_TAG}"]
 }

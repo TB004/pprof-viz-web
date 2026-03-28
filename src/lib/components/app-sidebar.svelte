@@ -101,6 +101,7 @@ $effect(() => {
                             <Select.Root
                                 type="single"
                                 name="collection-profile"
+                                disabled={$collectionState.status === "running"}
                                 bind:value={selectedProfile}
                             >
                                 <Select.Trigger class="w-full">

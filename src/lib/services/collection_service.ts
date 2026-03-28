@@ -111,11 +111,15 @@ export class CollectionService {
 	static subscribe = collectionStateStore.subscribe;
 
 	static selectProfile(profileValue: string) {
-		let selectedProfile: CollectionProfile | undefined = undefined;
-        
-        if (profileValue) {
-            selectedProfile = collectionProfiles.find((profile) => profile.value === profileValue);
-        }
+		const currentState = getCollectionStateSnapshot();
+
+		if (currentState.status === "running") {
+			return;
+		}
+
+		const selectedProfile = profileValue
+			? collectionProfiles.find((profile) => profile.value === profileValue)
+			: undefined;
 
 		collectionStateStore.update((state) => ({
 			...state,
@@ -163,10 +167,10 @@ export class CollectionService {
 	}
 
 	static reset() {
-        if (timerHandle !== undefined) {
-		    clearInterval(timerHandle);
-		    timerHandle = undefined;
-	    }
+		if (timerHandle !== undefined) {
+			clearInterval(timerHandle);
+			timerHandle = undefined;
+		}
 		collectionStartedAt = undefined;
 		collectionStateStore.set(defaultCollectionState);
 	}

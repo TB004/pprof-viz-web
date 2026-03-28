@@ -14,6 +14,12 @@ export interface CollectionProfile {
 	mode: CollectionType;
 }
 
+export interface CollectionError {
+	id: string;
+	message: string;
+	timestamp: number;
+}
+
 // These are currently just some hardcoded dummy data
 export const collectionProfiles: CollectionProfile[] = [
 	{
@@ -44,9 +50,40 @@ export interface CollectionState {
 	selectedProfileLabel: string | undefined;
 	url: URL | undefined;
 	mode: CollectionType | undefined;
+	errors: CollectionError[];
 	params: Record<string, unknown>;
 	data: unknown;
 	metadata: unknown;
+}
+
+function dummyErrors(): CollectionError[] {
+	return [
+		{
+			id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+			message: "This is a dummy error message.",
+			timestamp: Date.now(),
+		},
+		{
+			id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+			message: "This is a dummy error message.",
+			timestamp: Date.now(),
+		},
+		{
+			id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+			message: "This is a dummy error message.",
+			timestamp: Date.now(),
+		},
+		{
+			id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+			message: "This is a dummy error message.",
+			timestamp: Date.now(),
+		},
+		{
+			id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+			message: "This is a dummy error message.",
+			timestamp: Date.now(),
+		},
+	];
 }
 
 const defaultCollectionState: CollectionState = {
@@ -57,6 +94,7 @@ const defaultCollectionState: CollectionState = {
 	selectedProfileLabel: undefined,
 	url: undefined,
 	mode: undefined,
+	errors: dummyErrors(),
 	params: {},
 	data: null,
 	metadata: null,
@@ -81,6 +119,20 @@ function updateElapsedTimeFromStart() {
 		...state,
 		elapsedSeconds,
 	}));
+}
+
+export function formatErrorTimestamp(timestamp: number): string {
+	const formattedDate = new Intl.DateTimeFormat("en-US", {
+		weekday: "long",
+		month: "long",
+		day: "2-digit",
+		year: "numeric",
+		hour: "numeric",
+		minute: "2-digit",
+		second: "2-digit",
+	}).format(new Date(timestamp));
+
+	return `${formattedDate}`;
 }
 
 export function formatElapsedTime(totalSeconds: number): string {
@@ -114,6 +166,9 @@ export class CollectionService {
 		const currentState = getCollectionStateSnapshot();
 
 		if (currentState.status === "running") {
+			CollectionService.registerError(
+				"Stop the current collection before changing the collection profile.",
+			);
 			return;
 		}
 
@@ -130,10 +185,41 @@ export class CollectionService {
 		}));
 	}
 
+	static registerError(message: string) {
+		collectionStateStore.update((state) => ({
+			...state,
+			errors: [
+				{
+					id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+					message,
+					timestamp: Date.now(),
+				},
+				...state.errors,
+			],
+		}));
+	}
+
+	static removeError(errorId: string) {
+		collectionStateStore.update((state) => ({
+			...state,
+			errors: state.errors.filter((error) => error.id !== errorId),
+		}));
+	}
+
+	static clearErrors() {
+		collectionStateStore.update((state) => ({
+			...state,
+			errors: [],
+		}));
+	}
+
 	static startCollection() {
 		const currentState = getCollectionStateSnapshot();
 
 		if (currentState.url === undefined || currentState.mode === undefined) {
+			CollectionService.registerError(
+				"Select a collection profile before starting a collection.",
+			);
 			return;
 		}
 
@@ -149,7 +235,7 @@ export class CollectionService {
 		updateElapsedTimeFromStart();
 		timerHandle = setInterval(updateElapsedTimeFromStart, 1000);
 
-        // TODO: Implement the actual data collection logic
+		// TODO: Implement the actual data collection logic
 	}
 
 	static stopCollection() {
@@ -159,7 +245,7 @@ export class CollectionService {
 			status: "idle",
 		}));
 
-        // TODO: Implement the actual logic to stop data collection
+		// TODO: Implement the actual logic to stop data collection
 	}
 
 	static getMetadata() {

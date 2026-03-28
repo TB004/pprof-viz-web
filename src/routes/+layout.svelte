@@ -9,13 +9,13 @@ import SessionStatusBar from "$lib/components/session-status-bar.svelte";
 let { children } = $props();
 
 const routeLabel = $derived.by(() => {
-    const routeSegment = page.url.pathname.split("/").filter(Boolean)[0];
+	const routeSegment = page.url.pathname.split("/").filter(Boolean)[0];
 
-    if (!routeSegment) {
-        return "Home";
-    }
+	if (!routeSegment) {
+		return "Home";
+	}
 
-    return routeSegment.charAt(0).toUpperCase() + routeSegment.slice(1);
+	return routeSegment.charAt(0).toUpperCase() + routeSegment.slice(1);
 });
 </script>
 

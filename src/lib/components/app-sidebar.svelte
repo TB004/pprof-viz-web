@@ -13,6 +13,11 @@ import Separator from "./ui/separator/separator.svelte";
 import * as Card from "$lib/components/ui/card/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Select from "$lib/components/ui/select/index.js";
+import {
+	CollectionService,
+	collectionProfiles,
+	collectionState,
+} from "$lib/services/collection_service.js";
 
 const menuItems = [
 	{
@@ -41,29 +46,16 @@ const menuItems = [
 		icon: PackageIcon,
 	},
 ];
-
-const collectionProfiles = [
-	{
-		value: "p1",
-		label: "Profile 1",
-	},
-	{
-		value: "p2",
-		label: "Profile 2",
-	},
-	{
-		value: "p3",
-		label: "Profile 3",
-	},
-];
-
-let collectionStarted = $state(false);
 let selectedProfile = $state("");
 
 const triggerContent = $derived(
 	collectionProfiles.find((p) => p.value === selectedProfile)?.label ??
 		"Select a profile",
 );
+
+$effect(() => {
+	CollectionService.selectProfile(selectedProfile);
+});
 </script>
 
 <Sidebar.Root variant="floating">
@@ -135,11 +127,14 @@ const triggerContent = $derived(
                     </Card.Content>
                 </Card.Root>
             </Sidebar.GroupContent>
-            {#if collectionStarted}
+            {#if $collectionState.status === "running"}
                 <Button
                     variant="destructive"
                     class="mt-3"
-                    onclick={() => (collectionStarted = !collectionStarted)}
+                    onclick={() => {
+                        CollectionService.stopCollection();
+                        CollectionService.reset();
+                    }}
                 >
                     <span>Stop collecting</span>
                 </Button>
@@ -147,7 +142,8 @@ const triggerContent = $derived(
                 <Button
                     variant="default"
                     class="mt-3"
-                    onclick={() => (collectionStarted = !collectionStarted)}
+                    disabled={!$collectionState.selectedProfile}
+                    onclick={() => CollectionService.startCollection()}
                 >
                     <span>Start collecting</span>
                 </Button>

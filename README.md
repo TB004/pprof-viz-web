@@ -2,6 +2,12 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+Docker Hub image: [tb004/pprof-viz](https://hub.docker.com/r/tb004/pprof-viz)
+
+The Docker Hub repository includes the published image and a short overview with example `docker run` and Compose usage.
+
+## Description
+
 `pprof-viz` is a Svelte 5 PWA for exploring and visualizing real-time Go runtime telemetry exposed by the `pprof-viz-agent` backend. It is designed as a dashboard-style frontend for continuous profiling rather than ad-hoc stack-trace inspection, with a strong focus on readability, session awareness, and a compact operator-friendly UI.
 
 The app presents runtime data through a persistent shell layout with a sidebar, route-level views for runtime categories, and a bottom session bar that shows the active profiling state. It is intended to sit in front of a Go telemetry service that streams `runtime/metrics` data via ConnectRPC.

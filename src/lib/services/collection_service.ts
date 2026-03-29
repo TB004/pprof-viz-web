@@ -56,36 +56,6 @@ export interface CollectionState {
 	metadata: unknown;
 }
 
-function dummyErrors(): CollectionError[] {
-	return [
-		{
-			id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-			message: "This is a dummy error message.",
-			timestamp: Date.now(),
-		},
-		{
-			id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-			message: "This is a dummy error message.",
-			timestamp: Date.now(),
-		},
-		{
-			id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-			message: "This is a dummy error message.",
-			timestamp: Date.now(),
-		},
-		{
-			id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-			message: "This is a dummy error message.",
-			timestamp: Date.now(),
-		},
-		{
-			id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-			message: "This is a dummy error message.",
-			timestamp: Date.now(),
-		},
-	];
-}
-
 const defaultCollectionState: CollectionState = {
 	status: "idle",
 	collectedSamples: 0,
@@ -94,7 +64,7 @@ const defaultCollectionState: CollectionState = {
 	selectedProfileLabel: undefined,
 	url: undefined,
 	mode: undefined,
-	errors: dummyErrors(),
+	errors: [],
 	params: {},
 	data: null,
 	metadata: null,

@@ -56,4 +56,4 @@ jobs:
           IMAGE_NAME: ${{ vars.DOCKERHUB_USERNAME }}/pprof-viz
           IMAGE_TAG: ${{ github.event.release.tag_name }}
           DOCKER_BAKE_FLAGS: --push
-        run: just build
+        run: just bake

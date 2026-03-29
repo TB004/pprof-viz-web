@@ -47,4 +47,6 @@ jobs:
         run: just verify
 
       - name: Run coverage tests
-        run: just cover
+        run: |
+          mkdir .test
+          just cover

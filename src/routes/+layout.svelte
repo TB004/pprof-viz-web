@@ -1,10 +1,10 @@
 <script lang="ts">
 import { page } from "$app/state";
 import "./layout.css";
-import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-import AppSidebar from "$lib/components/app-sidebar.svelte";
 import { ModeWatcher } from "mode-watcher";
+import AppSidebar from "$lib/components/app-sidebar.svelte";
 import SessionStatusBar from "$lib/components/session-status-bar.svelte";
+import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 
 let { children } = $props();
 

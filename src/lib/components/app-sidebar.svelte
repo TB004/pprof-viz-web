@@ -1,23 +1,23 @@
 <script lang="ts">
-import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 import {
 	ActivityIcon,
 	CpuIcon,
-	LayersIcon,
 	HistoryIcon,
+	LayersIcon,
 	PackageIcon,
-	SettingsIcon,
 	Settings2Icon,
+	SettingsIcon,
 } from "@lucide/svelte";
-import Separator from "./ui/separator/separator.svelte";
-import * as Card from "$lib/components/ui/card/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+import * as Card from "$lib/components/ui/card/index.js";
 import * as Select from "$lib/components/ui/select/index.js";
+import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 import {
 	CollectionService,
 	collectionProfiles,
 	collectionState,
 } from "$lib/services/collection_service.js";
+import Separator from "./ui/separator/separator.svelte";
 
 const menuItems = [
 	{

@@ -1,22 +1,22 @@
 <script lang="ts">
 import {
+	CircleAlertIcon,
 	LoaderCircle,
 	PauseIcon,
-	CircleAlertIcon,
 	Trash2Icon,
 	XIcon,
 } from "@lucide/svelte";
 import { fly } from "svelte/transition";
 import { Button } from "$lib/components/ui/button/index.js";
-import { cn } from "$lib/utils.js";
 import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 import {
 	CollectionService,
 	CollectionType,
 	collectionState,
-	formatErrorTimestamp,
 	formatElapsedTime,
+	formatErrorTimestamp,
 } from "$lib/services/collection_service.js";
+import { cn } from "$lib/utils.js";
 
 let showErrors = $state(false);
 

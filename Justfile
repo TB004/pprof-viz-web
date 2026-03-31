@@ -3,7 +3,12 @@
 # Show the available tasks
 [group('Utilities')]
 default:
-	@just --list
+    @just --list
+
+# Build docker images
+[group('Build')]
+bake:
+    - docker buildx bake -f ./docker/docker-bake.hcl default ${DOCKER_BAKE_FLAGS:-}
 
 # Run tests with code coverage
 [group('Quality')]
@@ -13,22 +18,22 @@ cover:
 # Run the SvelteKit type and config checkss
 [group('Quality')]
 check:
-	- bun run check
+    - bun run check
 
 # Run Biome's code quality checks
 [group('Quality')]
 lint:
-	- bunx biome check ./src
+    - bunx biome check ./src
 
 # Run Biome's code quality checks and write fixes
 [group('Quality')]
 lint-fix:
-	- bunx biome check --write ./src
+    - bunx biome check --write ./src
 
 # Format the codebase with Biome
 [group('Quality')]
 format:
-	- bunx biome format --write --css-parse-tailwind-directives=true  ./src
+    - bunx biome format --write --css-parse-tailwind-directives=true  ./src
 
 # Verify formatting without changing files
 [group('Quality')]

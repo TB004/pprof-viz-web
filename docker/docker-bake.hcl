@@ -2,9 +2,13 @@ variable "IMAGE_TAG" {
   default = "latest"
 }
 
+variable "IMAGE_NAME" {
+  default = "pprof-viz"
+}
+
 target default {
   context = "."
-  dockerfile = "Dockerfile"
+  dockerfile = "docker/Dockerfile"
   platforms = ["linux/amd64", "linux/arm64"]
-  tags = ["pprof-viz:${IMAGE_TAG}"]
+  tags = ["${IMAGE_NAME}:${IMAGE_TAG}"]
 }

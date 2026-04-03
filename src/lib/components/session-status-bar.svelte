@@ -10,12 +10,11 @@ import { fly } from "svelte/transition";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 import {
-	CollectionService,
 	CollectionType,
 	collectionState,
 	formatElapsedTime,
-	formatErrorTimestamp,
 } from "$lib/services/collection_service.js";
+import { ErrorService, errorState } from "$lib/services/error_service.js";
 import { cn } from "$lib/utils.js";
 
 let showErrors = $state(false);
@@ -46,8 +45,8 @@ const statusIconClass = $derived(
 		: "size-3.5 text-muted-foreground",
 );
 
-const errorCount = $derived($collectionState.errors.length);
-const visibleErrors = $derived($collectionState.errors.slice(0, 4));
+const errorCount = $derived($errorState.length);
+const visibleErrors = $derived($errorState.slice(0, 4));
 </script>
 
 <footer
@@ -143,13 +142,13 @@ const visibleErrors = $derived($collectionState.errors.slice(0, 4));
 									<CircleAlertIcon class="size-4 shrink-0 self-center text-red-500" />
 									<div class="min-w-0 flex-1">
 										<p class="text-sm font-medium text-foreground">{error.message}</p>
-										<p class="mt-1 text-xs text-muted-foreground">{formatErrorTimestamp(error.timestamp)}</p>
+										<p class="mt-1 text-xs text-muted-foreground">{ErrorService.formatErrorTimestamp(error.timestamp)}</p>
 									</div>
 									<Button
 										variant="ghost"
 										size="icon-sm"
 										class="self-center text-red-500 hover:bg-red-500/10 hover:text-red-600"
-										onclick={() => CollectionService.removeError(error.id)}
+										onclick={() => ErrorService.removeError(error.id)}
 									>
 										<Trash2Icon class="size-3.5" />
 									</Button>
@@ -157,9 +156,9 @@ const visibleErrors = $derived($collectionState.errors.slice(0, 4));
 							</div>
 						{/each}
 					</div>
-					{#if $collectionState.errors.length > visibleErrors.length}
+					{#if $errorState.length > visibleErrors.length}
 						<p class="mt-3 px-1 text-xs text-muted-foreground">
-							Showing {visibleErrors.length} of {$collectionState.errors.length} errors.
+							Showing {visibleErrors.length} of {$errorState.length} errors.
 						</p>
 					{/if}
 				{:else}

@@ -8,11 +8,11 @@ import {
 	Settings2Icon,
 	SettingsIcon,
 } from "@lucide/svelte";
+import ProfileManagerDialog from "$lib/components/profile-manager-dialog.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Select from "$lib/components/ui/select/index.js";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-import ProfileManagerDialog from "$lib/components/profile-manager-dialog.svelte";
 import {
 	CollectionService,
 	collectionState,

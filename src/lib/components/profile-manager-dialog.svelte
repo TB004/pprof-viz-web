@@ -1,15 +1,4 @@
 <script lang="ts">
-import * as Dialog from "$lib/components/ui/dialog/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import Input from "$lib/components/ui/input/input.svelte";
-import { CollectionService } from "$lib/services/collection_service.js";
-import {
-	CollectionType,
-	ProfileService,
-	getProfileById,
-	profileCatalog,
-	profileProjects,
-} from "$lib/services/profile_service.js";
 import {
 	CheckIcon,
 	ChevronDownIcon,
@@ -20,6 +9,17 @@ import {
 	PlusIcon,
 	Trash2Icon,
 } from "@lucide/svelte";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as Dialog from "$lib/components/ui/dialog/index.js";
+import Input from "$lib/components/ui/input/input.svelte";
+import { CollectionService } from "$lib/services/collection_service.js";
+import {
+	CollectionType,
+	getProfileById,
+	ProfileService,
+	profileCatalog,
+	profileProjects,
+} from "$lib/services/profile_service.js";
 
 type EditorMode = "profile" | "new-profile";
 type ProjectDialogMode = "create" | "rename";

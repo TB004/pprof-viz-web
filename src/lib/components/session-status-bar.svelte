@@ -9,18 +9,18 @@ import {
 import { fly } from "svelte/transition";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-import {
-	CollectionType,
-	collectionState,
-	formatElapsedTime,
-} from "$lib/services/collection_service.js";
-import { ErrorService, errorState } from "$lib/services/error_service.js";
+import * as CollectionService from "$lib/services/collection_service.js";
+import * as ErrorService from "$lib/services/error_service.js";
+import { CollectionType } from "$lib/services/profile_service";
 import { cn } from "$lib/utils.js";
 
 let showErrors = $state(false);
 
+const collectionState = CollectionService.collectionState;
+const errorState = ErrorService.errorState;
+
 const modeLabel = $derived(
-	$collectionState.status === "running"
+	$collectionState.status === CollectionService.CollectionStatus.Running
 		? $collectionState.mode === CollectionType.Snapshot
 			? "Snapshot"
 			: $collectionState.mode === CollectionType.Stream
@@ -30,17 +30,17 @@ const modeLabel = $derived(
 );
 
 const urlLabel = $derived(
-	$collectionState.status === "running"
+	$collectionState.status === CollectionService.CollectionStatus.Running
 		? ($collectionState.url?.toString() ?? undefined)
 		: undefined,
 );
 
 const statusLabel = $derived(
-	$collectionState.status === "running" ? "Running" : "Idle",
+	$collectionState.status === CollectionService.CollectionStatus.Running ? "Running" : "Idle",
 );
 
 const statusIconClass = $derived(
-	$collectionState.status === "running"
+	$collectionState.status === CollectionService.CollectionStatus.Running
 		? "size-3.5 animate-spin text-foreground"
 		: "size-3.5 text-muted-foreground",
 );
@@ -54,7 +54,7 @@ const visibleErrors = $derived($errorState.slice(0, 4));
 >
 	<div class="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 text-xs">
 		<div class="flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1.5 shadow-sm">
-			{#if $collectionState.status === "running"}
+			{#if $collectionState.status === CollectionService.CollectionStatus.Running}
 				<LoaderCircle class={statusIconClass} />
 			{:else}
 				<PauseIcon class={statusIconClass} />
@@ -94,7 +94,7 @@ const visibleErrors = $derived($errorState.slice(0, 4));
 
 		<div class="flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1.5 shadow-sm">
 			<span class="text-muted-foreground">Time</span>
-			<span class="font-medium">{formatElapsedTime($collectionState.elapsedSeconds)}</span>
+			<span class="font-medium">{CollectionService.formatElapsedTime($collectionState.elapsedSeconds)}</span>
 		</div>
 
 		<button

@@ -1,7 +1,7 @@
 import { derived, type Readable, writable } from "svelte/store";
 import { ulid } from "ulid";
 import { browser } from "$app/environment";
-import { DB } from "$lib/services/db_service.js";
+import * as DBService from "$lib/services/db_service.js";
 
 export enum CollectionType {
 	Snapshot = "snapshot",
@@ -55,8 +55,8 @@ async function ensureHydrated() {
 	if (!hydrated) {
 		try {
 			const [projects, profiles] = await Promise.all([
-				DB.readProjects(),
-				DB.readProfiles(),
+				DBService.readProjects(),
+				DBService.readProfiles(),
 			]);
 			const normalizedProfiles = profiles.map((profile) => ({
 				...profile,
@@ -136,217 +136,213 @@ export function getProfileById(
 	return undefined;
 }
 
-export class ProfileService {
-	static subscribe = profileCatalogStore.subscribe;
+export async function setActiveProfile(profileId: string | undefined) {
+	await ensureHydrated();
+	if (profileId && !getProfileById(profileId)) {
+		return;
+	}
+}
 
-	static async setActiveProfile(profileId: string | undefined) {
-		await ensureHydrated();
-		if (profileId && !getProfileById(profileId)) {
-			return;
-		}
+export async function createProject(name: string) {
+	await ensureHydrated();
+	const trimmedName = name.trim();
+	if (!trimmedName) {
+		return undefined;
 	}
 
-	static async createProject(name: string) {
-		await ensureHydrated();
-		const trimmedName = name.trim();
-		if (!trimmedName) {
-			return undefined;
-		}
+	const timestamp = Date.now();
+	const project: ProjectRow = {
+		id: ulid(),
+		name: trimmedName,
+		createdAt: timestamp,
+		updatedAt: timestamp,
+	};
 
-		const timestamp = Date.now();
-		const project: ProjectRow = {
-			id: ulid(),
-			name: trimmedName,
-			createdAt: timestamp,
-			updatedAt: timestamp,
-		};
+	await DBService.createOrUpdateProject(project);
 
-		await DB.createOrUpdateProject(project);
+	profileCatalogStore.update((catalog) => ({
+		...catalog,
+		projects: [...catalog.projects, { ...project, profiles: [] }],
+	}));
 
-		profileCatalogStore.update((catalog) => ({
-			...catalog,
-			projects: [...catalog.projects, { ...project, profiles: [] }],
-		}));
+	return project.id;
+}
 
-		return project.id;
+export async function renameProject(projectId: string, name: string) {
+	await ensureHydrated();
+	const trimmedName = name.trim();
+	if (!trimmedName) {
+		return;
 	}
 
-	static async renameProject(projectId: string, name: string) {
-		await ensureHydrated();
-		const trimmedName = name.trim();
-		if (!trimmedName) {
-			return;
-		}
+	const snapshot = getSnapshot();
+	const project = snapshot.projects.find((entry) => entry.id === projectId);
+	if (!project) {
+		return;
+	}
 
-		const snapshot = getSnapshot();
-		const project = snapshot.projects.find((entry) => entry.id === projectId);
-		if (!project) {
-			return;
-		}
+	const updatedProject: ProjectRow = {
+		id: project.id,
+		name: trimmedName,
+		createdAt: project.createdAt,
+		updatedAt: Date.now(),
+	};
 
-		const updatedProject: ProjectRow = {
-			id: project.id,
-			name: trimmedName,
-			createdAt: project.createdAt,
-			updatedAt: Date.now(),
-		};
+	await DBService.createOrUpdateProject(updatedProject);
 
-		await DB.createOrUpdateProject(updatedProject);
+	profileCatalogStore.update((catalog) => ({
+		...catalog,
+		projects: catalog.projects.map((entry) =>
+			entry.id === projectId
+				? { ...entry, name: trimmedName, updatedAt: updatedProject.updatedAt }
+				: entry,
+		),
+	}));
+}
 
-		profileCatalogStore.update((catalog) => ({
-			...catalog,
-			projects: catalog.projects.map((entry) =>
-				entry.id === projectId
-					? { ...entry, name: trimmedName, updatedAt: updatedProject.updatedAt }
-					: entry,
+export async function deleteProject(projectId: string) {
+	await ensureHydrated();
+	const snapshot = getSnapshot();
+	const project = snapshot.projects.find((entry) => entry.id === projectId);
+	if (!project) {
+		return;
+	}
+
+	for (const profile of project.profiles) {
+		await DBService.deleteProfile(profile.id);
+	}
+	await DBService.deleteProject(projectId);
+
+	profileCatalogStore.update((catalog) => ({
+		...catalog,
+		projects: catalog.projects.filter((entry) => entry.id !== projectId),
+	}));
+}
+
+export async function createProfile(
+	projectId: string,
+	input: { name: string; url: string; mode: CollectionType },
+) {
+	await ensureHydrated();
+	const trimmedName = input.name.trim();
+	const trimmedUrl = input.url.trim();
+	if (!trimmedName || !trimmedUrl) {
+		return undefined;
+	}
+
+	try {
+		new URL(trimmedUrl);
+	} catch {
+		return undefined;
+	}
+
+	const snapshot = getSnapshot();
+	const project = snapshot.projects.find((entry) => entry.id === projectId);
+	if (!project) {
+		return undefined;
+	}
+
+	const timestamp = Date.now();
+	const profile: ProfileRecord = {
+		id: ulid(),
+		projectId,
+		name: trimmedName,
+		url: trimmedUrl,
+		mode: input.mode,
+		createdAt: timestamp,
+		updatedAt: timestamp,
+	};
+
+	await DBService.createOrUpdateProfile(profile);
+
+	profileCatalogStore.update((catalog) => ({
+		...catalog,
+		projects: catalog.projects.map((entry) =>
+			entry.id === projectId
+				? {
+						...entry,
+						updatedAt: timestamp,
+						profiles: [...entry.profiles, profile],
+					}
+				: entry,
+		),
+	}));
+
+	return profile.id;
+}
+
+export async function updateProfile(
+	profileId: string,
+	input: { name: string; url: string; mode: CollectionType },
+) {
+	await ensureHydrated();
+	const trimmedName = input.name.trim();
+	const trimmedUrl = input.url.trim();
+	if (!trimmedName || !trimmedUrl) {
+		return;
+	}
+
+	try {
+		new URL(trimmedUrl);
+	} catch {
+		return;
+	}
+
+	const located = getProfileById(profileId);
+	if (!located) {
+		return;
+	}
+
+	const updatedProfile: ProfileRecord = {
+		...located.profile,
+		name: trimmedName,
+		url: trimmedUrl,
+		mode: input.mode,
+		updatedAt: Date.now(),
+	};
+
+	await DBService.createOrUpdateProfile(updatedProfile);
+
+	profileCatalogStore.update((catalog) => ({
+		...catalog,
+		projects: catalog.projects.map((entry) => ({
+			...entry,
+			profiles: entry.profiles.map((profile) =>
+				profile.id === profileId ? updatedProfile : profile,
 			),
-		}));
+		})),
+	}));
+}
+
+export async function deleteProfile(profileId: string) {
+	await ensureHydrated();
+	const located = getProfileById(profileId);
+	if (!located) {
+		return;
 	}
 
-	static async deleteProject(projectId: string) {
-		await ensureHydrated();
-		const snapshot = getSnapshot();
-		const project = snapshot.projects.find((entry) => entry.id === projectId);
-		if (!project) {
-			return;
-		}
+	await DBService.deleteProfile(profileId);
 
-		for (const profile of project.profiles) {
-			await DB.deleteProfile(profile.id);
-		}
-		await DB.deleteProject(projectId);
+	profileCatalogStore.update((catalog) => ({
+		...catalog,
+		projects: catalog.projects.map((entry) =>
+			entry.id === located.project.id
+				? {
+						...entry,
+						updatedAt: Date.now(),
+						profiles: entry.profiles.filter(
+							(profile) => profile.id !== profileId,
+						),
+					}
+				: entry,
+		),
+	}));
+}
 
-		profileCatalogStore.update((catalog) => ({
-			...catalog,
-			projects: catalog.projects.filter((entry) => entry.id !== projectId),
-		}));
-	}
-
-	static async createProfile(
-		projectId: string,
-		input: { name: string; url: string; mode: CollectionType },
-	) {
-		await ensureHydrated();
-		const trimmedName = input.name.trim();
-		const trimmedUrl = input.url.trim();
-		if (!trimmedName || !trimmedUrl) {
-			return undefined;
-		}
-
-		try {
-			new URL(trimmedUrl);
-		} catch {
-			return undefined;
-		}
-
-		const snapshot = getSnapshot();
-		const project = snapshot.projects.find((entry) => entry.id === projectId);
-		if (!project) {
-			return undefined;
-		}
-
-		const timestamp = Date.now();
-		const profile: ProfileRecord = {
-			id: ulid(),
-			projectId,
-			name: trimmedName,
-			url: trimmedUrl,
-			mode: input.mode,
-			createdAt: timestamp,
-			updatedAt: timestamp,
-		};
-
-		await DB.createOrUpdateProfile(profile);
-
-		profileCatalogStore.update((catalog) => ({
-			...catalog,
-			projects: catalog.projects.map((entry) =>
-				entry.id === projectId
-					? {
-							...entry,
-							updatedAt: timestamp,
-							profiles: [...entry.profiles, profile],
-						}
-					: entry,
-			),
-		}));
-
-		return profile.id;
-	}
-
-	static async updateProfile(
-		profileId: string,
-		input: { name: string; url: string; mode: CollectionType },
-	) {
-		await ensureHydrated();
-		const trimmedName = input.name.trim();
-		const trimmedUrl = input.url.trim();
-		if (!trimmedName || !trimmedUrl) {
-			return;
-		}
-
-		try {
-			new URL(trimmedUrl);
-		} catch {
-			return;
-		}
-
-		const located = getProfileById(profileId);
-		if (!located) {
-			return;
-		}
-
-		const updatedProfile: ProfileRecord = {
-			...located.profile,
-			name: trimmedName,
-			url: trimmedUrl,
-			mode: input.mode,
-			updatedAt: Date.now(),
-		};
-
-		await DB.createOrUpdateProfile(updatedProfile);
-
-		profileCatalogStore.update((catalog) => ({
-			...catalog,
-			projects: catalog.projects.map((entry) => ({
-				...entry,
-				profiles: entry.profiles.map((profile) =>
-					profile.id === profileId ? updatedProfile : profile,
-				),
-			})),
-		}));
-	}
-
-	static async deleteProfile(profileId: string) {
-		await ensureHydrated();
-		const located = getProfileById(profileId);
-		if (!located) {
-			return;
-		}
-
-		await DB.deleteProfile(profileId);
-
-		profileCatalogStore.update((catalog) => ({
-			...catalog,
-			projects: catalog.projects.map((entry) =>
-				entry.id === located.project.id
-					? {
-							...entry,
-							updatedAt: Date.now(),
-							profiles: entry.profiles.filter(
-								(profile) => profile.id !== profileId,
-							),
-						}
-					: entry,
-			),
-		}));
-	}
-
-	static reset() {
-		profileCatalogStore.set(emptyCatalog());
-		if (browser) {
-			void ensureHydrated();
-		}
+export function resetProfileCatalog() {
+	profileCatalogStore.set(emptyCatalog());
+	if (browser) {
+		void ensureHydrated();
 	}
 }
 

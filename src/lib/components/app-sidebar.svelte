@@ -13,12 +13,11 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Select from "$lib/components/ui/select/index.js";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-import {
-	CollectionService,
-	collectionState,
-} from "$lib/services/collection_service.js";
+import * as CollectionService from "$lib/services/collection_service.js";
 import { profileOptions } from "$lib/services/profile_service.js";
 import Separator from "./ui/separator/separator.svelte";
+
+const collectionState = CollectionService.collectionState;
 
 const menuItems = [
 	{ title: "CPU", url: "/cpu", icon: CpuIcon },

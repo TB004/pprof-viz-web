@@ -12,14 +12,8 @@ import {
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import Input from "$lib/components/ui/input/input.svelte";
-import { CollectionService } from "$lib/services/collection_service.js";
-import {
-	CollectionType,
-	getProfileById,
-	ProfileService,
-	profileCatalog,
-	profileProjects,
-} from "$lib/services/profile_service.js";
+import * as CollectionService from "$lib/services/collection_service.js";
+import * as ProfileService from "$lib/services/profile_service.js";
 
 type EditorMode = "profile" | "new-profile";
 type ProjectDialogMode = "create" | "rename";
@@ -35,7 +29,7 @@ let selectedProfileId = $state<string | undefined>(undefined);
 let editorMode = $state<EditorMode>("profile");
 let profileName = $state("");
 let profileUrl = $state("");
-let profileMode = $state(CollectionType.Stream);
+let profileMode = $state(ProfileService.CollectionType.Stream);
 let projectDialogOpen = $state(false);
 let projectDialogMode = $state<ProjectDialogMode>("create");
 let projectDialogName = $state("");
@@ -46,18 +40,21 @@ let deleteDialogName = $state("");
 let deleteDialogProjectId = $state<string | undefined>(undefined);
 let deleteDialogProfileId = $state<string | undefined>(undefined);
 
+const profileCatalog = ProfileService.profileCatalog;
+const profileProjects = ProfileService.profileProjects;
+
 const modeOptions: Array<{
-	value: CollectionType;
+	value: ProfileService.CollectionType;
 	title: string;
 	description: string;
 }> = [
 	{
-		value: CollectionType.Snapshot,
+		value: ProfileService.CollectionType.Snapshot,
 		title: "Snapshot",
 		description: "Capture a focused point-in-time profile.",
 	},
 	{
-		value: CollectionType.Stream,
+		value: ProfileService.CollectionType.Stream,
 		title: "Stream",
 		description: "Continuously follow runtime changes.",
 	},
@@ -66,7 +63,7 @@ const modeOptions: Array<{
 function clearProfileForm() {
 	profileName = "";
 	profileUrl = "";
-	profileMode = CollectionType.Stream;
+	profileMode = ProfileService.CollectionType.Stream;
 }
 
 function clearProjectDialog() {
@@ -127,15 +124,15 @@ $effect(() => {
 	clearProjectDialog();
 });
 
-function selectProfile(projectId: string, profileId: string) {
+function handleProfileSelect(projectId: string, profileId: string) {
 	selectedProjectId = projectId;
 	selectedProfileId = profileId;
 	editorMode = "profile";
 
-	const snapshot = getProfileById(profileId);
+	const snapshot = ProfileService.getProfileById(profileId);
 	profileName = snapshot?.profile.name ?? "";
 	profileUrl = snapshot?.profile.url ?? "";
-	profileMode = snapshot?.profile.mode ?? CollectionType.Stream;
+	profileMode = snapshot?.profile.mode ?? ProfileService.CollectionType.Stream;
 
 	void CollectionService.selectProfile(profileId);
 }
@@ -176,7 +173,7 @@ async function saveProfile() {
 	}
 
 	await ProfileService.updateProfile(selectedProfileId, payload);
-	CollectionService.selectProfile(selectedProfileId);
+	await CollectionService.selectProfile(selectedProfileId);
 }
 
 async function deleteProject(projectId: string) {
@@ -193,7 +190,7 @@ async function deleteProject(projectId: string) {
 }
 
 async function deleteProfile(profileId: string) {
-	const profile = getProfileById(profileId);
+	const profile = ProfileService.getProfileById(profileId);
 	if (!profile) {
 		return;
 	}
@@ -241,7 +238,7 @@ async function confirmDeleteDialog() {
 }
 
 $effect(() => {
-	if (selectedProfileId && !getProfileById(selectedProfileId)) {
+	if (selectedProfileId && !ProfileService.getProfileById(selectedProfileId)) {
 		selectedProfileId = undefined;
 		editorMode = "profile";
 		clearProfileForm();
@@ -333,7 +330,7 @@ $effect(() => {
 												<button
 													type="button"
 													class={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors ${selectedProfileId === profile.id ? "bg-primary/10 text-primary" : "hover:bg-muted/60"}`}
-													onclick={() => selectProfile(project.id, profile.id)}
+													onclick={() => handleProfileSelect(project.id, profile.id)}
 												>
 													<div class="flex min-w-0 flex-1 items-center gap-2">
 														<FileIcon class="size-3.5 shrink-0 text-muted-foreground" />

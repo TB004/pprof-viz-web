@@ -18,6 +18,7 @@ const sidebar = useSidebar();
 
 <button
 	bind:this={ref}
+	type="button"
 	data-sidebar="rail"
 	data-slot="sidebar-rail"
 	aria-label="Toggle Sidebar"

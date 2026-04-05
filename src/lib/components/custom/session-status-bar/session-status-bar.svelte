@@ -13,6 +13,7 @@ import * as CollectionService from "$lib/services/collection_service.js";
 import * as ErrorService from "$lib/services/error_service.js";
 import { CollectionType } from "$lib/services/profile_service";
 import { cn } from "$lib/utils.js";
+import StatusElement from "./status-element.svelte";
 
 let showErrors = $state(false);
 
@@ -53,25 +54,25 @@ const visibleErrors = $derived($errorState.slice(0, 4));
 	class="border-sidebar-border/70 bg-sidebar/90 text-sidebar-foreground supports-backdrop-filter:bg-sidebar/80 shrink-0 border-t backdrop-blur"
 >
 	<div class="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 text-xs">
-		<div class="flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1.5 shadow-sm">
+		<StatusElement>
 			{#if $collectionState.status === CollectionService.CollectionStatus.Running}
 				<LoaderCircle class={statusIconClass} />
 			{:else}
 				<PauseIcon class={statusIconClass} />
 			{/if}
 			<span class="font-medium">{statusLabel}</span>
-		</div>
+		</StatusElement>
 
-		<div class="flex min-w-0 items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1.5 shadow-sm">
+		<StatusElement>
 			<span class="text-muted-foreground">URL</span>
 			{#if urlLabel}
 				<span class="truncate font-medium">{urlLabel}</span>
 			{:else}
 				<span class="font-medium text-muted-foreground">undefined</span>
 			{/if}
-		</div>
+		</StatusElement>
 
-		<div class="flex min-w-0 items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1.5 shadow-sm">
+		<StatusElement>
 			<span class="text-muted-foreground">Mode</span>
 			{#if modeLabel}
 				<span class="font-medium">{modeLabel}</span>
@@ -85,17 +86,17 @@ const visibleErrors = $derived($errorState.slice(0, 4));
 					<Tooltip.Content side="top">Select a collection profile first.</Tooltip.Content>
 				</Tooltip.Root>
 			{/if}
-		</div>
+		</StatusElement>
 
-		<div class="flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1.5 shadow-sm">
+		<StatusElement>
 			<span class="text-muted-foreground">Samples</span>
 			<span class="font-medium">{$collectionState.collectedSamples}</span>
-		</div>
+		</StatusElement>
 
-		<div class="flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1.5 shadow-sm">
+		<StatusElement>
 			<span class="text-muted-foreground">Time</span>
 			<span class="font-medium">{CollectionService.formatElapsedTime($collectionState.elapsedSeconds)}</span>
-		</div>
+		</StatusElement>
 
 		<button
 			type="button"

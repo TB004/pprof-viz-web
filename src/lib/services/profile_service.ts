@@ -1,7 +1,7 @@
 import { derived, type Readable, writable } from "svelte/store";
-import { ulid } from "ulid";
 import { browser } from "$app/environment";
 import * as DBService from "$lib/services/db_service.js";
+import { genUlid } from "$lib/utils.js";
 
 export enum CollectionType {
 	Snapshot = "snapshot",
@@ -152,7 +152,7 @@ export async function createProject(name: string) {
 
 	const timestamp = Date.now();
 	const project: ProjectRow = {
-		id: ulid(),
+		id: genUlid(),
 		name: trimmedName,
 		createdAt: timestamp,
 		updatedAt: timestamp,
@@ -244,7 +244,7 @@ export async function createProfile(
 
 	const timestamp = Date.now();
 	const profile: ProfileRecord = {
-		id: ulid(),
+		id: genUlid(),
 		projectId,
 		name: trimmedName,
 		url: trimmedUrl,

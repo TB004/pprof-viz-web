@@ -4,6 +4,8 @@ import type { HTMLAttributes } from "svelte/elements";
 import { Button } from "$lib/components/ui/button/index.js";
 import { cn, type WithElementRef } from "$lib/utils.js";
 
+const DialogClose = DialogPrimitive.Close;
+
 let {
 	ref = $bindable(null),
 	class: className,
@@ -23,10 +25,10 @@ let {
 >
 	{@render children?.()}
 	{#if showCloseButton}
-		<DialogPrimitive.Close>
+		<DialogClose>
 			{#snippet child({ props })}
 				<Button variant="outline" {...props}>Close</Button>
 			{/snippet}
-		</DialogPrimitive.Close>
+		</DialogClose>
 	{/if}
 </div>

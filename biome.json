@@ -23,6 +23,7 @@
 	},
 	"javascript": {
 		"formatter": {
+			"enabled": true,
 			"quoteStyle": "double"
 		}
 	},
@@ -35,12 +36,21 @@
 		}
 	},
 	"html": {
-		"experimentalFullSupportEnabled": true
+		"experimentalFullSupportEnabled": true,
+		"formatter": {
+			"enabled": true
+		},
+		"linter": {
+			"enabled": true
+		}
 	},
 	"css": {
 		"parser": {
 			"tailwindDirectives": true,
 			"cssModules": false
+		},
+		"formatter": {
+			"enabled": true
 		}
 	}
 }

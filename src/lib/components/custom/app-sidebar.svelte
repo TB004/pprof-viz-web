@@ -48,7 +48,7 @@ const triggerContent = $derived(
 <Sidebar.Root variant="floating">
 	<Sidebar.Header>
 		<div class="flex items-center gap-2">
-			<img src="/logo.svg" alt="Pprof Viz Logo" class="h-8 w-8" />
+			<img src="/logo.svg" alt="Pprof Viz Logo" class="h-8 w-8">
 			<h1 class="text-lg font-semibold">Pprof-Viz</h1>
 		</div>
 	</Sidebar.Header>
@@ -104,10 +104,15 @@ const triggerContent = $derived(
 											</Select.Item>
 										{:else}
 											{#each $profileOptions as profile (profile.value)}
-												<Select.Item value={profile.value} label={profile.label}>
+												<Select.Item
+													value={profile.value}
+													label={profile.label}
+												>
 													<div class="flex flex-col items-start">
 														<span>{profile.label}</span>
-														<span class="text-xs text-muted-foreground">{profile.projectName}</span>
+														<span class="text-xs text-muted-foreground"
+															>{profile.projectName}</span
+														>
 													</div>
 												</Select.Item>
 											{/each}
@@ -115,7 +120,12 @@ const triggerContent = $derived(
 									</Select.Group>
 								</Select.Content>
 							</Select.Root>
-							<Button variant="ghost" size="icon" class="shrink-0" onclick={() => (profileManagerOpen = true)}>
+							<Button
+								variant="ghost"
+								size="icon"
+								class="shrink-0"
+								onclick={() => (profileManagerOpen = true)}
+							>
 								<Settings2Icon />
 							</Button>
 						</div>
@@ -123,8 +133,12 @@ const triggerContent = $derived(
 				</Card.Root>
 			</Sidebar.GroupContent>
 			{#if $collectionState.status === "running"}
-				<Button variant="destructive" class="mt-3" onclick={() => {
-					CollectionService.stopCollection()}}>
+				<Button
+					variant="destructive"
+					class="mt-3"
+					onclick={() => {
+					CollectionService.stopCollection()}}
+				>
 					<span>Stop collecting</span>
 				</Button>
 			{:else}

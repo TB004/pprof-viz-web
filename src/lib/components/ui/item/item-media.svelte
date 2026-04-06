@@ -22,16 +22,18 @@ export type ItemMediaVariant = VariantProps<
 </script>
 
 <script lang="ts">
-	import type { HTMLAttributes } from "svelte/elements";
-	import { cn, type WithElementRef } from "$lib/utils.js";
+import type { HTMLAttributes } from "svelte/elements";
+import { cn, type WithElementRef } from "$lib/utils.js";
 
-	let {
-		ref = $bindable(null),
-		class: className,
-		children,
-		variant = "default",
-		...restProps
-	}: WithElementRef<HTMLAttributes<HTMLDivElement>> & { variant?: ItemMediaVariant } = $props();
+let {
+	ref = $bindable(null),
+	class: className,
+	children,
+	variant = "default",
+	...restProps
+}: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
+	variant?: ItemMediaVariant;
+} = $props();
 </script>
 
 <div

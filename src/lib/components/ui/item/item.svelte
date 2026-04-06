@@ -26,36 +26,34 @@ export type ItemVariant = VariantProps<typeof itemVariants>["variant"];
 </script>
 
 <script lang="ts">
-	import type { Snippet } from "svelte";
-	import type { HTMLAttributes } from "svelte/elements";
-	import { cn, type WithElementRef } from "$lib/utils.js";
+import type { Snippet } from "svelte";
+import type { HTMLAttributes } from "svelte/elements";
+import { cn, type WithElementRef } from "$lib/utils.js";
 
-	let {
-		ref = $bindable(null),
-		class: className,
-		child,
-		variant,
-		size,
-		...restProps
-	}: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
-		child?: Snippet<[{ props: Record<string, unknown> }]>;
-		variant?: ItemVariant;
-		size?: ItemSize;
-	} = $props();
+let {
+	ref = $bindable(null),
+	class: className,
+	child,
+	variant,
+	size,
+	...restProps
+}: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
+	child?: Snippet<[{ props: Record<string, unknown> }]>;
+	variant?: ItemVariant;
+	size?: ItemSize;
+} = $props();
 
-	const mergedProps = $derived({
-		class: cn(itemVariants({ variant, size }), className),
-		"data-slot": "item",
-		"data-variant": variant,
-		"data-size": size,
-		...restProps,
-	});
+const mergedProps = $derived({
+	class: cn(itemVariants({ variant, size }), className),
+	"data-slot": "item",
+	"data-variant": variant,
+	"data-size": size,
+	...restProps,
+});
 </script>
 
 {#if child}
 	{@render child({ props: mergedProps })}
 {:else}
-	<div bind:this={ref} {...mergedProps}>
-		{@render mergedProps.children?.()}
-	</div>
+	<div bind:this={ref} {...mergedProps}>{@render mergedProps.children?.()}</div>
 {/if}

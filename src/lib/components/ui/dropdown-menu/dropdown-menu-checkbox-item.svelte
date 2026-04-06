@@ -34,9 +34,9 @@ let {
 			data-slot="dropdown-menu-checkbox-item-indicator"
 		>
 			{#if indeterminate}
-				<MinusIcon  />
+				<MinusIcon />
 			{:else if checked}
-				<CheckIcon  />
+				<CheckIcon />
 			{/if}
 		</span>
 		{@render childrenProp?.()}

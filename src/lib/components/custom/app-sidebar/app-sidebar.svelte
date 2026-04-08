@@ -8,7 +8,7 @@ import {
 	SettingsIcon,
 } from "@lucide/svelte";
 import { ProfileChooser } from "$lib/components/custom/app-sidebar";
-import ProfileManagerDialog from "$lib/components/custom/profile-manager-dialog.svelte";
+import { ProfileManagerDialog } from "$lib/components/custom/profile-manager-dialog";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 import { CollectionService } from "$lib/services";

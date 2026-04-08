@@ -1,12 +1,13 @@
 <script lang="ts">
 import { CircleAlertIcon, LoaderCircle, PauseIcon } from "@lucide/svelte";
+import {
+	ErrorView,
+	StatusElement,
+} from "$lib/components/custom/session-status-bar";
 import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-import * as CollectionService from "$lib/services/collection_service.js";
-import * as ErrorService from "$lib/services/error_service.js";
+import { CollectionService, ErrorService } from "$lib/services";
 import { CollectionType } from "$lib/services/profile_service";
 import { cn } from "$lib/utils.js";
-import ErrorView from "./error-view.svelte";
-import StatusElement from "./status-element.svelte";
 
 let showErrors = $state(false);
 

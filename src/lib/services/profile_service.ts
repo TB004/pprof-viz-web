@@ -1,6 +1,6 @@
 import { derived, type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
-import * as DBService from "$lib/services/db_service.js";
+import { DBService } from "$lib/services";
 import { genUlid } from "$lib/utils.js";
 
 export enum CollectionType {

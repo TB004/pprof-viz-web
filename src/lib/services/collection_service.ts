@@ -1,6 +1,6 @@
 import { type Readable, writable } from "svelte/store";
+import { ProfileService } from "$lib/services";
 import { registerError } from "$lib/services/error_service.js";
-import * as ProfileService from "./profile_service";
 
 export type CollectionType = ProfileService.CollectionType;
 

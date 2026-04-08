@@ -2,8 +2,8 @@
 import { page } from "$app/state";
 import "./layout.css";
 import { ModeWatcher } from "mode-watcher";
-import AppSidebar from "$lib/components/custom/app-sidebar.svelte";
-import SessionStatusBar from "$lib/components/custom/session-status-bar/session-status-bar.svelte";
+import { AppSidebar } from "$lib/components/custom/app-sidebar";
+import { SessionStatusBar } from "$lib/components/custom/session-status-bar";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 
 let { children } = $props();

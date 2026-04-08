@@ -12,8 +12,7 @@ import {
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import Input from "$lib/components/ui/input/input.svelte";
-import * as CollectionService from "$lib/services/collection_service.js";
-import * as ProfileService from "$lib/services/profile_service.js";
+import { CollectionService, ProfileService } from "$lib/services";
 
 type EditorMode = "profile" | "new-profile";
 type ProjectDialogMode = "create" | "rename";

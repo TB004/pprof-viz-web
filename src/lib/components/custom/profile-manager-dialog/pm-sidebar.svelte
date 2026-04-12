@@ -1,10 +1,10 @@
 <script lang="ts">
 import { FolderPlusIcon } from "@lucide/svelte";
 import { Button } from "$lib/components/ui/button/index.js";
+import { ScrollArea } from "$lib/components/ui/scroll-area";
 import { ProfileService } from "$lib/services";
 import PMSidebarElem from "./pm-sidebar-elem.svelte";
 import { dialogState } from "./state.svelte";
-import { ScrollArea } from "$lib/components/ui/scroll-area";
 
 const profileCatalog = ProfileService.profileCatalog;
 const profileProjects = ProfileService.profileProjects;

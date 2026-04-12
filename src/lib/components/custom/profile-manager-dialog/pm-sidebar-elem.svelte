@@ -47,7 +47,7 @@ function openDeleteProjectDialog(projectId: string) {
 	dialogState.deleteDialogOpen = true;
 }
 
-// When a profile is selected, we need to update the dialog state with the selected 
+// When a profile is selected, we need to update the dialog state with the selected
 // profile's information and switch to the profile editor mode.
 function handleProfileSelect(projectId: string, profileId: string) {
 	dialogState.selectedProjectId = projectId;

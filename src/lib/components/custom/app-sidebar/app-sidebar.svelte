@@ -8,7 +8,7 @@ import {
 	SettingsIcon,
 } from "@lucide/svelte";
 import { ProfileChooser } from "$lib/components/custom/app-sidebar";
-import { ProfileManagerDialog } from "$lib/components/custom/profile-manager-dialog";
+import { PMDialog } from "$lib/components/custom/profile-manager-dialog";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 import { CollectionService } from "$lib/services";
@@ -111,4 +111,4 @@ const triggerContent = $derived(
 	</Sidebar.Footer>
 </Sidebar.Root>
 
-<ProfileManagerDialog bind:open={profileManagerOpen} />
+<PMDialog bind:open={profileManagerOpen} />

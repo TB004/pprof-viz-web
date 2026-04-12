@@ -35,7 +35,8 @@ const sidebar = useSidebar();
 	</div>
 {:else if sidebar.isMobile}
 	<Sheet.Root
-		bind:open={() => sidebar.openMobile, (v) => sidebar.setOpenMobile(v)}
+		open={sidebar.openMobile}
+		onOpenChange={sidebar.setOpenMobile}
 		{...restProps}
 	>
 		<Sheet.Content
@@ -54,9 +55,7 @@ const sidebar = useSidebar();
 				<Sheet.Title>Sidebar</Sheet.Title>
 				<Sheet.Description>Displays the mobile sidebar.</Sheet.Description>
 			</Sheet.Header>
-			<div class="flex h-full w-full flex-col">
-				{@render children?.()}
-			</div>
+			<div class="flex h-full w-full flex-col">{@render children?.()}</div>
 		</Sheet.Content>
 	</Sheet.Root>
 {:else}

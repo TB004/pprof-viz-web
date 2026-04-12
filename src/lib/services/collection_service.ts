@@ -1,46 +1,13 @@
 import { type Readable, writable } from "svelte/store";
+import { ProfileService } from "$lib/services";
+import { registerError } from "$lib/services/error_service.js";
 
-export enum CollectionType {
-	Snapshot = "snapshot",
-	Stream = "stream",
+export type CollectionType = ProfileService.CollectionType;
+
+export enum CollectionStatus {
+	Idle = "idle",
+	Running = "running",
 }
-
-export type CollectionStatus = "idle" | "running";
-
-export interface CollectionProfile {
-	value: string;
-	label: string;
-	url: URL;
-	mode: CollectionType;
-}
-
-export interface CollectionError {
-	id: string;
-	message: string;
-	timestamp: number;
-}
-
-// These are currently just some hardcoded dummy data
-export const collectionProfiles: CollectionProfile[] = [
-	{
-		value: "p1",
-		label: "Profile 1",
-		url: new URL("http://localhost:9090"),
-		mode: CollectionType.Stream,
-	},
-	{
-		value: "p2",
-		label: "Profile 2",
-		url: new URL("http://localhost:9091"),
-		mode: CollectionType.Snapshot,
-	},
-	{
-		value: "p3",
-		label: "Profile 3",
-		url: new URL("http://localhost:9092"),
-		mode: CollectionType.Stream,
-	},
-];
 
 export interface CollectionState {
 	status: CollectionStatus;
@@ -49,60 +16,10 @@ export interface CollectionState {
 	selectedProfile: string | undefined;
 	selectedProfileLabel: string | undefined;
 	url: URL | undefined;
-	mode: CollectionType | undefined;
-	errors: CollectionError[];
+	mode: ProfileService.CollectionType | undefined;
 	params: Record<string, unknown>;
 	data: unknown;
 	metadata: unknown;
-}
-
-const defaultCollectionState: CollectionState = {
-	status: "idle",
-	collectedSamples: 0,
-	elapsedSeconds: 0,
-	selectedProfile: undefined,
-	selectedProfileLabel: undefined,
-	url: undefined,
-	mode: undefined,
-	errors: [],
-	params: {},
-	data: null,
-	metadata: null,
-};
-
-const collectionStateStore = writable<CollectionState>(defaultCollectionState);
-
-let timerHandle: ReturnType<typeof setInterval> | undefined;
-let collectionStartedAt: number | undefined;
-
-function updateElapsedTimeFromStart() {
-	if (collectionStartedAt === undefined) {
-		return;
-	}
-
-	const elapsedSeconds = Math.max(
-		0,
-		Math.floor((Date.now() - collectionStartedAt) / 1000),
-	);
-
-	collectionStateStore.update((state) => ({
-		...state,
-		elapsedSeconds,
-	}));
-}
-
-export function formatErrorTimestamp(timestamp: number): string {
-	const formattedDate = new Intl.DateTimeFormat("en-US", {
-		weekday: "long",
-		month: "long",
-		day: "2-digit",
-		year: "numeric",
-		hour: "numeric",
-		minute: "2-digit",
-		second: "2-digit",
-	}).format(new Date(timestamp));
-
-	return `${formattedDate}`;
 }
 
 export function formatElapsedTime(totalSeconds: number): string {
@@ -113,121 +30,115 @@ export function formatElapsedTime(totalSeconds: number): string {
 	return `${hours}h ${minutes}m ${seconds}s`;
 }
 
+const defaultCollectionState: CollectionState = {
+	status: CollectionStatus.Idle,
+	collectedSamples: 0,
+	elapsedSeconds: 0,
+	selectedProfile: undefined,
+	selectedProfileLabel: undefined,
+	url: undefined,
+	mode: undefined,
+	params: {},
+	data: null,
+	metadata: null,
+};
+
+const collectionStateStore = writable<CollectionState>(defaultCollectionState);
+
+let timerHandle: ReturnType<typeof setInterval> | undefined;
+let collectionStartedAt: number | undefined;
+
+function getCollectionStateSnapshot(): CollectionState {
+	let snapshot = defaultCollectionState;
+	const unsubscribe = collectionStateStore.subscribe((value) => {
+		snapshot = value;
+	});
+	unsubscribe();
+	return snapshot;
+}
+
+function applySelectedProfile(profileId: string | undefined) {
+	const snapshot = profileId
+		? ProfileService.getProfileById(profileId)
+		: undefined;
+
+	collectionStateStore.update((state) => ({
+		...state,
+		selectedProfile: snapshot?.profile.id,
+		selectedProfileLabel: snapshot?.profile.name,
+		url: snapshot ? new URL(snapshot.profile.url) : undefined,
+		mode: snapshot?.profile.mode,
+	}));
+}
+
+function updateElapsedTimeFromStart() {
+	const startedAt = collectionStartedAt;
+	if (startedAt === undefined) {
+		return;
+	}
+
+	collectionStateStore.update((state) => ({
+		...state,
+		elapsedSeconds: Math.max(0, Math.floor((Date.now() - startedAt) / 1000)),
+	}));
+}
+
 export const collectionState: Readable<CollectionState> = {
 	subscribe: collectionStateStore.subscribe,
 };
 
-function getCollectionStateSnapshot(): CollectionState {
-	let snapshot = defaultCollectionState;
+export async function selectProfile(profileId: string | undefined) {
+	const currentState = getCollectionStateSnapshot();
+	if (
+		currentState.status === CollectionStatus.Running &&
+		profileId !== currentState.selectedProfile
+	) {
+		registerError(
+			"Stop the current collection before changing the collection profile.",
+		);
+		return;
+	}
 
-	const unsubscribe = collectionStateStore.subscribe((value) => {
-		snapshot = value;
-	});
-
-	unsubscribe();
-
-	return snapshot;
+	await ProfileService.setActiveProfile(profileId);
+	applySelectedProfile(profileId);
 }
 
-export class CollectionService {
-	static subscribe = collectionStateStore.subscribe;
+export function startCollection() {
+	const currentState = getCollectionStateSnapshot();
 
-	static selectProfile(profileValue: string) {
-		const currentState = getCollectionStateSnapshot();
-
-		if (currentState.status === "running") {
-			CollectionService.registerError(
-				"Stop the current collection before changing the collection profile.",
-			);
-			return;
-		}
-
-		const selectedProfile = profileValue
-			? collectionProfiles.find((profile) => profile.value === profileValue)
-			: undefined;
-
-		collectionStateStore.update((state) => ({
-			...state,
-			selectedProfile: selectedProfile?.value,
-			selectedProfileLabel: selectedProfile?.label,
-			url: selectedProfile?.url,
-			mode: selectedProfile?.mode,
-		}));
+	if (currentState.url === undefined || currentState.mode === undefined) {
+		registerError("Select a collection profile before starting a collection.");
+		return;
 	}
 
-	static registerError(message: string) {
-		collectionStateStore.update((state) => ({
-			...state,
-			errors: [
-				{
-					id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-					message,
-					timestamp: Date.now(),
-				},
-				...state.errors,
-			],
-		}));
+	collectionStartedAt = Date.now();
+	collectionStateStore.update((state) => ({
+		...state,
+		status: CollectionStatus.Running,
+		elapsedSeconds: 0,
+		collectedSamples: 0,
+		data: null,
+		metadata: null,
+	}));
+	updateElapsedTimeFromStart();
+	timerHandle = setInterval(updateElapsedTimeFromStart, 1000);
+}
+
+export function stopCollection() {
+	updateElapsedTimeFromStart();
+	collectionStateStore.update((state) => ({
+		...state,
+		status: CollectionStatus.Idle,
+	}));
+
+	if (timerHandle !== undefined) {
+		clearInterval(timerHandle);
+		timerHandle = undefined;
 	}
+	collectionStartedAt = undefined;
+	collectionStateStore.set(defaultCollectionState);
+}
 
-	static removeError(errorId: string) {
-		collectionStateStore.update((state) => ({
-			...state,
-			errors: state.errors.filter((error) => error.id !== errorId),
-		}));
-	}
-
-	static clearErrors() {
-		collectionStateStore.update((state) => ({
-			...state,
-			errors: [],
-		}));
-	}
-
-	static startCollection() {
-		const currentState = getCollectionStateSnapshot();
-
-		if (currentState.url === undefined || currentState.mode === undefined) {
-			CollectionService.registerError(
-				"Select a collection profile before starting a collection.",
-			);
-			return;
-		}
-
-		collectionStartedAt = Date.now();
-		collectionStateStore.update((state) => ({
-			...state,
-			status: "running",
-			elapsedSeconds: 0,
-			collectedSamples: 0,
-			data: null,
-			metadata: null,
-		}));
-		updateElapsedTimeFromStart();
-		timerHandle = setInterval(updateElapsedTimeFromStart, 1000);
-
-		// TODO: Implement the actual data collection logic
-	}
-
-	static stopCollection() {
-		updateElapsedTimeFromStart();
-		collectionStateStore.update((state) => ({
-			...state,
-			status: "idle",
-		}));
-
-		// TODO: Implement the actual logic to stop data collection
-	}
-
-	static getMetadata() {
-		// TODO: Implement the logic to fetch metadata from the target application
-	}
-
-	static reset() {
-		if (timerHandle !== undefined) {
-			clearInterval(timerHandle);
-			timerHandle = undefined;
-		}
-		collectionStartedAt = undefined;
-		collectionStateStore.set(defaultCollectionState);
-	}
+export function getMetadata() {
+	// TODO: Implement the logic to fetch metadata from the target application
 }

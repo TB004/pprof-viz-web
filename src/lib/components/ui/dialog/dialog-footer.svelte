@@ -1,10 +1,9 @@
 <script lang="ts">
+// biome-ignore lint/correctness/noUnusedImports: used in Svelte template
 import { Dialog as DialogPrimitive } from "bits-ui";
 import type { HTMLAttributes } from "svelte/elements";
 import { Button } from "$lib/components/ui/button/index.js";
 import { cn, type WithElementRef } from "$lib/utils.js";
-
-const DialogClose = DialogPrimitive.Close;
 
 let {
 	ref = $bindable(null),
@@ -20,15 +19,15 @@ let {
 <div
 	bind:this={ref}
 	data-slot="dialog-footer"
-	class={cn("bg-muted/50 -mx-4 -mb-4 rounded-b-xl border-t p-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", className)}
+	class={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", className)}
 	{...restProps}
 >
 	{@render children?.()}
 	{#if showCloseButton}
-		<DialogClose>
+		<DialogPrimitive.Close>
 			{#snippet child({ props })}
 				<Button variant="outline" {...props}>Close</Button>
 			{/snippet}
-		</DialogClose>
+		</DialogPrimitive.Close>
 	{/if}
 </div>

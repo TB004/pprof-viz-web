@@ -1,0 +1,193 @@
+syntax = "proto3";
+
+package proto;
+
+import "google/protobuf/empty.proto";
+
+service AgentService {
+  rpc SnapshotAll(google.protobuf.Empty) returns (AllResponse);
+  rpc StreamAll(StreamConfigRequest) returns (stream AllResponse);
+  rpc GetMetadata(google.protobuf.Empty) returns (MetadataResponse);
+}
+
+message StreamConfigRequest {
+  uint32 interval_seconds = 1;
+  uint32 number_of_cycles = 2;
+  bool exclude_histogram_buckets = 3;
+}
+
+message Histogram {
+  repeated uint64 counts = 1;
+  repeated float buckets = 2;
+  map<uint32, uint64> updated_counts = 3;
+}
+
+message CgoResponse {
+  optional uint64 cgo_calls = 1;
+}
+
+message CPUResponse {
+  optional double gc_assist_seconds = 1;
+  optional double gc_dedicated_seconds = 2;
+  optional double gc_idle_seconds = 3;
+  optional double gc_pause_seconds = 4;
+  optional double gc_total_seconds = 5;
+  optional double idle_seconds = 6;
+  optional double total_seconds = 7;
+  optional double user_seconds = 8;
+  optional double scavenge_assist_seconds = 9;
+  optional double scavenge_background_seconds = 10;
+  optional double scavenge_total_seconds = 11;
+}
+
+message GCMetadata {
+  repeated float bytes_allocs_by_size_buckets = 1;
+  repeated float bytes_frees_by_size_buckets = 2;
+}
+
+message SchedulerMetadata {
+  repeated float latencies_seconds_buckets = 1;
+  repeated float stopping_gc_seconds_buckets = 2;
+  repeated float stopping_other_seconds_buckets = 3;
+  repeated float total_gc_pause_seconds_buckets = 4;
+  repeated float total_other_pause_seconds_buckets = 5;
+}
+
+message MetadataResponse {
+  GCMetadata gc = 1;
+  SchedulerMetadata scheduler = 2;
+}
+
+message GCResponse {
+  // 8-byte types and pointers first (Tag 1-15)
+  Histogram bytes_allocs_by_size = 1;
+  Histogram bytes_frees_by_size = 2;
+  optional uint64 executed_cleanups = 3;
+  optional uint64 queued_cleanups = 4;
+  optional uint64 automatic_cycles = 5;
+  optional uint64 forced_cycles = 6;
+  optional uint64 total_cycles = 7;
+  optional uint64 executed_finalizers = 8;
+  optional uint64 queued_finalizers = 9;
+  optional uint64 memory_limit_bytes = 10;
+  optional uint64 bytes_allocs = 11;
+  optional uint64 objects_allocs = 12;
+  optional uint64 bytes_frees = 13;
+  optional uint64 objects_frees = 14;
+  optional uint64 goal_heap_size_bytes = 15;
+  optional uint64 live_occupied_bytes = 16;
+  optional uint64 objects_occupied = 17;
+  optional uint64 tiny_objects_allocs = 18;
+  optional uint64 limiter_last_enabled_cycle = 19;
+  optional uint64 global_scanned_bytes = 20;
+  optional uint64 heap_scanned_bytes = 21;
+  optional uint64 stack_scanned_bytes = 22;
+  optional uint64 total_scanned_bytes = 23;
+  optional uint64 stack_starting_size = 24;
+
+  // 4-byte types at the end
+  optional uint32 target_heap_size_percentage = 25;
+}
+
+message GoDebugResponse {
+  // Most "active" metrics moved to tags 1-15 for 1-byte encoding.
+  // Gocache, HTTP2, and TLS are frequently reported events.
+  optional uint64 cache_hash_events = 1;
+  optional uint64 cache_test_events = 2;
+  optional uint64 cache_verify_events = 3;
+  optional uint64 http2_client_events = 4;
+  optional uint64 http2_server_events = 5;
+  optional uint64 tls10_server_events = 6;
+  optional uint64 tls3_des_events = 7;
+  optional uint64 tls_max_rsa_size_events = 8;
+  optional uint64 tls_rsa_kex_events = 9;
+  optional uint64 tls_sha1_events = 10;
+  optional uint64 tls_unsafe_ekm_events = 11;
+  optional uint64 http_cookie_max_num_events = 12;
+  optional uint64 http_lax_content_length_events = 13;
+  optional uint64 http_mux_go_121_events = 14;
+  optional uint64 http_serve_content_keep_headers_events = 15;
+
+  // Remaining uint64 fields (Tag 16+)
+  optional uint64 allow_multiple_vcs_events = 16;
+  optional uint64 async_timer_chan_events = 17;
+  optional uint64 container_max_procs_events = 18;
+  optional uint64 crypto_custom_rand_events = 19;
+  optional uint64 embed_follow_symlink_events = 20;
+  optional uint64 exec_err_dot_events = 21;
+  optional uint64 test_json_build_text_events = 22;
+  optional uint64 type_alias_events = 23;
+  optional uint64 html_meta_content_url_escaped_events = 24;
+  optional uint64 install_go_root_events = 25;
+  optional uint64 multipart_max_headers_events = 26;
+  optional uint64 multipart_max_parts_events = 27;
+  optional uint64 multipath_tcp_events = 28;
+  optional uint64 net_edns0_events = 29;
+  optional uint64 panic_nil_events = 30;
+  optional uint64 rand_auto_seed_events = 31;
+  optional uint64 rand_seed_nop_events = 32;
+  optional uint64 rsa1024_min_events = 33;
+  optional uint64 tar_insecure_path_events = 34;
+  optional uint64 update_max_procs_events = 35;
+  optional uint64 url_max_query_params_events = 36;
+  optional uint64 url_strict_colons_events = 37;
+  optional uint64 win_read_link_volume_events = 38;
+  optional uint64 win_symlink_events = 39;
+  optional uint64 x509_keypair_leaf_events = 40;
+  optional uint64 x509_negative_serial_events = 41;
+  optional uint64 x509_rsa_crt_events = 42;
+  optional uint64 x509_sha256_skid_events = 43;
+  optional uint64 x509_use_fallback_roots_events = 44;
+  optional uint64 x509_use_policies_events = 45;
+  optional uint64 zip_insecure_path_events = 46;
+}
+
+message MemoryResponse {
+  optional uint64 heap_free_bytes = 1;
+  optional uint64 heap_object_bytes = 2;
+  optional uint64 heap_released_bytes = 3;
+  optional uint64 heap_stack_bytes = 4;
+  optional uint64 heap_unused_bytes = 5;
+  optional uint64 mcache_free_bytes = 6;
+  optional uint64 mcache_inuse_bytes = 7;
+  optional uint64 mspan_free_bytes = 8;
+  optional uint64 mspan_inuse_bytes = 9;
+  optional uint64 other_metadata_bytes = 10;
+  optional uint64 os_stack_bytes = 11;
+  optional uint64 other_bytes = 12;
+  optional uint64 profiling_bucket_bytes = 13;
+  optional uint64 total_bytes = 14;
+}
+
+message SchedulerResponse {
+  // Pointers/8-byte types first (Tag 1-15)
+  Histogram latencies_seconds = 1;
+  Histogram stopping_gc_seconds = 2;
+  Histogram stopping_other_seconds = 3;
+  Histogram total_gc_pause_seconds = 4;
+  Histogram total_other_pause_seconds = 5;
+  optional uint64 goroutines_created = 6;
+
+  // 4-byte types
+  optional uint32 gomaxprocs_threads = 7;
+  optional uint32 not_in_go_goroutines = 8;
+  optional uint32 runnable_goroutines = 9;
+  optional uint32 running_goroutines = 10;
+  optional uint32 waiting_goroutines = 11;
+  optional uint32 live_goroutines = 12;
+  optional uint32 total_live_threads = 13;
+}
+
+message SyncResponse {
+  optional double total_mutex_wait_duration_seconds = 1;
+}
+
+message AllResponse {
+  SchedulerResponse scheduler = 1;
+  GoDebugResponse go_debug = 2;
+  GCResponse gc = 3;
+  MemoryResponse memory = 4;
+  CPUResponse cpu = 5;
+  CgoResponse cgo = 6;
+  SyncResponse sync = 7;
+}

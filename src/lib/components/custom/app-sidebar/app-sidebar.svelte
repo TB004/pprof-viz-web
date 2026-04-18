@@ -9,13 +9,8 @@ import {
 } from "@lucide/svelte";
 import { ProfileChooser } from "$lib/components/custom/app-sidebar";
 import { PMDialog } from "$lib/components/custom/profile-manager-dialog";
-import { Button } from "$lib/components/ui/button/index.js";
+import Separator from "$lib/components/ui/separator/separator.svelte";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-import { CollectionService } from "$lib/services";
-import { profileOptions } from "$lib/services/profile_service.js";
-import Separator from "../../ui/separator/separator.svelte";
-
-const collectionState = CollectionService.collectionState;
 
 const menuItems = [
 	{ title: "CPU", url: "/cpu", icon: CpuIcon },
@@ -25,13 +20,7 @@ const menuItems = [
 	{ title: "Miscellaneous", url: "/miscellaneous", icon: PackageIcon },
 ];
 
-let selectedProfile = $state<string | undefined>(undefined);
 let profileManagerOpen = $state(false);
-
-const triggerContent = $derived(
-	$profileOptions.find((profile) => profile.value === selectedProfile)?.label ??
-		"Select a profile",
-);
 </script>
 
 <Sidebar.Root variant="floating">
@@ -62,38 +51,7 @@ const triggerContent = $derived(
 				</Sidebar.Menu>
 			</Sidebar.GroupContent>
 		</Sidebar.Group>
-		<Sidebar.Group>
-			<Sidebar.GroupLabel>Measurement</Sidebar.GroupLabel>
-			<Sidebar.GroupContent>
-				<ProfileChooser
-					{collectionState}
-					bind:profileManagerOpen
-					{selectedProfile}
-					{triggerContent}
-				/>
-			</Sidebar.GroupContent>
-			{#if $collectionState.status === "running"}
-				<Button
-					variant="destructive"
-					class="mt-3"
-					onclick={() => {
-					CollectionService.stopCollection(); 
-					selectedProfile = undefined;
-					}}
-				>
-					<span>Stop collecting</span>
-				</Button>
-			{:else}
-				<Button
-					variant="default"
-					class="mt-3"
-					disabled={!$collectionState.selectedProfile}
-					onclick={() => CollectionService.startCollection()}
-				>
-					<span>Start collecting</span>
-				</Button>
-			{/if}
-		</Sidebar.Group>
+		<Sidebar.Group> <ProfileChooser bind:profileManagerOpen /> </Sidebar.Group>
 	</Sidebar.Content>
 	<Sidebar.Footer>
 		<Sidebar.Menu>

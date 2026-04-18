@@ -35,8 +35,8 @@ const sidebar = useSidebar();
 	</div>
 {:else if sidebar.isMobile}
 	<Sheet.Root
-		open={sidebar.openMobile}
-		onOpenChange={sidebar.setOpenMobile}
+		bind:open={// biome-ignore lint/complexity/noCommaOperator: Svelte 5 getter/setter bind syntax
+			() => sidebar.openMobile, (v) => sidebar.setOpenMobile(v)}
 		{...restProps}
 	>
 		<Sheet.Content
@@ -85,8 +85,8 @@ const sidebar = useSidebar();
 			class={cn(
 				"fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
 				side === "left"
-					? "start-0 group-data-[collapsible=offcanvas]:start-[calc(var(--sidebar-width)*-1)]"
-					: "end-0 group-data-[collapsible=offcanvas]:end-[calc(var(--sidebar-width)*-1)]",
+					? "inset-s-0 group-data-[collapsible=offcanvas]:inset-s-[calc(var(--sidebar-width)*-1)]"
+					: "inset-e-0 group-data-[collapsible=offcanvas]:inset-e-[calc(var(--sidebar-width)*-1)]",
 				// Adjust the padding for floating and inset variants.
 				variant === "floating" || variant === "inset"
 					? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
@@ -98,7 +98,7 @@ const sidebar = useSidebar();
 			<div
 				data-sidebar="sidebar"
 				data-slot="sidebar-inner"
-				class="bg-sidebar group-data-[variant=floating]:ring-sidebar-border group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:shadow-sm group-data-[variant=floating]:ring-1 flex size-full flex-col"
+				class="bg-sidebar group-data-[variant=floating]:ring-sidebar-border group-data-[variant=floating]:rounded-2xl group-data-[variant=floating]:shadow-sm group-data-[variant=floating]:ring-1 flex size-full flex-col"
 			>
 				{@render children?.()}
 			</div>

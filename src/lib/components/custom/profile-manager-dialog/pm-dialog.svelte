@@ -47,7 +47,10 @@ $effect(() => {
 	dialogState.projectDialogOpen = false;
 });
 
-function openDeleteProfileDialog(profileId: string) {
+function openDeleteProfileDialog(profileId: string | undefined) {
+	if (!profileId) {
+		return;
+	}
 	const profile = ProfileService.getProfileById(profileId);
 	if (!profile) {
 		return;
@@ -205,14 +208,12 @@ async function saveProfile() {
 												>
 											</Button>
 											{#if dialogState.selectedProfileId}
-												{@const activeProfileId =
-                                                    dialogState.selectedProfileId}
 												<Button
 													variant="destructive"
 													onclick={() =>
-                                                        openDeleteProfileDialog(
-                                                            activeProfileId,
-                                                        )}
+														openDeleteProfileDialog(
+															dialogState.selectedProfileId,
+														)}
 												>
 													<Trash2Icon class="size-4" />
 													<span>Delete</span>

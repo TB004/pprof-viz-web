@@ -5,6 +5,11 @@
 default:
     @just --list
 
+# Generate TS mocks for protobuf
+[group('Utilities')]
+gen:
+    - bunx buf generate
+
 # Build docker images
 [group('Build')]
 bake:

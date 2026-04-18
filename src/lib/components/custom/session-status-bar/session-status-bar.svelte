@@ -4,7 +4,6 @@ import {
 	ErrorView,
 	StatusElement,
 } from "$lib/components/custom/session-status-bar";
-import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 import { CollectionService, ErrorService } from "$lib/services";
 import { CollectionType } from "$lib/services/profile_service";
 import { cn } from "$lib/utils.js";
@@ -43,7 +42,6 @@ const statusIconClass = $derived(
 );
 
 const errorCount = $derived($errorState.length);
-const visibleErrors = $derived($errorState.slice(0, 4));
 </script>
 
 <footer
@@ -75,18 +73,7 @@ const visibleErrors = $derived($errorState.slice(0, 4));
 			{#if modeLabel}
 				<span class="font-medium">{modeLabel}</span>
 			{:else}
-				<Tooltip.Root>
-					<Tooltip.Trigger>
-						{#snippet child({ props }: { props?: Record<string, unknown> })}
-							<span class="font-medium text-muted-foreground" {...props}
-								>undefined</span
-							>
-						{/snippet}
-					</Tooltip.Trigger>
-					<Tooltip.Content side="top"
-						>Select a collection profile first.</Tooltip.Content
-					>
-				</Tooltip.Root>
+				<span class="font-medium text-muted-foreground">undefined</span>
 			{/if}
 		</StatusElement>
 
@@ -122,5 +109,5 @@ const visibleErrors = $derived($errorState.slice(0, 4));
 </footer>
 
 {#if showErrors}
-	<ErrorView bind:showErrors {visibleErrors} {errorState} />
+	<ErrorView bind:showErrors {errorState} />
 {/if}

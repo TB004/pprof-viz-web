@@ -9,7 +9,7 @@ import {
 } from "@lucide/svelte";
 import { get } from "svelte/store";
 import { Button } from "$lib/components/ui/button/index.js";
-import { CollectionService, ProfileService } from "$lib/services";
+import { ProfileService } from "$lib/services";
 import type { ProfileProject } from "$lib/services/profile_service";
 import { clearProfileForm, dialogState } from "./state.svelte.ts";
 
@@ -59,30 +59,33 @@ function handleProfileSelect(projectId: string, profileId: string) {
 	dialogState.profileUrl = snapshot?.profile.url ?? "";
 	dialogState.profileMode =
 		snapshot?.profile.mode ?? ProfileService.CollectionType.Stream;
-
-	void CollectionService.selectProfile(profileId);
 }
 </script>
 
-<details class="group rounded-xl border border-transparent bg-background/70">
+<details class="group rounded-xl border border-transparent">
 	<summary
-		class="flex cursor-pointer list-none items-center gap-2 rounded-xl px-2 py-2 hover:bg-muted/50"
+		class="group/row flex cursor-default list-none items-center gap-2 rounded-xl px-2 py-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
 	>
 		<ChevronDownIcon
-			class="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+			class="size-4 shrink-0 text-sidebar-foreground/60 transition-transform group-open:rotate-180"
 		/>
-		<FolderIcon class="size-4 shrink-0 text-muted-foreground" />
+		<FolderIcon class="size-4 shrink-0 text-sidebar-foreground/60" />
 		<div class="min-w-0 flex-1">
-			<p class="truncate text-sm font-medium text-foreground">{project.name}</p>
-			<p class="text-xs text-muted-foreground">
+			<p class="truncate text-sm font-medium text-sidebar-foreground">
+				{project.name}
+			</p>
+			<p class="text-xs text-sidebar-foreground/60">
 				{project.profiles.length}
 				profile{project.profiles.length === 1 ? "" : "s"}
 			</p>
 		</div>
-		<div class="ml-auto flex items-center gap-1">
+		<div
+			class="ml-auto flex items-center gap-1 opacity-0 transition-opacity group-hover/row:opacity-100"
+		>
 			<Button
 				variant="ghost"
 				size="icon-xs"
+				class="hover:bg-sidebar-foreground/10 dark:hover:bg-sidebar-foreground/10 hover:text-sidebar-accent-foreground"
 				onclick={(event) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -95,6 +98,7 @@ function handleProfileSelect(projectId: string, profileId: string) {
 			<Button
 				variant="ghost"
 				size="icon-xs"
+				class="hover:bg-sidebar-foreground/10 dark:hover:bg-sidebar-foreground/10 hover:text-sidebar-accent-foreground"
 				onclick={(event) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -107,7 +111,7 @@ function handleProfileSelect(projectId: string, profileId: string) {
 			<Button
 				variant="ghost"
 				size="icon-xs"
-				class="text-muted-foreground hover:text-destructive"
+				class="hover:bg-destructive/10 dark:hover:bg-destructive/10 hover:text-destructive dark:hover:text-destructive"
 				onclick={(event) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -122,22 +126,22 @@ function handleProfileSelect(projectId: string, profileId: string) {
 
 	<div class="space-y-1 px-2 pb-2 pl-8">
 		{#if project.profiles.length === 0}
-			<div class="rounded-lg px-2 py-1 text-xs text-muted-foreground">
+			<div class="rounded-lg px-2 py-1 text-xs text-sidebar-foreground/60">
 				No profiles yet
 			</div>
 		{:else}
 			{#each project.profiles as profile (profile.id)}
 				<button
 					type="button"
-					class={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors ${dialogState.selectedProfileId === profile.id ? "bg-primary/10 text-primary" : "hover:bg-muted/60"}`}
+					class={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors ${dialogState.selectedProfileId === profile.id ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"}`}
 					onclick={() => handleProfileSelect(project.id, profile.id)}
 				>
 					<div class="flex min-w-0 flex-1 items-center gap-2">
-						<FileIcon class="size-3.5 shrink-0 text-muted-foreground" />
+						<FileIcon class="size-3.5 shrink-0 text-sidebar-foreground/60" />
 						<span class="truncate">{profile.name}</span>
 					</div>
 					<span
-						class="rounded-full border border-border/60 px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted-foreground"
+						class="rounded-full border border-sidebar-border px-2 py-0.5 text-[11px] uppercase tracking-wide text-sidebar-foreground/60"
 					>
 						{profile.mode}
 					</span>

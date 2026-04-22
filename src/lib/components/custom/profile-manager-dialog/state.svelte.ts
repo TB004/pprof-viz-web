@@ -9,6 +9,9 @@ export const dialogState = $state({
 	profileName: "",
 	profileUrl: "",
 	profileMode: ProfileService.CollectionType.Stream,
+	profileToken: "",
+	profileIntervalSeconds: 1,
+	profileNumberOfCycles: 0,
 	projectDialogOpen: false,
 	projectDialogMode: "create" as "create" | "rename",
 	projectDialogProjectId: undefined as string | undefined,
@@ -23,4 +26,7 @@ export function clearProfileForm() {
 	dialogState.profileName = "";
 	dialogState.profileUrl = "";
 	dialogState.profileMode = ProfileService.CollectionType.Stream;
+	dialogState.profileToken = "";
+	dialogState.profileIntervalSeconds = 1;
+	dialogState.profileNumberOfCycles = 0;
 }

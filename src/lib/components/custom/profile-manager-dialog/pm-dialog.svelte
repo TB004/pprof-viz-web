@@ -1,5 +1,5 @@
 <script lang="ts">
-import { CheckIcon, Trash2Icon } from "@lucide/svelte";
+import { CheckIcon, PlugZapIcon, Trash2Icon } from "@lucide/svelte";
 import {
 	PMDeleteDialog,
 	PMProjectDialog,
@@ -69,10 +69,15 @@ async function saveProfile() {
 		return;
 	}
 
+	const isStream =
+		dialogState.profileMode === ProfileService.CollectionType.Stream;
 	const payload = {
 		name: dialogState.profileName,
 		url: dialogState.profileUrl,
 		mode: dialogState.profileMode,
+		token: dialogState.profileToken || undefined,
+		intervalSeconds: isStream ? dialogState.profileIntervalSeconds : undefined,
+		numberOfCycles: isStream ? dialogState.profileNumberOfCycles : undefined,
 	};
 
 	if (dialogState.editorMode === "new-profile") {
@@ -159,6 +164,20 @@ async function saveProfile() {
 										/>
 									</label>
 
+									<label class="block">
+										<span class="mb-3 block text-sm font-medium text-foreground"
+											>Auth token
+											<span class="ml-1 font-normal text-muted-foreground"
+												>(optional)</span
+											></span
+										>
+										<Input
+											bind:value={dialogState.profileToken}
+											placeholder="Bearer eyJ..."
+											type="password"
+										/>
+									</label>
+
 									<div>
 										<p class="mb-3 text-sm font-medium text-foreground">Mode</p>
 										<div class="grid gap-3 sm:grid-cols-2">
@@ -194,6 +213,41 @@ async function saveProfile() {
 										</div>
 									</div>
 
+									{#if dialogState.profileMode === ProfileService.CollectionType.Stream}
+										<div class="grid gap-4 sm:grid-cols-2">
+											<label class="block">
+												<span
+													class="mb-3 block text-sm font-medium text-foreground"
+													>Interval
+													<span class="ml-1 font-normal text-muted-foreground"
+														>(seconds)</span
+													></span
+												>
+												<Input
+													type="number"
+													min={1}
+													step={1}
+													bind:value={dialogState.profileIntervalSeconds}
+												/>
+											</label>
+											<label class="block">
+												<span
+													class="mb-3 block text-sm font-medium text-foreground"
+													>Cycles
+													<span class="ml-1 font-normal text-muted-foreground"
+														>(0 = infinite)</span
+													></span
+												>
+												<Input
+													type="number"
+													min={0}
+													step={1}
+													bind:value={dialogState.profileNumberOfCycles}
+												/>
+											</label>
+										</div>
+									{/if}
+
 									<div
 										class="flex flex-wrap items-center justify-between gap-3 pt-2"
 									>
@@ -206,6 +260,10 @@ async function saveProfile() {
                                                         ? "Create profile"
                                                         : "Save profile"}</span
 												>
+											</Button>
+											<Button variant="outline" onclick={() => {}}>
+												<PlugZapIcon class="size-4" />
+												<span>Test connection</span>
 											</Button>
 											{#if dialogState.selectedProfileId}
 												<Button

@@ -59,6 +59,9 @@ function handleProfileSelect(projectId: string, profileId: string) {
 	dialogState.profileUrl = snapshot?.profile.url ?? "";
 	dialogState.profileMode =
 		snapshot?.profile.mode ?? ProfileService.CollectionType.Stream;
+	dialogState.profileToken = snapshot?.profile.token ?? "";
+	dialogState.profileIntervalSeconds = snapshot?.profile.intervalSeconds ?? 1;
+	dialogState.profileNumberOfCycles = snapshot?.profile.numberOfCycles ?? 0;
 }
 </script>
 

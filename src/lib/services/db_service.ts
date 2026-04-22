@@ -11,6 +11,9 @@ export interface DBProfileRow {
 	name: string;
 	url: string;
 	mode: "snapshot" | "stream";
+	token?: string;
+	intervalSeconds?: number;
+	numberOfCycles?: number;
 	createdAt: number;
 	updatedAt: number;
 }

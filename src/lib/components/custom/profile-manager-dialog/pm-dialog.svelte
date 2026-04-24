@@ -1,5 +1,12 @@
 <script lang="ts">
-import { CheckIcon, PlugZapIcon, Trash2Icon } from "@lucide/svelte";
+import {
+	CheckIcon,
+	CircleCheckIcon,
+	CircleXIcon,
+	LoaderCircleIcon,
+	PlugZapIcon,
+	Trash2Icon,
+} from "@lucide/svelte";
 import {
 	PMDeleteDialog,
 	PMProjectDialog,
@@ -8,7 +15,7 @@ import {
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import Input from "$lib/components/ui/input/input.svelte";
-import { CollectionService, ProfileService } from "$lib/services";
+import { AgentService, CollectionService, ProfileService } from "$lib/services";
 import { clearProfileForm, dialogState } from "./state.svelte.ts";
 
 type Props = {
@@ -99,6 +106,52 @@ async function saveProfile() {
 
 	await ProfileService.updateProfile(dialogState.selectedProfileId, payload);
 	await CollectionService.selectProfile(dialogState.selectedProfileId);
+}
+
+type PingStatus = "idle" | "pending" | "success" | "error";
+
+let pingStatus = $state<PingStatus>("idle");
+let pingError = $state("");
+let pingResetTimer: ReturnType<typeof setTimeout> | undefined;
+
+// Reset the ping result whenever the URL changes so stale indicators don't persist.
+$effect(() => {
+	const _url = dialogState.profileUrl;
+	pingStatus = "idle";
+	pingError = "";
+});
+
+async function testConnection() {
+	const url = dialogState.profileUrl.trim();
+	if (!url) {
+		return;
+	}
+
+	try {
+		new URL(url);
+	} catch {
+		pingStatus = "error";
+		pingError = "Invalid URL format";
+		return;
+	}
+
+	clearTimeout(pingResetTimer);
+	pingStatus = "pending";
+	pingError = "";
+
+	try {
+		const agent = new AgentService(url);
+		await agent.ping();
+		pingStatus = "success";
+	} catch (err) {
+		pingStatus = "error";
+		pingError = err instanceof Error ? err.message : "Connection failed";
+	}
+
+	pingResetTimer = setTimeout(() => {
+		pingStatus = "idle";
+		pingError = "";
+	}, 4000);
 }
 </script>
 
@@ -248,35 +301,60 @@ async function saveProfile() {
 										</div>
 									{/if}
 
-									<div
-										class="flex flex-wrap items-center justify-between gap-3 pt-2"
-									>
-										<div class="flex flex-wrap gap-2">
-											<Button variant="default" onclick={saveProfile}>
-												<CheckIcon class="size-4" />
-												<span
-													>{dialogState.editorMode ===
+									<div class="space-y-3 pt-2">
+										{#if pingStatus === "error" && pingError}
+											<p class="text-sm text-destructive">{pingError}</p>
+										{/if}
+										<div
+											class="flex flex-wrap items-center justify-between gap-3"
+										>
+											<div class="flex flex-wrap gap-2">
+												<Button variant="default" onclick={saveProfile}>
+													<CheckIcon class="size-4" />
+													<span
+														>{dialogState.editorMode ===
                                                     "new-profile"
                                                         ? "Create profile"
                                                         : "Save profile"}</span
-												>
-											</Button>
-											<Button variant="outline" onclick={() => {}}>
-												<PlugZapIcon class="size-4" />
-												<span>Test connection</span>
-											</Button>
-											{#if dialogState.selectedProfileId}
+													>
+												</Button>
 												<Button
-													variant="destructive"
-													onclick={() =>
+													variant="outline"
+													disabled={pingStatus === "pending" || !dialogState.profileUrl.trim()}
+													class={pingStatus === "success"
+													? "border-green-500/40 bg-green-500/10 text-green-600 hover:bg-green-500/15 hover:text-green-600"
+													: pingStatus === "error"
+														? "border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/15 hover:text-destructive"
+														: ""}
+													onclick={testConnection}
+												>
+													{#if pingStatus === "pending"}
+														<LoaderCircleIcon class="size-4 animate-spin" />
+														<span>Testing...</span>
+													{:else if pingStatus === "success"}
+														<CircleCheckIcon class="size-4" />
+														<span>Connected</span>
+													{:else if pingStatus === "error"}
+														<CircleXIcon class="size-4" />
+														<span>Unreachable</span>
+													{:else}
+														<PlugZapIcon class="size-4" />
+														<span>Test connection</span>
+													{/if}
+												</Button>
+												{#if dialogState.selectedProfileId}
+													<Button
+														variant="destructive"
+														onclick={() =>
 														openDeleteProfileDialog(
 															dialogState.selectedProfileId,
 														)}
-												>
-													<Trash2Icon class="size-4" />
-													<span>Delete</span>
-												</Button>
-											{/if}
+													>
+														<Trash2Icon class="size-4" />
+														<span>Delete</span>
+													</Button>
+												{/if}
+											</div>
 										</div>
 									</div>
 								</div>

@@ -15,7 +15,7 @@ import {
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import Input from "$lib/components/ui/input/input.svelte";
-import { AgentService, CollectionService, ProfileService } from "$lib/services";
+import { AgentService, ProfileService } from "$lib/services";
 import { clearProfileForm, dialogState } from "./state.svelte.ts";
 
 type Props = {
@@ -105,7 +105,6 @@ async function saveProfile() {
 	}
 
 	await ProfileService.updateProfile(dialogState.selectedProfileId, payload);
-	await CollectionService.selectProfile(dialogState.selectedProfileId);
 }
 
 type PingStatus = "idle" | "pending" | "success" | "error";

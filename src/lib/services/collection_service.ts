@@ -138,7 +138,3 @@ export function stopCollection() {
 	collectionStartedAt = undefined;
 	collectionStateStore.set(defaultCollectionState);
 }
-
-export function getMetadata() {
-	// TODO: Implement the logic to fetch metadata from the target application
-}

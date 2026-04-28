@@ -23,7 +23,7 @@ const triggerContent = $derived(
 		?.label ?? "Select a profile",
 );
 
-async function handleProfileChange(value: string | undefined) {
+async function handleProfileChange(value?: string) {
 	await CollectionService.selectProfile(value);
 }
 </script>

@@ -54,7 +54,7 @@ $effect(() => {
 	dialogState.projectDialogOpen = false;
 });
 
-function openDeleteProfileDialog(profileId: string | undefined) {
+function openDeleteProfileDialog(profileId?: string) {
 	if (!profileId) {
 		return;
 	}

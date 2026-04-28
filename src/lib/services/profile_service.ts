@@ -139,7 +139,7 @@ export function getProfileById(
 	return undefined;
 }
 
-export async function setActiveProfile(profileId: string | undefined) {
+export async function setActiveProfile(profileId?: string) {
 	await ensureHydrated();
 	if (profileId && !getProfileById(profileId)) {
 		return;

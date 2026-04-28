@@ -49,6 +49,9 @@
 			"includes": ["**/*.svelte"],
 			"linter": {
 				"rules": {
+					"correctness": {
+						"noUnusedFunctionParameters": "off"
+					},
 					"suspicious": {
 						"noAssignInExpressions": "off"
 					}

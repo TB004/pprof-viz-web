@@ -32,8 +32,8 @@ export class AgentService {
 	/**
 	 * Captures a single point-in-time snapshot of all runtime metrics.
 	 */
-	async snapshotAll(): Promise<AllResponse> {
-		return await this.client.snapshotAll({});
+	async snapshotAll(signal?: AbortSignal): Promise<AllResponse> {
+		return await this.client.snapshotAll({}, { signal });
 	}
 
 	/**
@@ -47,12 +47,13 @@ export class AgentService {
 	streamAll(
 		intervalSeconds: number,
 		numberOfCycles: number,
+		signal?: AbortSignal,
 	): AsyncIterable<AllResponse> {
 		const request = create(StreamConfigRequestSchema, {
 			intervalSeconds,
 			numberOfCycles,
 		});
-		return this.client.streamAll(request);
+		return this.client.streamAll(request, { signal });
 	}
 
 	/**

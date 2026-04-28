@@ -1,87 +1,77 @@
-# pprof-viz
+# 📊 pprof-viz
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Docker Image Version](https://img.shields.io/docker/v/tb004/pprof-viz?sort=semver)](https://hub.docker.com/r/tb004/pprof-viz)
 
-Docker Hub image: [tb004/pprof-viz](https://hub.docker.com/r/tb004/pprof-viz)
+**A modern, real-time dashboard for visualizing Go runtime telemetry.**
 
-The Docker Hub repository includes the published image and a short overview with example `docker run` and Compose usage.
+## 🔍 Overview
 
-## Description
+`pprof-viz` is a high-performance Progressive Web App (PWA) built with **Svelte 5**. It serves as the frontend for the `pprof-viz-agent` backend, providing a comprehensive, real-time visualization of Go's internal `runtime/metrics`.
 
-`pprof-viz` is a Svelte 5 PWA for exploring and visualizing real-time Go runtime telemetry exposed by the `pprof-viz-agent` backend. It is designed as a dashboard-style frontend for continuous profiling rather than ad-hoc stack-trace inspection, with a strong focus on readability, session awareness, and a compact operator-friendly UI.
+Unlike standard `pprof` which is designed for ad-hoc, deep-dive stack trace analysis, `pprof-viz` is built for **continuous, high-resolution monitoring**. It transforms continuous streams of telemetry data into an intuitive, operator-friendly dashboard, giving you immediate insight into CPU usage, Garbage Collection behavior, memory allocation, and scheduler latencies.
 
-The app presents runtime data through a persistent shell layout with a sidebar, route-level views for runtime categories, and a bottom session bar that shows the active profiling state. It is intended to sit in front of a Go telemetry service that streams `runtime/metrics` data via ConnectRPC.
+## ✨ Key Features
 
-## Overview
+- **⚡️ Real-Time Telemetry**: Seamlessly streams and visualizes live Go runtime metrics.
+- **🕒 Session Awareness**: Persistent shell layout with a session status bar showing active profiling state, elapsed time, and collected samples.
+- **📈 Dedicated Dashboards**: Route-based views specifically tailored for CPU, GC, Memory, Scheduler, and Miscellaneous runtime behavior.
+- **🎛️ Profile Management**: Built-in collection profile selection and lifecycle controls.
+- **🚀 Modern Tech Stack**: Built with Svelte 5, shadcn-svelte components, and Tailwind CSS v4 for a fluid, responsive UI.
+- **📱 PWA Ready**: Installable as a desktop application with web app manifest and service worker support.
 
-The backend agent collects Go runtime metrics with high fidelity and low overhead. This frontend consumes that telemetry and turns it into a visual, session-based interface for monitoring CPU, GC, memory, scheduler, and miscellaneous runtime behavior over time.
+## 🛠️ Getting Started
 
-The project is built as a PWA so it can behave like an installable desktop app while still being served from the web.
+### 📋 Prerequisites
 
-## Features
+To build and run the frontend locally, you will need:
+- [Bun](https://bun.sh/) (Package Manager)
+- [Just](https://github.com/casey/just) (Task Runner)
+- A running instance of [`pprof-viz-agent`](https://github.com/TB004/pprof-viz-agent)
 
-- Persistent shell layout with a floating sidebar and app-wide session status bar.
-- Route-based runtime views for CPU, GC, memory, scheduler, miscellaneous, and settings.
-- Collection profile selection and collection lifecycle controls.
-- Live session indicators for status, target URL, mode, collected samples, elapsed time, and error state.
-- Installable PWA experience with a web app manifest and service worker support.
-- Built with Svelte 5, shadcn-svelte-style components, and Tailwind CSS v4.
+### 📥 Installation & Development
 
-## Backend
+1. **Install dependencies:**
+   ```bash
+   bun install
+   ```
 
-This frontend is designed to visualize data from `pprof-viz-agent`, a Go telemetry backend that exposes `runtime/metrics` over ConnectRPC.
+2. **Run the development server:**
+   ```bash
+   just dev
+   ```
+   This will start the Vite dev server. Open your browser to the local URL provided in the terminal.
 
-The agent focuses on:
+3. **Build for production:**
+   ```bash
+   just build
+   ```
+   This generates static files in the `build/` directory.
 
-- High-fidelity runtime metrics for GC, scheduler, memory, and CPU behavior.
-- Continuous streaming rather than manual one-off profiling.
-- Low overhead collection.
-- Efficient transport and bandwidth optimization.
+4. **Preview the production build:**
+   ```bash
+   bun run preview
+   ```
 
-## Getting Started
+## 🐳 Docker
 
-### Prerequisites
-
-- Bun
-- Just
-- A running `pprof-viz-agent` backend
-
-### Install dependencies
-
-```bash
-bun install
-```
-
-### Run the development server
-
-```bash
-bun dev
-```
-
-### Build for production
+A pre-built Docker image is available on Docker Hub, making it easy to deploy alongside your backend services.
 
 ```bash
-bun run build
+docker run -p 8080:80 tb004/pprof-viz:latest
 ```
 
-### Preview the production build
+Check out the [Docker Hub repository](https://hub.docker.com/r/tb004/pprof-viz) for more details and Docker Compose examples.
 
-```bash
-bun run preview
-```
+## 🏗️ Architecture & Integration
 
-## Development Notes
+`pprof-viz` is a static Single Page Application (SPA/PWA) that connects directly from the user's browser to the target `pprof-viz-agent` via ConnectRPC.
 
-- The profiling session state is managed centrally in `src/lib/services/collection_service.ts`.
-- The main app shell lives in `src/routes/+layout.svelte`.
-- The status bar is intended to reflect the current collection session at all times.
+For a complete monitoring setup:
+1. **Embed** the `pprof-viz-agent` in your Go application.
+2. **Deploy** the `pprof-viz` static frontend (via Docker, GitHub Pages, Vercel, or any static file server).
+3. **Connect** the frontend to your Go application's agent endpoint.
 
-## Deployment
+## 📄 License
 
-This app is built as a static frontend and can be deployed behind any web server or CDN that serves the generated build output.
-
-For a complete visualization setup, deploy it alongside a `pprof-viz-agent` backend and configure the frontend to connect to the backend endpoint used by your deployment.
-
-## License
-
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

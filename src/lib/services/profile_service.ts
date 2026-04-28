@@ -23,6 +23,9 @@ export interface ProfileRecord {
 	name: string;
 	url: string;
 	mode: CollectionType;
+	token?: string;
+	intervalSeconds?: number;
+	numberOfCycles?: number;
 	createdAt: number;
 	updatedAt: number;
 }
@@ -136,7 +139,7 @@ export function getProfileById(
 	return undefined;
 }
 
-export async function setActiveProfile(profileId: string | undefined) {
+export async function setActiveProfile(profileId?: string) {
 	await ensureHydrated();
 	if (profileId && !getProfileById(profileId)) {
 		return;
@@ -221,7 +224,14 @@ export async function deleteProject(projectId: string) {
 
 export async function createProfile(
 	projectId: string,
-	input: { name: string; url: string; mode: CollectionType },
+	input: {
+		name: string;
+		url: string;
+		mode: CollectionType;
+		token?: string;
+		intervalSeconds?: number;
+		numberOfCycles?: number;
+	},
 ) {
 	await ensureHydrated();
 	const trimmedName = input.name.trim();
@@ -249,6 +259,9 @@ export async function createProfile(
 		name: trimmedName,
 		url: trimmedUrl,
 		mode: input.mode,
+		token: input.token?.trim() || undefined,
+		intervalSeconds: input.intervalSeconds,
+		numberOfCycles: input.numberOfCycles,
 		createdAt: timestamp,
 		updatedAt: timestamp,
 	};
@@ -273,7 +286,14 @@ export async function createProfile(
 
 export async function updateProfile(
 	profileId: string,
-	input: { name: string; url: string; mode: CollectionType },
+	input: {
+		name: string;
+		url: string;
+		mode: CollectionType;
+		token?: string;
+		intervalSeconds?: number;
+		numberOfCycles?: number;
+	},
 ) {
 	await ensureHydrated();
 	const trimmedName = input.name.trim();
@@ -298,6 +318,9 @@ export async function updateProfile(
 		name: trimmedName,
 		url: trimmedUrl,
 		mode: input.mode,
+		token: input.token?.trim() || undefined,
+		intervalSeconds: input.intervalSeconds,
+		numberOfCycles: input.numberOfCycles,
 		updatedAt: Date.now(),
 	};
 

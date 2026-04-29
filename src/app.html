@@ -8,6 +8,18 @@
 		<meta name="application-name" content="Pprof-Viz">
 		<link rel="manifest" href="/manifest.webmanifest">
 		<title>Pprof-Viz</title>
+		<script>
+		var s, theme, dark;
+		try {
+			s = JSON.parse(localStorage.getItem("pprof-viz-settings") || "{}");
+		} catch (_) {}
+		theme = s?.theme || "system";
+		dark =
+			theme === "dark" ||
+			(theme === "system" &&
+				window.matchMedia("(prefers-color-scheme: dark)").matches);
+		if (dark) document.documentElement.classList.add("dark");
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

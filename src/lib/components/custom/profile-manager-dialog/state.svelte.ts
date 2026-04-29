@@ -23,11 +23,11 @@ export const dialogState = $state({
 });
 
 export function clearProfileForm() {
-	const defaults = SettingsService.getProfileDefaultsSnapshot();
-	dialogState.profileName = defaults.name;
-	dialogState.profileUrl = defaults.url;
-	dialogState.profileMode = defaults.mode;
+	const settings = SettingsService.getSettingsSnapshot();
+	dialogState.profileName = settings.defaultName;
+	dialogState.profileUrl = settings.defaultUrl;
+	dialogState.profileMode = settings.defaultMode;
 	dialogState.profileToken = "";
-	dialogState.profileIntervalSeconds = defaults.intervalSeconds;
-	dialogState.profileNumberOfCycles = defaults.numberOfCycles;
+	dialogState.profileIntervalSeconds = settings.defaultIntervalSeconds;
+	dialogState.profileNumberOfCycles = settings.defaultNumberOfCycles;
 }

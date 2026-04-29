@@ -1,7 +1,6 @@
 <script lang="ts">
 import { page } from "$app/state";
 import "./layout.css";
-import { ModeWatcher } from "mode-watcher";
 import { AppSidebar } from "$lib/components/custom/app-sidebar";
 import { SessionStatusBar } from "$lib/components/custom/session-status-bar";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
@@ -19,7 +18,6 @@ const routeLabel = $derived.by(() => {
 });
 </script>
 
-<ModeWatcher />
 <Sidebar.Provider>
 	<AppSidebar />
 	<Sidebar.Inset class="h-svh overflow-hidden">

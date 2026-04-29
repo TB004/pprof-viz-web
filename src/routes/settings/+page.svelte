@@ -1,15 +1,12 @@
 <script lang="ts">
 import { CheckIcon, MonitorIcon, MoonIcon, SunIcon } from "@lucide/svelte";
-import { setMode, userPrefersMode } from "mode-watcher";
 import * as Card from "$lib/components/ui/card/index.js";
 import Input from "$lib/components/ui/input/input.svelte";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import { ProfileService, SettingsService } from "$lib/services";
 
-type ThemeMode = "system" | "light" | "dark";
-
 const themeOptions: Array<{
-	value: ThemeMode;
+	value: SettingsService.ThemeMode;
 	label: string;
 	icon: typeof MonitorIcon;
 }> = [
@@ -35,7 +32,7 @@ const modeOptions: Array<{
 	},
 ];
 
-const profileDefaults = SettingsService.profileDefaults;
+const settings = SettingsService.settings;
 </script>
 
 <ScrollArea class="h-full mr-2">
@@ -61,11 +58,14 @@ const profileDefaults = SettingsService.profileDefaults;
 					<div class="grid grid-cols-3 gap-3">
 						{#each themeOptions as option (option.value)}
 							{@const isSelected =
-                                userPrefersMode.current === option.value}
+                                $settings.theme === option.value}
 							<button
 								type="button"
 								class={`relative flex flex-col items-center gap-3 rounded-xl border p-4 text-sm font-medium transition-colors ${isSelected ? "border-primary bg-primary/5 text-foreground" : "border-border/70 bg-muted/25 text-muted-foreground hover:border-primary/30 hover:text-foreground"}`}
-								onclick={() => setMode(option.value)}
+								onclick={() =>
+                                    SettingsService.updateSettings({
+                                        theme: option.value,
+                                    })}
 							>
 								<option.icon class="size-5" />
 								<span>{option.label}</span>
@@ -101,12 +101,12 @@ const profileDefaults = SettingsService.profileDefaults;
 						>
 					</span>
 					<Input
-						value={$profileDefaults.name}
+						value={$settings.defaultName}
 						placeholder="Production pprof"
 						oninput={(e) =>
-							SettingsService.updateProfileDefaults({
-								name: e.currentTarget.value,
-							})}
+                            SettingsService.updateSettings({
+                                defaultName: e.currentTarget.value,
+                            })}
 					/>
 				</label>
 
@@ -118,11 +118,11 @@ const profileDefaults = SettingsService.profileDefaults;
 						>
 					</span>
 					<Input
-						value={$profileDefaults.url}
+						value={$settings.defaultUrl}
 						placeholder="http://localhost:9090"
 						oninput={(e) =>
-                            SettingsService.updateProfileDefaults({
-                                url: e.currentTarget.value,
+                            SettingsService.updateSettings({
+                                defaultUrl: e.currentTarget.value,
                             })}
 					/>
 				</label>
@@ -134,13 +134,13 @@ const profileDefaults = SettingsService.profileDefaults;
 					<div class="grid gap-3 sm:grid-cols-2">
 						{#each modeOptions as option (option.value)}
 							{@const isSelected =
-                                $profileDefaults.mode === option.value}
+                                $settings.defaultMode === option.value}
 							<button
 								type="button"
 								class={`rounded-2xl border p-4 text-left transition-colors ${isSelected ? "border-primary bg-primary/5" : "border-border/70 bg-muted/25 hover:border-primary/30"}`}
 								onclick={() =>
-                                    SettingsService.updateProfileDefaults({
-                                        mode: option.value,
+                                    SettingsService.updateSettings({
+                                        defaultMode: option.value,
                                     })}
 							>
 								<div class="flex items-start justify-between gap-3">
@@ -165,7 +165,7 @@ const profileDefaults = SettingsService.profileDefaults;
 					</div>
 				</div>
 
-				{#if $profileDefaults.mode === ProfileService.CollectionType.Stream}
+				{#if $settings.defaultMode === ProfileService.CollectionType.Stream}
 					<div class="grid gap-4 sm:grid-cols-2">
 						<label class="block">
 							<span class="mb-3 block text-sm font-medium text-foreground">
@@ -178,15 +178,15 @@ const profileDefaults = SettingsService.profileDefaults;
 								type="number"
 								min={1}
 								step={1}
-								value={$profileDefaults.intervalSeconds}
+								value={$settings.defaultIntervalSeconds}
 								oninput={(e) => {
                                     const v = Number.parseInt(
                                         e.currentTarget.value,
                                         10,
                                     );
                                     if (v >= 1)
-                                        SettingsService.updateProfileDefaults({
-                                            intervalSeconds: v,
+                                        SettingsService.updateSettings({
+                                            defaultIntervalSeconds: v,
                                         });
                                 }}
 							/>
@@ -202,15 +202,15 @@ const profileDefaults = SettingsService.profileDefaults;
 								type="number"
 								min={0}
 								step={1}
-								value={$profileDefaults.numberOfCycles}
+								value={$settings.defaultNumberOfCycles}
 								oninput={(e) => {
                                     const v = Number.parseInt(
                                         e.currentTarget.value,
                                         10,
                                     );
                                     if (v >= 0)
-                                        SettingsService.updateProfileDefaults({
-                                            numberOfCycles: v,
+                                        SettingsService.updateSettings({
+                                            defaultNumberOfCycles: v,
                                         });
                                 }}
 							/>

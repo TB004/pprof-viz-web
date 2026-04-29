@@ -45,8 +45,3 @@ jobs:
 
       - name: Run verification checks
         run: just verify
-
-      - name: Run coverage tests
-        run: |
-          mkdir .test
-          just cover

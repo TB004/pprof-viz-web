@@ -60,7 +60,6 @@ All quality and build commands are run via `just` (task runner):
 | **Lint** | `just lint` | Biome static analysis (read-only). |
 | **Format** | `just format` | Biome formatter (write). |
 | **Verify** | `just verify` | Full pipeline: check + lint + format-check. |
-| **Test** | `just cover` | Run tests with coverage → `.test/`. |
 | **Clean** | `just clean` | Remove `.svelte-kit/`, `build/`, `node_modules/`. |
 
 Use `bun` as the package manager (not npm/yarn).

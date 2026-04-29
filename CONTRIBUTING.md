@@ -1,134 +1,88 @@
-# Contributing to pprof-viz
+# 🤝 Contributing to pprof-viz
 
-Thank you for taking the time to contribute to `pprof-viz`. This project is the frontend for a Go runtime telemetry visualization platform, so contributions should prioritize clarity, reliability, and a polished user experience.
+First off, thank you for considering contributing to `pprof-viz`! It's people like you who make open-source tools great.
 
-## What This Project Is
+This project is a high-performance frontend for Go runtime telemetry. Our goal is to provide a polished, reliable, and operator-friendly experience for real-time observability.
 
-`pprof-viz` is a Svelte 5 PWA that visualizes runtime telemetry from the `pprof-viz-agent` backend. The app is centered around:
+---
 
-- A persistent shell layout with navigation and session status
-- Route-based runtime dashboards
-- A profiling session model that stays visible throughout the app
-- A desktop-like, operator-friendly interface
-
-Contributions should preserve that direction.
-
-## Expectations
-
-### Code Quality
-
-- Prefer small, focused changes with a clear purpose.
-- Keep the code idiomatic for Svelte 5, TypeScript, and the component patterns already used in the repository.
-- Avoid introducing abstractions that do not pull their weight.
-- Match the existing styling and layout language unless the task explicitly calls for a redesign.
-
-### UI and UX
-
-- Treat the interface as a product, not just a set of components.
-- Preserve the app shell, sidebar behavior, and session visibility patterns.
-- Make states explicit: loading, idle, running, empty, and error states should be intentional.
-- If you change visible behavior, verify how it behaves in both light and dark themes.
-
-### AI-Assisted Work
-
-- AI tools are fine to use.
-- Do not trust generated code blindly.
-- Review, test (if necessary), and correct every change before submitting it.
-- You are responsible for the final result.
-
-## Setup
+## 🛠️ Getting Started
 
 ### Prerequisites
+To set up the development environment, you'll need:
+- **[Bun](https://bun.sh/)**: Our package manager and runtime.
+- **[Just](https://github.com/casey/just)**: Our task runner for common commands.
+- **[pprof-viz-agent](https://github.com/TB004/pprof-viz-agent)**: Required if you want to test with live data.
 
-- Bun
-- Just (to make use of the Justfile)
-- The `pprof-viz-agent` backend if you want to test live data flows locally
+### Local Setup
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/TB004/pprof-viz.git
+   cd pprof-viz
+   ```
+2. **Install dependencies:**
+   ```bash
+   bun install
+   ```
+3. **Start the development server:**
+   ```bash
+   just dev
+   ```
 
-### Install Dependencies
+---
 
-```bash
-bun install
-```
+## 🏗️ Technical Architecture
 
-### Run the App
+Before you start coding, it's helpful to understand the core pillars of the project:
 
-```bash
-bun dev
-```
+- **Svelte 5 (Runes)**: We use the latest Svelte 5 syntax (`$state`, `$derived`, `$effect`). Please avoid Svelte 4 patterns.
+- **Services Pattern**: All business logic and state management live in `src/lib/services/`. Components should import services directly rather than prop-drilling.
+- **Static First**: The app is built with `adapter-static`. All routes are prerendered; there is no Node.js runtime in production.
+- **Styling**: We use **Tailwind CSS v4** and **shadcn-svelte** components.
 
-### Type and Config Checks
+---
 
-```bash
-just check
-```
+## 📜 Development Workflow
 
-### Linting
+We use `just` to ensure consistency across development. Please run these commands before submitting a PR:
 
-```bash
-just lint
-```
+| Command | Description |
+| :--- | :--- |
+| `just dev` | Starts the Vite development server. |
+| `just check` | Runs SvelteKit sync and `svelte-check` for type safety. |
+| `just lint` | Performs static analysis using Biome. |
+| `just format` | Automatically formats code using Biome. |
+| `just verify` | **The Golden Rule**: Runs check, lint, and format-check in one go. |
 
-### Formatting
+---
 
-```bash
-just format
-```
+## 🎨 UI & UX Guidelines
 
-### Full Verification
+- **Operator-Friendly**: The UI is designed for long-running monitoring. Keep it compact, readable, and focused.
+- **State Transparency**: Always consider how your change looks in **Loading**, **Error**, **Empty**, and **Idle** states.
+- **Theme Support**: Verify all UI changes in both **Light** and **Dark** modes.
+- **Persistent Shell**: Do not break the layout of the floating sidebar or the bottom session status bar; these should remain consistent across all routes.
 
-```bash
-just verify
-```
+---
 
-### Coverage
+## 🤖 AI-Assisted Contributions
 
-```bash
-just cover
-```
+We welcome the use of AI tools (Gemini, Claude, Copilot, etc.) to help you write code, but we ask that you follow these rules:
+1. **No "Vibe-Coding"**: Understand the code the AI generates. You are responsible for every line you submit.
+2. **Svelte 5 Awareness**: Ensure the AI isn't hallucinating Svelte 4 syntax (like `onMount` or `$:`)—we strictly use Svelte 5 Runes.
+3. **Surgical Edits**: Prefer minimal, high-impact changes over large, AI-generated refactors.
 
-### Dependency Audit
+---
 
-```bash
-just vuln
-```
+## 🚀 Submitting a Pull Request
 
-## Workflow
+1. **Branching**: Create a feature branch (e.g., `feat/add-memory-chart`).
+2. **Commits**: Use clear, imperative messages (e.g., `add: cpu usage sparkline`).
+3. **Verification**: Run `just verify` to ensure everything is green.
+4. **The PR**: Fill out the template. Include screenshots or screen recordings for any visual changes.
 
-1. Create a branch for your work.
-2. Make the smallest complete change that solves the problem.
-3. Verify the result locally.
-4. Update or add documentation when the user-facing behavior changes.
-5. Open a pull request using the repository template.
+---
 
-## Testing Expectations
+## ⚖️ License
 
-A contribution is not complete until it has been verified.
-
-- Add or update tests when the behavior changes (if necessary).
-- For UI changes, confirm the layout and interactions in the browser.
-- For state changes, verify the affected session behavior manually or with checks where appropriate.
-
-## Commit Guidance
-
-- Use concise, imperative commit messages.
-- Keep each commit focused on a single logical change.
-- Reference related issues when it helps review context.
-
-## Pull Requests
-
-Please fill out the pull request template completely and describe:
-
-- What changed
-- Why it changed
-- How you verified it
-- Any follow-up work that may still be needed
-
-If your change affects the visual layout, it might be good to include screenshots when possible.
-
-## Documentation
-
-If you add a new feature, change a workflow, or alter a visible interaction, update the relevant documentation in the same change.
-
-## License
-
-By contributing, you agree that your changes will be licensed under the project’s MIT License.
+By contributing to `pprof-viz`, you agree that your contributions will be licensed under the project's [MIT License](./LICENSE).

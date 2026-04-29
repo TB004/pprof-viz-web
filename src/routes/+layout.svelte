@@ -22,10 +22,10 @@ const routeLabel = $derived.by(() => {
 <ModeWatcher />
 <Sidebar.Provider>
 	<AppSidebar />
-	<Sidebar.Inset class="min-h-svh overflow-hidden">
-		<div class="flex min-h-svh flex-col">
+	<Sidebar.Inset class="h-svh overflow-hidden">
+		<div class="flex h-svh flex-col">
 			<header
-				class="flex h-14 shrink-0 items-center justify-start border-b border-border/60 px-4"
+				class="flex h-14 shrink-0 items-center justify-start border-b border-border/60 bg-background/80 px-4 backdrop-blur supports-backdrop-filter:bg-background/70"
 			>
 				<Sidebar.Trigger />
 				<div
@@ -35,7 +35,7 @@ const routeLabel = $derived.by(() => {
 					<span class="text-muted-foreground">&gt;</span>
 				</div>
 			</header>
-			<div class="min-h-0 flex-1 overflow-auto">{@render children?.()}</div>
+			<div class="min-h-0 flex-1 overflow-hidden">{@render children?.()}</div>
 			<SessionStatusBar />
 		</div>
 	</Sidebar.Inset>

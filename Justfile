@@ -15,11 +15,6 @@ gen:
 bake:
     - docker buildx bake -f ./docker/docker-bake.hcl default ${DOCKER_BAKE_FLAGS:-}
 
-# Run tests with code coverage
-[group('Quality')]
-cover:
-    - bun test --coverage --coverage-dir=.test
-
 # Run the SvelteKit type and config checkss
 [group('Quality')]
 check:

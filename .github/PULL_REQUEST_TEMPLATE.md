@@ -12,10 +12,8 @@
 - [ ] 📝 Documentation update
 - [ ] 🧹 Refactoring
 
-## How Has This Been Tested?
-<!-- Please describe the tests that you ran to verify your changes. -->
-- [ ] Unit tests (run `bun test`)
-- [ ] Coverage check (run `just cover`)
+## How Has This Been Verified?
+<!-- Please describe how you verified your changes. -->
 - [ ] Vulnerability scan (run `just vuln`)
 - [ ] Linting (run `just lint`)
 - [ ] Code quality verification (run `just verify`)
@@ -26,9 +24,7 @@
 - [ ] I have commented my code, particularly in hard-to-understand areas
 - [ ] I have made corresponding changes to the documentation
 - [ ] My changes generate no new warnings
-- [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] New and existing unit tests pass locally with my changes
-- [ ] I have formated my code correctly using the format tasks from the Justfile
+- [ ] I have formatted my code correctly using the format tasks from the Justfile
 
 ## Screenshots (if applicable)
 <!-- Add screenshots or screen recordings to help the reviewer understand the change. -->

@@ -1,4 +1,4 @@
-import { ProfileService } from "$lib/services";
+import { ProfileService, SettingsService } from "$lib/services";
 
 export type EditorMode = "profile" | "new-profile";
 
@@ -23,10 +23,11 @@ export const dialogState = $state({
 });
 
 export function clearProfileForm() {
-	dialogState.profileName = "";
-	dialogState.profileUrl = "";
-	dialogState.profileMode = ProfileService.CollectionType.Stream;
+	const defaults = SettingsService.getProfileDefaultsSnapshot();
+	dialogState.profileName = defaults.name;
+	dialogState.profileUrl = defaults.url;
+	dialogState.profileMode = defaults.mode;
 	dialogState.profileToken = "";
-	dialogState.profileIntervalSeconds = 1;
-	dialogState.profileNumberOfCycles = 0;
+	dialogState.profileIntervalSeconds = defaults.intervalSeconds;
+	dialogState.profileNumberOfCycles = defaults.numberOfCycles;
 }

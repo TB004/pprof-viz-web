@@ -3,6 +3,7 @@ import {
 	ActivityIcon,
 	CpuIcon,
 	HistoryIcon,
+	HomeIcon,
 	LayersIcon,
 	PackageIcon,
 	SettingsIcon,
@@ -55,6 +56,16 @@ let profileManagerOpen = $state(false);
 	</Sidebar.Content>
 	<Sidebar.Footer>
 		<Sidebar.Menu>
+			<Sidebar.MenuItem>
+				<Sidebar.MenuButton>
+					{#snippet child({ props })}
+						<a href="/" {...props}>
+							<HomeIcon />
+							<span>Home</span>
+						</a>
+					{/snippet}
+				</Sidebar.MenuButton>
+			</Sidebar.MenuItem>
 			<Sidebar.MenuItem>
 				<Sidebar.MenuButton>
 					{#snippet child({ props })}

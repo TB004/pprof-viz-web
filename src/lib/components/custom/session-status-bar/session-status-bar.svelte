@@ -14,20 +14,14 @@ const collectionState = CollectionService.collectionState;
 const errorState = ErrorService.errorState;
 
 const modeLabel = $derived(
-	$collectionState.status === CollectionService.CollectionStatus.Running
-		? $collectionState.mode === CollectionType.Snapshot
-			? "Snapshot"
-			: $collectionState.mode === CollectionType.Stream
-				? "Stream"
-				: undefined
-		: undefined,
+	$collectionState.mode === CollectionType.Snapshot
+		? "Snapshot"
+		: $collectionState.mode === CollectionType.Stream
+			? "Stream"
+			: undefined,
 );
 
-const urlLabel = $derived(
-	$collectionState.status === CollectionService.CollectionStatus.Running
-		? ($collectionState.url?.toString() ?? undefined)
-		: undefined,
-);
+const urlLabel = $derived($collectionState.url?.toString() ?? undefined);
 
 const statusLabel = $derived(
 	$collectionState.status === CollectionService.CollectionStatus.Running

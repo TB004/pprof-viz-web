@@ -1,6 +1,8 @@
 <script lang="ts">
 import {
 	ActivityIcon,
+	ArchiveIcon,
+	BracesIcon,
 	CpuIcon,
 	HistoryIcon,
 	HomeIcon,
@@ -19,6 +21,13 @@ const menuItems = [
 	{ title: "Memory", url: "/memory", icon: LayersIcon },
 	{ title: "Scheduler", url: "/scheduler", icon: HistoryIcon },
 	{ title: "Miscellaneous", url: "/miscellaneous", icon: PackageIcon },
+	{ title: "Raw", url: "/raw", icon: BracesIcon },
+];
+
+const footerItems = [
+	{ title: "Home", url: "/", icon: HomeIcon },
+	{ title: "Archive", url: "/archive", icon: ArchiveIcon },
+	{ title: "Settings", url: "/settings", icon: SettingsIcon },
 ];
 
 let profileManagerOpen = $state(false);
@@ -56,26 +65,18 @@ let profileManagerOpen = $state(false);
 	</Sidebar.Content>
 	<Sidebar.Footer>
 		<Sidebar.Menu>
-			<Sidebar.MenuItem>
-				<Sidebar.MenuButton>
-					{#snippet child({ props })}
-						<a href="/" {...props}>
-							<HomeIcon />
-							<span>Home</span>
-						</a>
-					{/snippet}
-				</Sidebar.MenuButton>
-			</Sidebar.MenuItem>
-			<Sidebar.MenuItem>
-				<Sidebar.MenuButton>
-					{#snippet child({ props })}
-						<a href="/settings" {...props}>
-							<SettingsIcon />
-							<span>Settings</span>
-						</a>
-					{/snippet}
-				</Sidebar.MenuButton>
-			</Sidebar.MenuItem>
+			{#each footerItems as item (item.title)}
+				<Sidebar.MenuItem>
+					<Sidebar.MenuButton>
+						{#snippet child({ props })}
+							<a href={item.url} {...props}>
+								<item.icon />
+								<span>{item.title}</span>
+							</a>
+						{/snippet}
+					</Sidebar.MenuButton>
+				</Sidebar.MenuItem>
+			{/each}
 		</Sidebar.Menu>
 	</Sidebar.Footer>
 </Sidebar.Root>

@@ -83,6 +83,34 @@ function updateElapsedTimeFromStart() {
 	}));
 }
 
+// Merge two sub-messages by carrying forward any field from `prev` that is
+// absent (undefined) in `next`. This handles delta-encoded streams where only
+// changed fields are sent to save bandwidth.
+function mergeSubMessage<T extends object>(
+	prev: T | undefined,
+	next: T | undefined,
+): T | undefined {
+	if (!prev) return next;
+	if (!next) return prev;
+	const defined = Object.fromEntries(
+		Object.entries(next).filter(([, v]) => v !== undefined),
+	);
+	return { ...prev, ...defined } as T;
+}
+
+function mergeFrame(prev: AllResponse, next: AllResponse): AllResponse {
+	return {
+		...prev,
+		cpu: mergeSubMessage(prev.cpu, next.cpu),
+		scheduler: mergeSubMessage(prev.scheduler, next.scheduler),
+		gc: mergeSubMessage(prev.gc, next.gc),
+		memory: mergeSubMessage(prev.memory, next.memory),
+		goDebug: mergeSubMessage(prev.goDebug, next.goDebug),
+		cgo: mergeSubMessage(prev.cgo, next.cgo),
+		sync: mergeSubMessage(prev.sync, next.sync),
+	} as AllResponse;
+}
+
 function isCancellation(err: unknown): boolean {
 	if (err instanceof ConnectError && err.code === Code.Canceled) {
 		return true;
@@ -165,11 +193,15 @@ export async function startCollection(): Promise<void> {
 			);
 
 			for await (const frame of stream) {
-				collectionStateStore.update((s) => ({
-					...s,
-					data: [...(s.data ?? []), frame],
-					collectedSamples: s.collectedSamples + 1,
-				}));
+				collectionStateStore.update((s) => {
+					const prev = s.data?.at(-1);
+					const merged = prev ? mergeFrame(prev, frame) : frame;
+					return {
+						...s,
+						data: [...(s.data ?? []), merged],
+						collectedSamples: s.collectedSamples + 1,
+					};
+				});
 			}
 		}
 	} catch (err) {

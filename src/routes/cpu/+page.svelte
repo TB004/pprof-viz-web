@@ -81,6 +81,21 @@ function fmtSecs(s: number): string {
 	return `${s.toFixed(3)}s`;
 }
 
+function fmtSecsAxis(s: number): string {
+	if (s === 0) return "0";
+	if (s < 0.0001) return `${(s * 1_000_000).toFixed(0)}µs`;
+	if (s < 0.1) return `${(s * 1_000).toFixed(1)}ms`;
+	if (s < 60) return `${s.toFixed(1)}s`;
+	if (s < 6000) return `${(s / 60).toFixed(1)}m`;
+	return `${(s / 3600).toFixed(1)}h`;
+}
+
+function fmtCompactAxis(n: number): string {
+	if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+	if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+	return String(Math.round(n));
+}
+
 const cpuChartConfig = {
 	user: { label: "User", color: "var(--chart-1)" },
 	idle: { label: "Idle", color: "var(--chart-2)" },
@@ -171,6 +186,7 @@ const goroutineChartConfig = {
 							data={chartData}
 							x="sample"
 							yNice
+							props={{ yAxis: { format: fmtSecsAxis } }}
 							series={[
                                 {
                                     key: "user",
@@ -215,6 +231,7 @@ const goroutineChartConfig = {
 							data={chartData}
 							x="sample"
 							yNice
+							props={{ yAxis: { format: fmtSecsAxis } }}
 							series={[
                                 {
                                     key: "gcAssist",
@@ -257,6 +274,7 @@ const goroutineChartConfig = {
 							data={chartData}
 							x="sample"
 							yNice
+							props={{ yAxis: { format: fmtCompactAxis } }}
 							series={[
                                 {
                                     key: "goroutinesRunning",

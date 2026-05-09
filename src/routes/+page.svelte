@@ -18,13 +18,14 @@ import { Button } from "$lib/components/ui/button";
 import * as Card from "$lib/components/ui/card";
 import { CollectionService } from "$lib/services";
 import { profileOptions } from "$lib/services/profile_service.js";
+import { CollectionStatus } from "$lib/types";
 
 const collectionState = CollectionService.collectionState;
 
 const hasProfiles = $derived($profileOptions.length > 0);
 const hasSelectedProfile = $derived(!!$collectionState.selectedProfile);
 const isRunning = $derived(
-	$collectionState.status === CollectionService.CollectionStatus.Running,
+	$collectionState.status === CollectionStatus.Running,
 );
 
 const activeStep = $derived(

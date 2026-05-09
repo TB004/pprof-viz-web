@@ -6,9 +6,16 @@
 
 // --- settings.rs ---
 
-export type ThemeMode = "light" | "dark" | "system";
+export enum ThemeMode {
+	Light = "light",
+	Dark = "dark",
+	System = "system",
+}
 
-export type CollectionType = "snapshot" | "stream";
+export enum CollectionType {
+	Snapshot = "snapshot",
+	Stream = "stream",
+}
 
 export interface AppSettings {
 	theme: ThemeMode;
@@ -21,7 +28,10 @@ export interface AppSettings {
 
 // --- collection.rs ---
 
-export type CollectionStatus = "idle" | "running";
+export enum CollectionStatus {
+	Idle = "idle",
+	Running = "running",
+}
 
 // Proto3 JSON encodes uint64 as a string and double/uint32 as a number.
 // The chart pages wrap accesses with `Number(... ?? 0)` so accepting both

@@ -4,15 +4,16 @@ import * as Card from "$lib/components/ui/card/index.js";
 import Input from "$lib/components/ui/input/input.svelte";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import { ProfileService, SettingsService } from "$lib/services";
+import { ThemeMode } from "$lib/types";
 
 const themeOptions: Array<{
-	value: SettingsService.ThemeMode;
+	value: ThemeMode;
 	label: string;
 	icon: typeof MonitorIcon;
 }> = [
-	{ value: "system", label: "System", icon: MonitorIcon },
-	{ value: "light", label: "Light", icon: SunIcon },
-	{ value: "dark", label: "Dark", icon: MoonIcon },
+	{ value: ThemeMode.System, label: "System", icon: MonitorIcon },
+	{ value: ThemeMode.Light, label: "Light", icon: SunIcon },
+	{ value: ThemeMode.Dark, label: "Dark", icon: MoonIcon },
 ];
 
 const modeOptions: Array<{

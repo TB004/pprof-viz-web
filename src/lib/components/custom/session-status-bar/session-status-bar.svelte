@@ -6,6 +6,7 @@ import {
 } from "$lib/components/custom/session-status-bar";
 import { CollectionService, ErrorService } from "$lib/services";
 import { CollectionType } from "$lib/services/profile_service";
+import { CollectionStatus } from "$lib/types";
 import { cn } from "$lib/utils.js";
 
 let showErrors = $state(false);
@@ -24,13 +25,11 @@ const modeLabel = $derived(
 const urlLabel = $derived($collectionState.url?.toString() ?? undefined);
 
 const statusLabel = $derived(
-	$collectionState.status === CollectionService.CollectionStatus.Running
-		? "Running"
-		: "Idle",
+	$collectionState.status === CollectionStatus.Running ? "Running" : "Idle",
 );
 
 const statusIconClass = $derived(
-	$collectionState.status === CollectionService.CollectionStatus.Running
+	$collectionState.status === CollectionStatus.Running
 		? "size-3.5 animate-spin text-foreground"
 		: "size-3.5 text-muted-foreground",
 );
@@ -45,7 +44,7 @@ const errorCount = $derived($errorState.length);
 		class="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 text-xs"
 	>
 		<StatusElement>
-			{#if $collectionState.status === CollectionService.CollectionStatus.Running}
+			{#if $collectionState.status === CollectionStatus.Running}
 				<LoaderCircle class={statusIconClass} />
 			{:else}
 				<PauseIcon class={statusIconClass} />

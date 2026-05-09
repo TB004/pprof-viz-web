@@ -1,41 +1,18 @@
+import { invoke } from "@tauri-apps/api/core";
 import { type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
-import { CollectionType } from "./profile_service.js";
+import type { AppSettings, ThemeMode } from "$lib/types";
 
-export type ThemeMode = "light" | "dark" | "system";
-
-export interface AppSettings {
-	theme: ThemeMode;
-	defaultName: string;
-	defaultUrl: string;
-	defaultMode: CollectionType;
-	defaultIntervalSeconds: number;
-	defaultNumberOfCycles: number;
-}
-
-const SETTINGS_KEY = "pprof-viz-settings";
+const THEME_CACHE_KEY = "pprof-viz-settings";
 
 const fallbackSettings: AppSettings = {
 	theme: "system",
 	defaultName: "",
 	defaultUrl: "",
-	defaultMode: CollectionType.Stream,
+	defaultMode: "stream",
 	defaultIntervalSeconds: 1,
 	defaultNumberOfCycles: 0,
 };
-
-function loadSettings(): AppSettings {
-	if (!browser) return fallbackSettings;
-	try {
-		const stored = localStorage.getItem(SETTINGS_KEY);
-		if (stored) {
-			return { ...fallbackSettings, ...JSON.parse(stored) };
-		}
-	} catch {
-		// ignore
-	}
-	return fallbackSettings;
-}
 
 function applyTheme(theme: ThemeMode) {
 	const isDark =
@@ -59,25 +36,50 @@ function syncSystemWatcher(theme: ThemeMode) {
 	systemMediaCleanup = () => mq.removeEventListener("change", handler);
 }
 
-const settingsStore = writable<AppSettings>(loadSettings());
+// Mirror only the theme to localStorage so the inline script in `app.html`
+// can avoid a flash of the wrong theme on cold start. Rust remains the
+// source of truth for everything else.
+function cacheThemeForBoot(theme: ThemeMode) {
+	try {
+		localStorage.setItem(THEME_CACHE_KEY, JSON.stringify({ theme }));
+	} catch {
+		// quota / private mode — ignore
+	}
+}
+
+const settingsStore = writable<AppSettings>(fallbackSettings);
+
+let hydrated = false;
+
+async function ensureHydrated() {
+	if (hydrated) return;
+	hydrated = true;
+	try {
+		const loaded = await invoke<AppSettings>("get_settings");
+		settingsStore.set(loaded);
+	} catch {
+		// Leave fallback in place — Rust may not be ready yet during very
+		// early boot. We'll re-hydrate next time updateSettings is called.
+		hydrated = false;
+	}
+}
 
 if (browser) {
 	settingsStore.subscribe((s) => {
 		applyTheme(s.theme);
 		syncSystemWatcher(s.theme);
+		cacheThemeForBoot(s.theme);
 	});
+	void ensureHydrated();
 }
 
 export const settings: Readable<AppSettings> = {
 	subscribe: settingsStore.subscribe,
 };
 
-export function updateSettings(patch: Partial<AppSettings>) {
-	settingsStore.update((current) => {
-		const updated = { ...current, ...patch };
-		localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
-		return updated;
-	});
+export async function updateSettings(patch: Partial<AppSettings>) {
+	const updated = await invoke<AppSettings>("update_settings", { patch });
+	settingsStore.set(updated);
 }
 
 export function getSettingsSnapshot(): AppSettings {

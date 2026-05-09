@@ -5,6 +5,7 @@ import { ScrollArea } from "$lib/components/ui/scroll-area";
 import * as Select from "$lib/components/ui/select";
 import { CollectionService } from "$lib/services";
 import { profileOptions } from "$lib/services/profile_service.js";
+import { CollectionStatus } from "$lib/types";
 
 type Props = {
 	profileManagerOpen: boolean;
@@ -15,7 +16,7 @@ let { profileManagerOpen = $bindable() }: Props = $props();
 const collectionState = CollectionService.collectionState;
 
 const isRunning = $derived(
-	$collectionState.status === CollectionService.CollectionStatus.Running,
+	$collectionState.status === CollectionStatus.Running,
 );
 
 const triggerContent = $derived(

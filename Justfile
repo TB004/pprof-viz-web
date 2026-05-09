@@ -5,17 +5,22 @@
 default:
     @just --list
 
-# Generate TS mocks for protobuf
-[group('Utilities')]
-gen:
-    - bunx buf generate
-
-# Build docker images
+# Run the Tauri app in development mode
 [group('Build')]
-bake:
-    - docker buildx bake -f ./docker/docker-bake.hcl default ${DOCKER_BAKE_FLAGS:-}
+dev:
+    - cargo tauri dev
 
-# Run the SvelteKit type and config checkss
+# Build the Tauri app for the current platform
+[group('Build')]
+build:
+    - cargo tauri build
+
+# Regenerate macOS/Windows/Linux app icons
+[group('Build')]
+icons:
+    - cargo tauri icon src-tauri/icons/icon-source.png --output src-tauri/icons
+
+# Run the SvelteKit type and config checks
 [group('Quality')]
 check:
     - bun run check
@@ -53,4 +58,4 @@ vuln:
 # Remove build and dependency artifacts
 [group('Maintenance')]
 clean:
-    - rm -rf .svelte-kit build node_modules
+    - rm -rf .svelte-kit build node_modules src-tauri/target

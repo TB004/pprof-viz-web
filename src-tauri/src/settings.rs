@@ -15,27 +15,12 @@ pub enum ThemeMode {
     System,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, sqlx::Type)]
 #[serde(rename_all = "lowercase")]
+#[sqlx(type_name = "TEXT", rename_all = "lowercase")]
 pub enum CollectionType {
     Snapshot,
     Stream,
-}
-
-impl CollectionType {
-    pub fn to_string(&self) -> &'static str {
-        match self {
-            CollectionType::Snapshot => "snapshot",
-            CollectionType::Stream => "stream",
-        }
-    }
-
-    pub fn parse(raw: &str) -> CollectionType {
-        match raw {
-            "snapshot" => CollectionType::Snapshot,
-            _ => CollectionType::Stream,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

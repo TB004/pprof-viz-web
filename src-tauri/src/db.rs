@@ -4,7 +4,7 @@
 //! issue queries from Rust. The frontend never talks to sqlite directly.
 
 use serde::{Deserialize, Serialize};
-use sqlx::{Row, sqlite::SqlitePool};
+use sqlx::sqlite::SqlitePool;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_sql::{DbInstances, DbPool, Migration, MigrationKind};
 
@@ -44,7 +44,7 @@ pub fn migrations() -> Vec<Migration> {
     }]
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectRow {
     pub id: String,
@@ -53,7 +53,7 @@ pub struct ProjectRow {
     pub updated_at: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileRow {
     pub id: String,
@@ -62,24 +62,23 @@ pub struct ProfileRow {
     pub url: String,
     pub mode: CollectionType,
     pub token: Option<String>,
-    pub interval_seconds: Option<u32>,
-    pub number_of_cycles: Option<u32>,
+    pub interval_seconds: Option<i64>,
+    pub number_of_cycles: Option<i64>,
     pub created_at: i64,
     pub updated_at: i64,
 }
 
 /// Lightweight view of a profile used by the collection worker. Drops the
-/// timestamps and project_id that the streaming code doesn't need, and
-/// uses the in-memory `CollectionType` enum instead of the wire string.
-#[derive(Debug, Clone)]
+/// timestamps and project_id that the streaming code doesn't need.
+#[derive(Debug, Clone, sqlx::FromRow)]
 pub struct ProfileDescriptor {
     pub id: String,
     pub name: String,
     pub url: String,
     pub mode: CollectionType,
     pub token: Option<String>,
-    pub interval_seconds: Option<u32>,
-    pub number_of_cycles: Option<u32>,
+    pub interval_seconds: Option<i64>,
+    pub number_of_cycles: Option<i64>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -89,8 +88,8 @@ pub struct ProfileInput {
     pub url: String,
     pub mode: CollectionType,
     pub token: Option<String>,
-    pub interval_seconds: Option<u32>,
-    pub number_of_cycles: Option<u32>,
+    pub interval_seconds: Option<i64>,
+    pub number_of_cycles: Option<i64>,
 }
 
 async fn with_pool<F, Fut, T>(app: &AppHandle, f: F) -> Result<T, String>
@@ -116,21 +115,12 @@ where
 #[tauri::command]
 pub async fn list_projects(app: AppHandle) -> Result<Vec<ProjectRow>, String> {
     with_pool(&app, |pool| async move {
-        let rows = sqlx::query(
+        sqlx::query_as::<_, ProjectRow>(
             "SELECT id, name, created_at, updated_at FROM projects ORDER BY created_at ASC",
         )
         .fetch_all(&pool)
         .await
-        .map_err(|e| e.to_string())?;
-        Ok(rows
-            .into_iter()
-            .map(|r| ProjectRow {
-                id: r.get("id"),
-                name: r.get("name"),
-                created_at: r.get("created_at"),
-                updated_at: r.get("updated_at"),
-            })
-            .collect())
+        .map_err(|e| e.to_string())
     })
     .await
 }
@@ -138,32 +128,13 @@ pub async fn list_projects(app: AppHandle) -> Result<Vec<ProjectRow>, String> {
 #[tauri::command]
 pub async fn list_profiles(app: AppHandle) -> Result<Vec<ProfileRow>, String> {
     with_pool(&app, |pool| async move {
-        let rows = sqlx::query(
+        sqlx::query_as::<_, ProfileRow>(
             "SELECT id, project_id, name, url, mode, token, interval_seconds, \
              number_of_cycles, created_at, updated_at FROM profiles ORDER BY created_at ASC",
         )
         .fetch_all(&pool)
         .await
-        .map_err(|e| e.to_string())?;
-        Ok(rows
-            .into_iter()
-            .map(|r| ProfileRow {
-                id: r.get("id"),
-                project_id: r.get("project_id"),
-                name: r.get("name"),
-                url: r.get("url"),
-                mode: CollectionType::parse(r.get::<String, _>("mode").as_str()),
-                token: r.get("token"),
-                interval_seconds: r
-                    .get::<Option<i64>, _>("interval_seconds")
-                    .map(|v| v as u32),
-                number_of_cycles: r
-                    .get::<Option<i64>, _>("number_of_cycles")
-                    .map(|v| v as u32),
-                created_at: r.get("created_at"),
-                updated_at: r.get("updated_at"),
-            })
-            .collect())
+        .map_err(|e| e.to_string())
     })
     .await
 }
@@ -174,7 +145,7 @@ pub async fn list_profiles(app: AppHandle) -> Result<Vec<ProfileRow>, String> {
 pub async fn load_profile(app: &AppHandle, profile_id: &str) -> Result<ProfileDescriptor, String> {
     let id = profile_id.to_string();
     with_pool(app, |pool| async move {
-        let row = sqlx::query(
+        sqlx::query_as::<_, ProfileDescriptor>(
             "SELECT id, name, url, mode, token, interval_seconds, number_of_cycles \
              FROM profiles WHERE id = ?",
         )
@@ -182,21 +153,7 @@ pub async fn load_profile(app: &AppHandle, profile_id: &str) -> Result<ProfileDe
         .fetch_optional(&pool)
         .await
         .map_err(|e| e.to_string())?
-        .ok_or_else(|| format!("profile '{id}' not found"))?;
-
-        Ok(ProfileDescriptor {
-            id: row.get("id"),
-            name: row.get("name"),
-            url: row.get("url"),
-            mode: CollectionType::parse(row.get::<String, _>("mode").as_str()),
-            token: row.get("token"),
-            interval_seconds: row
-                .get::<Option<i64>, _>("interval_seconds")
-                .map(|v| v as u32),
-            number_of_cycles: row
-                .get::<Option<i64>, _>("number_of_cycles")
-                .map(|v| v as u32),
-        })
+        .ok_or_else(|| format!("profile '{id}' not found"))
     })
     .await
 }
@@ -304,10 +261,10 @@ pub async fn create_profile(
         .bind(&row.project_id)
         .bind(&row.name)
         .bind(&row.url)
-        .bind(row.mode.to_string())
+        .bind(row.mode)
         .bind(row.token.as_deref())
-        .bind(row.interval_seconds.map(|v| v as i64))
-        .bind(row.number_of_cycles.map(|v| v as i64))
+        .bind(row.interval_seconds)
+        .bind(row.number_of_cycles)
         .bind(row.created_at)
         .bind(row.updated_at)
         .execute(&pool)
@@ -342,10 +299,10 @@ pub async fn update_profile(app: AppHandle, id: String, input: ProfileInput) -> 
         )
         .bind(&trimmed_name)
         .bind(&trimmed_url)
-        .bind(input.mode.to_string())
+        .bind(input.mode)
         .bind(token.as_deref())
-        .bind(input.interval_seconds.map(|v| v as i64))
-        .bind(input.number_of_cycles.map(|v| v as i64))
+        .bind(input.interval_seconds)
+        .bind(input.number_of_cycles)
         .bind(now)
         .bind(&id)
         .execute(&pool)

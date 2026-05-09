@@ -45,6 +45,7 @@ tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 sqlx = { version = "0.8", default-features = false, features = [
     "runtime-tokio",
     "sqlite",
+    "derive",
 ] }
 
 [profile.release]

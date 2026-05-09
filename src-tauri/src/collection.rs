@@ -330,8 +330,8 @@ async fn run_session(
             Err(e) => errors::report(&app, format!("snapshot failed: {e}")),
         },
         CollectionType::Stream => {
-            let interval = profile.interval_seconds.unwrap_or(1);
-            let cycles = profile.number_of_cycles.unwrap_or(0);
+            let interval = profile.interval_seconds.unwrap_or(1) as u32;
+            let cycles = profile.number_of_cycles.unwrap_or(0) as u32;
             let stream_result = client.stream_all(interval, cycles).await;
             match stream_result {
                 Ok(mut stream) => loop {

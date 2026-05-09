@@ -1,39 +1,33 @@
 import { invoke } from "@tauri-apps/api/core";
 import { type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
-import type { AppSettings, ThemeMode } from "$lib/types";
+import { type AppSettings, CollectionType, ThemeMode } from "$lib/types";
 
 const THEME_CACHE_KEY = "pprof-viz-settings";
 
 const fallbackSettings: AppSettings = {
-	theme: "system",
+	theme: ThemeMode.System,
 	defaultName: "",
 	defaultUrl: "",
-	defaultMode: "stream",
+	defaultMode: CollectionType.Stream,
 	defaultIntervalSeconds: 1,
 	defaultNumberOfCycles: 0,
 };
 
+const settingsStore = writable<AppSettings>(fallbackSettings);
+
+export const settings: Readable<AppSettings> = {
+	subscribe: settingsStore.subscribe,
+};
+
+let hydrated = false;
+
 function applyTheme(theme: ThemeMode) {
 	const isDark =
-		theme === "dark" ||
-		(theme === "system" &&
+		theme === ThemeMode.Dark ||
+		(theme === ThemeMode.System &&
 			window.matchMedia("(prefers-color-scheme: dark)").matches);
 	document.documentElement.classList.toggle("dark", isDark);
-}
-
-let systemMediaCleanup: (() => void) | undefined;
-
-function syncSystemWatcher(theme: ThemeMode) {
-	systemMediaCleanup?.();
-	systemMediaCleanup = undefined;
-
-	if (theme !== "system") return;
-
-	const mq = window.matchMedia("(prefers-color-scheme: dark)");
-	const handler = () => applyTheme("system");
-	mq.addEventListener("change", handler);
-	systemMediaCleanup = () => mq.removeEventListener("change", handler);
 }
 
 // Mirror only the theme to localStorage so the inline script in `app.html`
@@ -46,10 +40,6 @@ function cacheThemeForBoot(theme: ThemeMode) {
 		// quota / private mode — ignore
 	}
 }
-
-const settingsStore = writable<AppSettings>(fallbackSettings);
-
-let hydrated = false;
 
 async function ensureHydrated() {
 	if (hydrated) return;
@@ -67,15 +57,10 @@ async function ensureHydrated() {
 if (browser) {
 	settingsStore.subscribe((s) => {
 		applyTheme(s.theme);
-		syncSystemWatcher(s.theme);
 		cacheThemeForBoot(s.theme);
 	});
 	void ensureHydrated();
 }
-
-export const settings: Readable<AppSettings> = {
-	subscribe: settingsStore.subscribe,
-};
 
 export async function updateSettings(patch: Partial<AppSettings>) {
 	const updated = await invoke<AppSettings>("update_settings", { patch });
@@ -84,7 +69,7 @@ export async function updateSettings(patch: Partial<AppSettings>) {
 
 export function getSettingsSnapshot(): AppSettings {
 	let snapshot = fallbackSettings;
-	const unsubscribe = settingsStore.subscribe((value) => {
+	const unsubscribe = settings.subscribe((value) => {
 		snapshot = value;
 	});
 	unsubscribe();

@@ -79,7 +79,9 @@ const errorCount = $derived($errorState.length);
 		<StatusElement>
 			<span class="text-muted-foreground">Time</span>
 			<span class="font-medium"
-				>{CollectionService.formatElapsedTime($collectionState.elapsedSeconds)}</span
+				>{CollectionService.formatElapsedTime(
+                    $collectionState.elapsedSeconds,
+                )}</span
 			>
 		</StatusElement>
 
@@ -87,21 +89,24 @@ const errorCount = $derived($errorState.length);
 			type="button"
 			onclick={() => (showErrors = !showErrors)}
 			class={cn(
-				"ml-auto inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm transition-all",
-				errorCount > 0
-					? "border-red-500/20 bg-red-500/10 text-red-600 hover:bg-red-500/15"
-					: "border-border/60 bg-background/70 text-muted-foreground hover:bg-muted/80",
-			)}
+                "ml-auto inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm transition-all",
+                errorCount > 0
+                    ? "border-red-500/20 bg-red-500/10 text-red-600 hover:bg-red-500/15"
+                    : "border-border/60 bg-background/70 text-muted-foreground hover:bg-muted/80",
+            )}
 		>
 			<span>Error</span>
 			<span class="tabular-nums">{errorCount}</span>
 			<CircleAlertIcon
-				class={cn("size-3.5", errorCount > 0 ? "text-red-500" : "text-muted-foreground")}
+				class={cn(
+                    "size-3.5",
+                    errorCount > 0 ? "text-red-500" : "text-muted-foreground",
+                )}
 			/>
 		</button>
 	</div>
 </footer>
 
 {#if showErrors}
-	<ErrorView bind:showErrors {errorState} />
+	<ErrorView bind:showErrors />
 {/if}

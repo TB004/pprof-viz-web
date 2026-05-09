@@ -165,16 +165,6 @@ export const EVENT_FRAME = "collection://frame";
 export const EVENT_STATE = "collection://state";
 export const EVENT_METADATA = "collection://metadata";
 
-// --- errors.rs ---
-
-export interface AppError {
-	id: string;
-	message: string;
-	timestamp: number;
-}
-
-export const EVENT_NEW_ERROR = "error://new";
-
 // --- db.rs ---
 
 export interface ProjectRow {

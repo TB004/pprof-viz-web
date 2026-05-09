@@ -7,6 +7,7 @@ import {
 	PlugZapIcon,
 	Trash2Icon,
 } from "@lucide/svelte";
+import { invoke } from "@tauri-apps/api/core";
 import {
 	PMDeleteDialog,
 	PMProjectDialog,
@@ -15,7 +16,7 @@ import {
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import Input from "$lib/components/ui/input/input.svelte";
-import { AgentService, ProfileService } from "$lib/services";
+import { ProfileService } from "$lib/services";
 import { clearProfileForm, dialogState } from "./state.svelte.ts";
 
 type Props = {
@@ -134,13 +135,14 @@ async function testConnection() {
 		return;
 	}
 
+	const token = dialogState.profileToken.trim();
+
 	clearTimeout(pingResetTimer);
 	pingStatus = "pending";
 	pingError = "";
 
 	try {
-		const agent = new AgentService(url);
-		await agent.ping();
+		await invoke("agent_ping", { url: url, token: token });
 		pingStatus = "success";
 	} catch (err) {
 		pingStatus = "error";
@@ -302,7 +304,9 @@ async function testConnection() {
 
 									<div class="space-y-3 pt-2">
 										{#if pingStatus === "error" && pingError}
-											<p class="text-sm text-destructive">{pingError}</p>
+											<p class="text-sm text-destructive">
+												{pingError}
+											</p>
 										{/if}
 										<div
 											class="flex flex-wrap items-center justify-between gap-3"
@@ -312,19 +316,22 @@ async function testConnection() {
 													<CheckIcon class="size-4" />
 													<span
 														>{dialogState.editorMode ===
-                                                    "new-profile"
-                                                        ? "Create profile"
-                                                        : "Save profile"}</span
+                                                        "new-profile"
+                                                            ? "Create profile"
+                                                            : "Save profile"}</span
 													>
 												</Button>
 												<Button
 													variant="outline"
-													disabled={pingStatus === "pending" || !dialogState.profileUrl.trim()}
-													class={pingStatus === "success"
-													? "border-green-500/40 bg-green-500/10 text-green-600 hover:bg-green-500/15 hover:text-green-600"
-													: pingStatus === "error"
-														? "border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/15 hover:text-destructive"
-														: ""}
+													disabled={pingStatus ===
+                                                        "pending" ||
+                                                        !dialogState.profileUrl.trim()}
+													class={pingStatus ===
+                                                    "success"
+                                                        ? "border-green-500/40 bg-green-500/10 text-green-600 hover:bg-green-500/15 hover:text-green-600"
+                                                        : pingStatus === "error"
+                                                          ? "border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/15 hover:text-destructive"
+                                                          : ""}
 													onclick={testConnection}
 												>
 													{#if pingStatus === "pending"}
@@ -345,9 +352,9 @@ async function testConnection() {
 													<Button
 														variant="destructive"
 														onclick={() =>
-														openDeleteProfileDialog(
-															dialogState.selectedProfileId,
-														)}
+                                                            openDeleteProfileDialog(
+                                                                dialogState.selectedProfileId,
+                                                            )}
 													>
 														<Trash2Icon class="size-4" />
 														<span>Delete</span>

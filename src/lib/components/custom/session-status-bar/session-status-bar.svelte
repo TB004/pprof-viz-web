@@ -5,8 +5,7 @@ import {
 	StatusElement,
 } from "$lib/components/custom/session-status-bar";
 import { CollectionService, ErrorService } from "$lib/services";
-import { CollectionType } from "$lib/services/profile_service";
-import { CollectionStatus } from "$lib/types";
+import { CollectionStatus, CollectionType } from "$lib/types";
 import { cn } from "$lib/utils.js";
 
 let showErrors = $state(false);

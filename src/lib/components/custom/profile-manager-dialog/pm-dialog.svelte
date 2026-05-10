@@ -17,6 +17,7 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import Input from "$lib/components/ui/input/input.svelte";
 import { ProfileService } from "$lib/services";
+import { CollectionType } from "$lib/types";
 import { clearProfileForm, dialogState } from "./state.svelte.ts";
 
 type Props = {
@@ -26,17 +27,17 @@ type Props = {
 let { open = $bindable(false) }: Props = $props();
 
 const modeOptions: Array<{
-	value: ProfileService.CollectionType;
+	value: CollectionType;
 	title: string;
 	description: string;
 }> = [
 	{
-		value: ProfileService.CollectionType.Snapshot,
+		value: CollectionType.Snapshot,
 		title: "Snapshot",
 		description: "Capture a focused point-in-time profile.",
 	},
 	{
-		value: ProfileService.CollectionType.Stream,
+		value: CollectionType.Stream,
 		title: "Stream",
 		description: "Continuously follow runtime changes.",
 	},
@@ -55,11 +56,11 @@ $effect(() => {
 	dialogState.projectDialogOpen = false;
 });
 
-function openDeleteProfileDialog(profileId?: string) {
+async function openDeleteProfileDialog(profileId?: string) {
 	if (!profileId) {
 		return;
 	}
-	const profile = ProfileService.getProfileById(profileId);
+	const profile = await ProfileService.getProfileById(profileId);
 	if (!profile) {
 		return;
 	}
@@ -77,8 +78,7 @@ async function saveProfile() {
 		return;
 	}
 
-	const isStream =
-		dialogState.profileMode === ProfileService.CollectionType.Stream;
+	const isStream = dialogState.profileMode === CollectionType.Stream;
 	const payload = {
 		name: dialogState.profileName,
 		url: dialogState.profileUrl,
@@ -267,7 +267,7 @@ async function testConnection() {
 										</div>
 									</div>
 
-									{#if dialogState.profileMode === ProfileService.CollectionType.Stream}
+									{#if dialogState.profileMode === CollectionType.Stream}
 										<div class="grid gap-4 sm:grid-cols-2">
 											<label class="block">
 												<span

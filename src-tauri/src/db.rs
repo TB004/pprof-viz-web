@@ -140,6 +140,23 @@ pub async fn list_profiles(app: AppHandle) -> Result<Vec<ProfileRow>, String> {
 }
 
 #[tauri::command]
+pub async fn get_project_by_id(
+    app: AppHandle,
+    id: String,
+) -> Result<Option<ProjectRow>, String> {
+    with_pool(&app, |pool| async move {
+        sqlx::query_as::<_, ProjectRow>(
+            "SELECT id, name, created_at, updated_at FROM projects WHERE id = ?",
+        )
+        .bind(&id)
+        .fetch_optional(&pool)
+        .await
+        .map_err(|e| e.to_string())
+    })
+    .await
+}
+
+#[tauri::command]
 pub async fn get_profile_by_id(
     app: AppHandle,
     id: String,

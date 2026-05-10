@@ -24,6 +24,7 @@ pub fn run() {
             settings::update_settings,
             db::list_projects,
             db::list_profiles,
+            db::get_project_by_id,
             db::get_profile_by_id,
             db::create_project,
             db::rename_project,

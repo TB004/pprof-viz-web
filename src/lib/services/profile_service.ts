@@ -1,12 +1,13 @@
+import { invoke } from "@tauri-apps/api/core";
 import { derived, type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
-import { DBService } from "$lib/services";
-import { genUlid } from "$lib/utils.js";
-
-export enum CollectionType {
-	Snapshot = "snapshot",
-	Stream = "stream",
-}
+import { ErrorService } from "$lib/services";
+import {
+	CollectionType,
+	type ProfileInput,
+	type ProfileRow,
+	type ProjectRow,
+} from "$lib/types";
 
 export interface CollectionProfile {
 	value: string;
@@ -17,24 +18,11 @@ export interface CollectionProfile {
 	mode: CollectionType;
 }
 
-export interface ProfileRecord {
-	id: string;
-	projectId: string;
-	name: string;
-	url: string;
+export interface ProfileRecord extends ProfileRow {
 	mode: CollectionType;
-	token?: string;
-	intervalSeconds?: number;
-	numberOfCycles?: number;
-	createdAt: number;
-	updatedAt: number;
 }
 
-export interface ProfileProject {
-	id: string;
-	name: string;
-	createdAt: number;
-	updatedAt: number;
+export interface ProfileProject extends ProjectRow {
 	profiles: ProfileRecord[];
 }
 
@@ -43,64 +31,12 @@ export interface ProfileCatalogState {
 	projects: ProfileProject[];
 }
 
-type ProjectRow = Omit<ProfileProject, "profiles">;
-
 const emptyCatalog = (): ProfileCatalogState => ({
 	loaded: false,
 	projects: [],
 });
 
 const profileCatalogStore = writable<ProfileCatalogState>(emptyCatalog());
-
-let hydrated = false;
-
-async function ensureHydrated() {
-	if (!hydrated) {
-		try {
-			const [projects, profiles] = await Promise.all([
-				DBService.readProjects(),
-				DBService.readProfiles(),
-			]);
-			const normalizedProfiles = profiles.map((profile) => ({
-				...profile,
-				mode: profile.mode as CollectionType,
-			}));
-
-			const profilesByProjectId = new Map<string, ProfileRecord[]>();
-			for (const profile of normalizedProfiles) {
-				const list = profilesByProjectId.get(profile.projectId);
-				if (list) {
-					list.push(profile);
-				} else {
-					profilesByProjectId.set(profile.projectId, [profile]);
-				}
-			}
-
-			profileCatalogStore.set({
-				loaded: true,
-				projects: projects.map((project) => ({
-					...project,
-					profiles: profilesByProjectId.get(project.id) ?? [],
-				})),
-			});
-		} catch {
-			profileCatalogStore.set({
-				loaded: true,
-				projects: [],
-			});
-		}
-		hydrated = true;
-	}
-}
-
-function getSnapshot(): ProfileCatalogState {
-	let snapshot = emptyCatalog();
-	const unsubscribe = profileCatalogStore.subscribe((value) => {
-		snapshot = value;
-	});
-	unsubscribe();
-	return snapshot;
-}
 
 export const profileCatalog: Readable<ProfileCatalogState> = {
 	subscribe: profileCatalogStore.subscribe,
@@ -110,6 +46,54 @@ export const profileProjects = derived(
 	profileCatalogStore,
 	(catalog) => catalog.projects,
 );
+
+let hydrated = false;
+
+function reportInvokeError(action: string, e: unknown) {
+	const message = e instanceof Error ? e.message : String(e);
+	void ErrorService.registerError(`${action}: ${message}`);
+}
+
+function asEnum(mode: ProfileRow["mode"]): CollectionType {
+	return mode === "snapshot" ? CollectionType.Snapshot : CollectionType.Stream;
+}
+
+async function reload() {
+	const [projects, profiles] = await Promise.all([
+		invoke<ProjectRow[]>("list_projects"),
+		invoke<ProfileRow[]>("list_profiles"),
+	]);
+
+	const profilesByProjectId = new Map<string, ProfileRecord[]>();
+	for (const row of profiles) {
+		const record: ProfileRecord = { ...row, mode: asEnum(row.mode) };
+		const list = profilesByProjectId.get(row.projectId);
+		if (list) list.push(record);
+		else profilesByProjectId.set(row.projectId, [record]);
+	}
+
+	const catalog = projects.map((project) => ({
+		...project,
+		profiles: profilesByProjectId.get(project.id) ?? [],
+	}));
+
+	profileCatalogStore.set({
+		loaded: true,
+		projects: catalog,
+	});
+}
+
+async function ensureHydrated() {
+	if (hydrated) return;
+	hydrated = true;
+	try {
+		await reload();
+	} catch (e) {
+		profileCatalogStore.set({ loaded: true, projects: [] });
+		hydrated = false;
+		reportInvokeError("Failed to load projects/profiles", e);
+	}
+}
 
 export const profileOptions: Readable<CollectionProfile[]> = derived(
 	profileCatalogStore,
@@ -126,246 +110,107 @@ export const profileOptions: Readable<CollectionProfile[]> = derived(
 		),
 );
 
-export function getProfileById(
+export async function getProjectById(
+	projectId: string,
+): Promise<ProjectRow | undefined> {
+	const row = await invoke<ProjectRow | null>("get_project_by_id", {
+		id: projectId,
+	});
+	return row ?? undefined;
+}
+
+export async function getProfileById(
 	profileId: string,
-): { project: ProjectRow; profile: ProfileRecord } | undefined {
-	for (const project of getSnapshot().projects) {
-		const profile = project.profiles.find((entry) => entry.id === profileId);
-		if (profile) {
-			return { project, profile };
-		}
-	}
-
-	return undefined;
+): Promise<ProfileRecord | undefined> {
+	const row = await invoke<ProfileRow | null>("get_profile_by_id", {
+		id: profileId,
+	});
+	if (!row) return undefined;
+	return { ...row, mode: asEnum(row.mode) };
 }
 
-export async function setActiveProfile(profileId?: string) {
-	await ensureHydrated();
-	if (profileId && !getProfileById(profileId)) {
-		return;
-	}
+function toInput(input: ProfileInput): ProfileInput {
+	return {
+		name: input.name.trim(),
+		url: input.url.trim(),
+		mode: input.mode,
+		token: input.token?.trim() || undefined,
+		intervalSeconds: input.intervalSeconds,
+		numberOfCycles: input.numberOfCycles,
+	};
 }
 
-export async function createProject(name: string) {
-	await ensureHydrated();
-	const trimmedName = name.trim();
-	if (!trimmedName) {
+export async function createProject(name: string): Promise<string | undefined> {
+	const trimmed = name.trim();
+	if (!trimmed) return undefined;
+	try {
+		const project = await invoke<ProjectRow>("create_project", {
+			name: trimmed,
+		});
+		await reload();
+		return project.id;
+	} catch (e) {
+		reportInvokeError("Failed to create project", e);
 		return undefined;
 	}
-
-	const timestamp = Date.now();
-	const project: ProjectRow = {
-		id: genUlid(),
-		name: trimmedName,
-		createdAt: timestamp,
-		updatedAt: timestamp,
-	};
-
-	await DBService.createOrUpdateProject(project);
-
-	profileCatalogStore.update((catalog) => ({
-		...catalog,
-		projects: [...catalog.projects, { ...project, profiles: [] }],
-	}));
-
-	return project.id;
 }
 
 export async function renameProject(projectId: string, name: string) {
-	await ensureHydrated();
-	const trimmedName = name.trim();
-	if (!trimmedName) {
-		return;
+	const trimmed = name.trim();
+	if (!trimmed) return;
+	try {
+		await invoke("rename_project", { id: projectId, name: trimmed });
+		await reload();
+	} catch (e) {
+		reportInvokeError("Failed to rename project", e);
 	}
-
-	const snapshot = getSnapshot();
-	const project = snapshot.projects.find((entry) => entry.id === projectId);
-	if (!project) {
-		return;
-	}
-
-	const updatedProject: ProjectRow = {
-		id: project.id,
-		name: trimmedName,
-		createdAt: project.createdAt,
-		updatedAt: Date.now(),
-	};
-
-	await DBService.createOrUpdateProject(updatedProject);
-
-	profileCatalogStore.update((catalog) => ({
-		...catalog,
-		projects: catalog.projects.map((entry) =>
-			entry.id === projectId
-				? { ...entry, name: trimmedName, updatedAt: updatedProject.updatedAt }
-				: entry,
-		),
-	}));
 }
 
 export async function deleteProject(projectId: string) {
-	await ensureHydrated();
-	const snapshot = getSnapshot();
-	const project = snapshot.projects.find((entry) => entry.id === projectId);
-	if (!project) {
-		return;
+	try {
+		await invoke("delete_project", { id: projectId });
+		await reload();
+	} catch (e) {
+		reportInvokeError("Failed to delete project", e);
 	}
-
-	for (const profile of project.profiles) {
-		await DBService.deleteProfile(profile.id);
-	}
-	await DBService.deleteProject(projectId);
-
-	profileCatalogStore.update((catalog) => ({
-		...catalog,
-		projects: catalog.projects.filter((entry) => entry.id !== projectId),
-	}));
 }
 
 export async function createProfile(
 	projectId: string,
-	input: {
-		name: string;
-		url: string;
-		mode: CollectionType;
-		token?: string;
-		intervalSeconds?: number;
-		numberOfCycles?: number;
-	},
-) {
-	await ensureHydrated();
-	const trimmedName = input.name.trim();
-	const trimmedUrl = input.url.trim();
-	if (!trimmedName || !trimmedUrl) {
-		return undefined;
-	}
-
+	input: ProfileInput,
+): Promise<string | undefined> {
+	const trimmed = toInput(input);
+	if (!trimmed.name || !trimmed.url) return undefined;
 	try {
-		new URL(trimmedUrl);
-	} catch {
+		const created = await invoke<ProfileRow>("create_profile", {
+			projectId,
+			input: trimmed,
+		});
+		await reload();
+		return created.id;
+	} catch (e) {
+		reportInvokeError("Failed to create profile", e);
 		return undefined;
 	}
-
-	const snapshot = getSnapshot();
-	const project = snapshot.projects.find((entry) => entry.id === projectId);
-	if (!project) {
-		return undefined;
-	}
-
-	const timestamp = Date.now();
-	const profile: ProfileRecord = {
-		id: genUlid(),
-		projectId,
-		name: trimmedName,
-		url: trimmedUrl,
-		mode: input.mode,
-		token: input.token?.trim() || undefined,
-		intervalSeconds: input.intervalSeconds,
-		numberOfCycles: input.numberOfCycles,
-		createdAt: timestamp,
-		updatedAt: timestamp,
-	};
-
-	await DBService.createOrUpdateProfile(profile);
-
-	profileCatalogStore.update((catalog) => ({
-		...catalog,
-		projects: catalog.projects.map((entry) =>
-			entry.id === projectId
-				? {
-						...entry,
-						updatedAt: timestamp,
-						profiles: [...entry.profiles, profile],
-					}
-				: entry,
-		),
-	}));
-
-	return profile.id;
 }
 
-export async function updateProfile(
-	profileId: string,
-	input: {
-		name: string;
-		url: string;
-		mode: CollectionType;
-		token?: string;
-		intervalSeconds?: number;
-		numberOfCycles?: number;
-	},
-) {
-	await ensureHydrated();
-	const trimmedName = input.name.trim();
-	const trimmedUrl = input.url.trim();
-	if (!trimmedName || !trimmedUrl) {
-		return;
-	}
-
+export async function updateProfile(profileId: string, input: ProfileInput) {
+	const trimmed = toInput(input);
+	if (!trimmed.name || !trimmed.url) return;
 	try {
-		new URL(trimmedUrl);
-	} catch {
-		return;
+		await invoke("update_profile", { id: profileId, input: trimmed });
+		await reload();
+	} catch (e) {
+		reportInvokeError("Failed to update profile", e);
 	}
-
-	const located = getProfileById(profileId);
-	if (!located) {
-		return;
-	}
-
-	const updatedProfile: ProfileRecord = {
-		...located.profile,
-		name: trimmedName,
-		url: trimmedUrl,
-		mode: input.mode,
-		token: input.token?.trim() || undefined,
-		intervalSeconds: input.intervalSeconds,
-		numberOfCycles: input.numberOfCycles,
-		updatedAt: Date.now(),
-	};
-
-	await DBService.createOrUpdateProfile(updatedProfile);
-
-	profileCatalogStore.update((catalog) => ({
-		...catalog,
-		projects: catalog.projects.map((entry) => ({
-			...entry,
-			profiles: entry.profiles.map((profile) =>
-				profile.id === profileId ? updatedProfile : profile,
-			),
-		})),
-	}));
 }
 
 export async function deleteProfile(profileId: string) {
-	await ensureHydrated();
-	const located = getProfileById(profileId);
-	if (!located) {
-		return;
-	}
-
-	await DBService.deleteProfile(profileId);
-
-	profileCatalogStore.update((catalog) => ({
-		...catalog,
-		projects: catalog.projects.map((entry) =>
-			entry.id === located.project.id
-				? {
-						...entry,
-						updatedAt: Date.now(),
-						profiles: entry.profiles.filter(
-							(profile) => profile.id !== profileId,
-						),
-					}
-				: entry,
-		),
-	}));
-}
-
-export function resetProfileCatalog() {
-	profileCatalogStore.set(emptyCatalog());
-	if (browser) {
-		void ensureHydrated();
+	try {
+		await invoke("delete_profile", { id: profileId });
+		await reload();
+	} catch (e) {
+		reportInvokeError("Failed to delete profile", e);
 	}
 }
 

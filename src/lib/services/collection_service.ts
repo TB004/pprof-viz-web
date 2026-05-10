@@ -181,10 +181,10 @@ export async function selectProfile(profileId?: string): Promise<void> {
 
 	collectionStateStore.update((state) => ({
 		...state,
-		selectedProfile: located.profile.id,
-		selectedProfileLabel: located.profile.name,
-		url: asUrl(located.profile.url),
-		mode: located.profile.mode,
+		selectedProfile: located.id,
+		selectedProfileLabel: located.name,
+		url: asUrl(located.url),
+		mode: located.mode,
 	}));
 }
 

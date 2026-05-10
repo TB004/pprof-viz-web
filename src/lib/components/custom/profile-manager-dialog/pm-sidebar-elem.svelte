@@ -56,12 +56,12 @@ async function handleProfileSelect(projectId: string, profileId: string) {
 	dialogState.editorMode = "profile";
 
 	const snapshot = await ProfileService.getProfileById(profileId);
-	dialogState.profileName = snapshot?.profile.name ?? "";
-	dialogState.profileUrl = snapshot?.profile.url ?? "";
-	dialogState.profileMode = snapshot?.profile.mode ?? CollectionType.Stream;
-	dialogState.profileToken = snapshot?.profile.token ?? "";
-	dialogState.profileIntervalSeconds = snapshot?.profile.intervalSeconds ?? 1;
-	dialogState.profileNumberOfCycles = snapshot?.profile.numberOfCycles ?? 0;
+	dialogState.profileName = snapshot?.name ?? "";
+	dialogState.profileUrl = snapshot?.url ?? "";
+	dialogState.profileMode = snapshot?.mode ?? CollectionType.Stream;
+	dialogState.profileToken = snapshot?.token ?? "";
+	dialogState.profileIntervalSeconds = snapshot?.intervalSeconds ?? 1;
+	dialogState.profileNumberOfCycles = snapshot?.numberOfCycles ?? 0;
 }
 </script>
 

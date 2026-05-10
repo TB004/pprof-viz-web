@@ -66,7 +66,7 @@ async function openDeleteProfileDialog(profileId?: string) {
 	}
 
 	dialogState.deleteDialogType = "profile";
-	dialogState.deleteDialogName = profile.profile.name;
+	dialogState.deleteDialogName = profile.name;
 	dialogState.deleteDialogProjectId = undefined;
 	dialogState.deleteDialogProfileId = profileId;
 	dialogState.deleteDialogOpen = true;

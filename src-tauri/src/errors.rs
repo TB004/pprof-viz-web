@@ -16,11 +16,12 @@ use crate::utils;
 const MAX_ERRORS: usize = 200;
 pub const EVENT_NEW_ERROR: &str = "error://new";
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AppError {
     pub id: String,
     pub message: String,
+    #[specta(type = f64)]
     pub timestamp: i64,
 }
 
@@ -71,6 +72,7 @@ pub fn report(app: &AppHandle, message: String) {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn register_error(app: AppHandle, message: String) -> Result<AppError, String> {
     let log = app.state::<AppState>().errors.clone();
     let entry = log.push(message);
@@ -80,17 +82,20 @@ pub async fn register_error(app: AppHandle, message: String) -> Result<AppError,
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_errors(app: AppHandle) -> Result<Vec<AppError>, String> {
     Ok(app.state::<AppState>().errors.snapshot())
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn clear_errors(app: AppHandle) -> Result<(), String> {
     app.state::<AppState>().errors.clear();
     Ok(())
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn remove_error(app: AppHandle, id: String) -> Result<(), String> {
     app.state::<AppState>().errors.remove(&id);
     Ok(())

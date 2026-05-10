@@ -7,7 +7,7 @@ import {
 	PlugZapIcon,
 	Trash2Icon,
 } from "@lucide/svelte";
-import { invoke } from "@tauri-apps/api/core";
+import { commands } from "$lib/bindings";
 import {
 	PMDeleteDialog,
 	PMProjectDialog,
@@ -83,9 +83,9 @@ async function saveProfile() {
 		name: dialogState.profileName,
 		url: dialogState.profileUrl,
 		mode: dialogState.profileMode,
-		token: dialogState.profileToken || undefined,
-		intervalSeconds: isStream ? dialogState.profileIntervalSeconds : undefined,
-		numberOfCycles: isStream ? dialogState.profileNumberOfCycles : undefined,
+		token: dialogState.profileToken || null,
+		intervalSeconds: isStream ? dialogState.profileIntervalSeconds : null,
+		numberOfCycles: isStream ? dialogState.profileNumberOfCycles : null,
 	};
 
 	if (dialogState.editorMode === "new-profile") {
@@ -142,7 +142,8 @@ async function testConnection() {
 	pingError = "";
 
 	try {
-		await invoke("agent_ping", { url: url, token: token });
+		const result = await commands.agentPing(url, token || null);
+		if (result.status === "error") throw new Error(result.error);
 		pingStatus = "success";
 	} catch (err) {
 		pingStatus = "error";

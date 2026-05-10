@@ -36,18 +36,18 @@ pub const EVENT_METADATA: &str = "collection://metadata";
 
 const SUB_KEYS: &[&str] = &["scheduler", "goDebug", "gc", "memory", "cpu", "cgo", "sync"];
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
 #[serde(rename_all = "lowercase")]
 pub enum CollectionStatus {
     Idle,
     Running,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, specta::Type)]
 #[serde(transparent)]
-pub struct Frame(pub Value);
+pub struct Frame(#[specta(type = specta_typescript::Unknown)] pub Value);
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionStateSnapshot {
     pub status: CollectionStatus,
@@ -55,9 +55,12 @@ pub struct CollectionStateSnapshot {
     pub profile_name: Option<String>,
     pub profile_url: Option<String>,
     pub mode: Option<CollectionType>,
+    #[specta(type = Option<f64>)]
     pub started_at: Option<i64>,
+    #[specta(type = f64)]
     pub sample_count: usize,
     pub frames: Vec<Frame>,
+    #[specta(type = Option<specta_typescript::Unknown>)]
     pub metadata: Option<Value>,
 }
 
@@ -217,11 +220,13 @@ fn merge_frame(prev: Value, next: Value) -> Value {
 // ---------- commands ----------
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_collection_snapshot(app: AppHandle) -> Result<CollectionStateSnapshot, String> {
     Ok(app.state::<AppState>().collection.snapshot())
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn stop_collection(app: AppHandle) -> Result<(), String> {
     let state = app.state::<AppState>();
     if let Some(tx) = state.collection.current_cancel() {
@@ -231,6 +236,7 @@ pub async fn stop_collection(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn start_collection(app: AppHandle, profile_id: String) -> Result<(), String> {
     let profile = db::load_profile(&app, &profile_id).await?;
     let client =

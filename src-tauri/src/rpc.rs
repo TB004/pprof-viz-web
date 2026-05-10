@@ -108,6 +108,7 @@ impl AgentClient {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn agent_ping(url: String, token: Option<String>) -> Result<(), String> {
     let client = AgentClient::connect(&url, token.as_deref()).map_err(|e| e.to_string())?;
     client.ping().await.map_err(|e| e.to_string())

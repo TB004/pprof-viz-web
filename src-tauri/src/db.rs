@@ -44,16 +44,18 @@ pub fn migrations() -> Vec<Migration> {
     }]
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectRow {
     pub id: String,
     pub name: String,
+    #[specta(type = f64)]
     pub created_at: i64,
+    #[specta(type = f64)]
     pub updated_at: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileRow {
     pub id: String,
@@ -62,9 +64,13 @@ pub struct ProfileRow {
     pub url: String,
     pub mode: CollectionType,
     pub token: Option<String>,
+    #[specta(type = Option<f64>)]
     pub interval_seconds: Option<i64>,
+    #[specta(type = Option<f64>)]
     pub number_of_cycles: Option<i64>,
+    #[specta(type = f64)]
     pub created_at: i64,
+    #[specta(type = f64)]
     pub updated_at: i64,
 }
 
@@ -81,14 +87,16 @@ pub struct ProfileDescriptor {
     pub number_of_cycles: Option<i64>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileInput {
     pub name: String,
     pub url: String,
     pub mode: CollectionType,
     pub token: Option<String>,
+    #[specta(type = Option<f64>)]
     pub interval_seconds: Option<i64>,
+    #[specta(type = Option<f64>)]
     pub number_of_cycles: Option<i64>,
 }
 
@@ -113,6 +121,7 @@ where
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn list_projects(app: AppHandle) -> Result<Vec<ProjectRow>, String> {
     with_pool(&app, |pool| async move {
         sqlx::query_as::<_, ProjectRow>(
@@ -126,6 +135,7 @@ pub async fn list_projects(app: AppHandle) -> Result<Vec<ProjectRow>, String> {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn list_profiles(app: AppHandle) -> Result<Vec<ProfileRow>, String> {
     with_pool(&app, |pool| async move {
         sqlx::query_as::<_, ProfileRow>(
@@ -140,6 +150,7 @@ pub async fn list_profiles(app: AppHandle) -> Result<Vec<ProfileRow>, String> {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_project_by_id(
     app: AppHandle,
     id: String,
@@ -157,6 +168,7 @@ pub async fn get_project_by_id(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_profile_by_id(
     app: AppHandle,
     id: String,
@@ -194,6 +206,7 @@ pub async fn load_profile(app: &AppHandle, profile_id: &str) -> Result<ProfileDe
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn create_project(app: AppHandle, name: String) -> Result<ProjectRow, String> {
     let trimmed = name.trim().to_string();
     if trimmed.is_empty() {
@@ -222,6 +235,7 @@ pub async fn create_project(app: AppHandle, name: String) -> Result<ProjectRow, 
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn rename_project(app: AppHandle, id: String, name: String) -> Result<(), String> {
     let trimmed = name.trim().to_string();
     if trimmed.is_empty() {
@@ -242,6 +256,7 @@ pub async fn rename_project(app: AppHandle, id: String, name: String) -> Result<
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn delete_project(app: AppHandle, id: String) -> Result<(), String> {
     with_pool(&app, |pool| async move {
         sqlx::query("DELETE FROM projects WHERE id = ?")
@@ -255,6 +270,7 @@ pub async fn delete_project(app: AppHandle, id: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn create_profile(
     app: AppHandle,
     project_id: String,
@@ -312,6 +328,7 @@ pub async fn create_profile(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn update_profile(app: AppHandle, id: String, input: ProfileInput) -> Result<(), String> {
     let trimmed_name = input.name.trim().to_string();
     let trimmed_url = input.url.trim().to_string();
@@ -349,6 +366,7 @@ pub async fn update_profile(app: AppHandle, id: String, input: ProfileInput) -> 
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn delete_profile(app: AppHandle, id: String) -> Result<(), String> {
     with_pool(&app, |pool| async move {
         sqlx::query("DELETE FROM profiles WHERE id = ?")

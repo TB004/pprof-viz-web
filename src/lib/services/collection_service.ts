@@ -1,7 +1,7 @@
-import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
+import { commands } from "$lib/bindings";
 import { ErrorService, ProfileService } from "$lib/services";
 import {
 	type CollectionStateSnapshot,
@@ -13,6 +13,7 @@ import {
 	type Frame,
 	type MetadataResponse,
 } from "$lib/types";
+import { run } from "./invoke.js";
 
 export interface CollectionState {
 	status: CollectionStatus;
@@ -62,7 +63,7 @@ function asStatus(raw: CollectionStateSnapshot["status"]): CollectionStatus {
 	return raw === "running" ? CollectionStatus.Running : CollectionStatus.Idle;
 }
 
-function asUrl(raw?: string): URL | undefined {
+function asUrl(raw: string | null | undefined): URL | undefined {
 	if (!raw) return undefined;
 	try {
 		return new URL(raw);
@@ -100,24 +101,23 @@ function stopElapsedTimer() {
 
 function applySnapshot(snapshot: CollectionStateSnapshot) {
 	collectionStateStore.update((state) => {
+		const startedAt = snapshot.startedAt ?? undefined;
 		const next: CollectionState = {
 			...state,
 			status: asStatus(snapshot.status),
-			collectedSamples: snapshot.sampleCount,
+			collectedSamples: snapshot.sampleCount ?? 0,
 			data: snapshot.frames as Frame[],
-			metadata: snapshot.metadata,
-			startedAt: snapshot.startedAt,
-			mode: snapshot.mode as CollectionType | undefined,
+			metadata: (snapshot.metadata as MetadataResponse | null) ?? undefined,
+			startedAt,
+			mode: snapshot.mode ?? undefined,
 			url: asUrl(snapshot.profileUrl),
 		};
-		// Sync the displayed profile to whatever the active (or just-stopped)
-		// session was pointing at.
 		if (snapshot.profileId) {
 			next.selectedProfile = snapshot.profileId;
-			next.selectedProfileLabel = snapshot.profileName;
+			next.selectedProfileLabel = snapshot.profileName ?? undefined;
 		}
-		next.elapsedSeconds = snapshot.startedAt
-			? Math.max(0, Math.floor((Date.now() - snapshot.startedAt) / 1000))
+		next.elapsedSeconds = startedAt
+			? Math.max(0, Math.floor((Date.now() - startedAt) / 1000))
 			: 0;
 		return next;
 	});
@@ -132,10 +132,8 @@ async function hydrate() {
 	if (hydrated) return;
 	hydrated = true;
 	try {
-		const snapshot = await invoke<CollectionStateSnapshot>(
-			"get_collection_snapshot",
-		);
-		applySnapshot(snapshot);
+		const snapshot = await run(commands.getCollectionSnapshot());
+		applySnapshot(snapshot as unknown as CollectionStateSnapshot);
 	} catch {
 		hydrated = false;
 	}
@@ -192,7 +190,7 @@ export async function startCollection(): Promise<void> {
 	const state = getSnapshot();
 	if (!state.selectedProfile) return;
 	try {
-		await invoke("start_collection", { profileId: state.selectedProfile });
+		await run(commands.startCollection(state.selectedProfile));
 	} catch (e) {
 		await ErrorService.registerError(
 			e instanceof Error ? e.message : `Failed to start collection: ${e}`,
@@ -202,7 +200,7 @@ export async function startCollection(): Promise<void> {
 
 export async function stopCollection(): Promise<void> {
 	try {
-		await invoke("stop_collection");
+		await run(commands.stopCollection());
 	} catch (e) {
 		await ErrorService.registerError(
 			e instanceof Error ? e.message : `Failed to stop collection: ${e}`,

@@ -161,14 +161,14 @@ export interface MetadataResponse {
 
 export interface CollectionStateSnapshot {
 	status: CollectionStatus;
-	profileId?: string;
-	profileName?: string;
-	profileUrl?: string;
-	mode?: CollectionType;
-	startedAt?: number;
-	sampleCount: number;
+	profileId: string | null;
+	profileName: string | null;
+	profileUrl: string | null;
+	mode: CollectionType | null;
+	startedAt: number | null;
+	sampleCount: number | null;
 	frames: Frame[];
-	metadata?: MetadataResponse;
+	metadata: MetadataResponse | null;
 }
 
 export const EVENT_FRAME = "collection://frame";
@@ -180,8 +180,8 @@ export const EVENT_METADATA = "collection://metadata";
 export interface ProjectRow {
 	id: string;
 	name: string;
-	createdAt: number;
-	updatedAt: number;
+	createdAt: number | null;
+	updatedAt: number | null;
 }
 
 export interface ProfileRow {
@@ -190,18 +190,18 @@ export interface ProfileRow {
 	name: string;
 	url: string;
 	mode: CollectionType;
-	token?: string;
-	intervalSeconds?: number;
-	numberOfCycles?: number;
-	createdAt: number;
-	updatedAt: number;
+	token: string | null;
+	intervalSeconds: number | null;
+	numberOfCycles: number | null;
+	createdAt: number | null;
+	updatedAt: number | null;
 }
 
 export interface ProfileInput {
 	name: string;
 	url: string;
 	mode: CollectionType;
-	token?: string;
-	intervalSeconds?: number;
-	numberOfCycles?: number;
+	token: string | null;
+	intervalSeconds: number | null;
+	numberOfCycles: number | null;
 }

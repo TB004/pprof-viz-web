@@ -1,12 +1,13 @@
-import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
+import { commands } from "$lib/bindings";
+import { run } from "./invoke.js";
 
 export interface AppError {
 	id: string;
 	message: string;
-	timestamp: number;
+	timestamp: number | null;
 }
 
 const EVENT_NEW_ERROR = "error://new";
@@ -21,7 +22,7 @@ export const errorState: Readable<AppError[]> = {
 
 async function refresh() {
 	try {
-		errorStore.set(await invoke<AppError[]>("get_errors"));
+		errorStore.set(await run(commands.getErrors()));
 	} catch {
 		// ignore — store keeps its last known state
 	}
@@ -33,7 +34,8 @@ if (browser) {
 	void listen(EVENT_NEW_ERROR, () => void refresh());
 }
 
-export function formatErrorTimestamp(timestamp: number): string {
+export function formatErrorTimestamp(timestamp: number | null): string {
+	if (!timestamp) return "Unknown";
 	return new Intl.DateTimeFormat("en-US", {
 		weekday: "long",
 		month: "long",
@@ -47,12 +49,12 @@ export function formatErrorTimestamp(timestamp: number): string {
 
 export async function registerError(message: string) {
 	// Rust pushes to ErrorLog and emits error://new, which triggers refresh().
-	await invoke("register_error", { message });
+	await run(commands.registerError(message));
 }
 
 export async function removeError(errorId: string) {
 	try {
-		await invoke("remove_error", { id: errorId });
+		await run(commands.removeError(errorId));
 	} finally {
 		// remove_error emits no event, so re-fetch explicitly.
 		await refresh();
@@ -61,7 +63,7 @@ export async function removeError(errorId: string) {
 
 export async function clearErrors() {
 	try {
-		await invoke("clear_errors");
+		await run(commands.clearErrors());
 	} finally {
 		await refresh();
 	}

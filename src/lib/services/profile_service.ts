@@ -1,6 +1,6 @@
-import { invoke } from "@tauri-apps/api/core";
 import { derived, type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
+import { commands } from "$lib/bindings";
 import { ErrorService } from "$lib/services";
 import type {
 	CollectionType,
@@ -8,6 +8,7 @@ import type {
 	ProfileRow,
 	ProjectRow,
 } from "$lib/types";
+import { run } from "./invoke.js";
 
 export interface CollectionProfile {
 	value: string;
@@ -52,19 +53,19 @@ function reportInvokeError(action: string, e: unknown) {
 
 async function reload() {
 	const [projects, profiles] = await Promise.all([
-		invoke<ProjectRow[]>("list_projects"),
-		invoke<ProfileRow[]>("list_profiles"),
+		run(commands.listProjects()),
+		run(commands.listProfiles()),
 	]);
 
 	const profilesByProjectId = new Map<string, ProfileRow[]>();
 	for (const row of profiles) {
 		const list = profilesByProjectId.get(row.projectId);
-		if (list) list.push(row);
-		else profilesByProjectId.set(row.projectId, [row]);
+		if (list) list.push(row as ProfileRow);
+		else profilesByProjectId.set(row.projectId, [row as ProfileRow]);
 	}
 
 	const catalog = projects.map((project) => ({
-		...project,
+		...(project as ProjectRow),
 		profiles: profilesByProjectId.get(project.id) ?? [],
 	}));
 
@@ -104,19 +105,15 @@ export const profileOptions: Readable<CollectionProfile[]> = derived(
 export async function getProjectById(
 	projectId: string,
 ): Promise<ProjectRow | undefined> {
-	const row = await invoke<ProjectRow | null>("get_project_by_id", {
-		id: projectId,
-	});
-	return row ?? undefined;
+	const row = await run(commands.getProjectById(projectId));
+	return (row as ProjectRow | null) ?? undefined;
 }
 
 export async function getProfileById(
 	profileId: string,
 ): Promise<ProfileRow | undefined> {
-	const row = await invoke<ProfileRow | null>("get_profile_by_id", {
-		id: profileId,
-	});
-	return row ?? undefined;
+	const row = await run(commands.getProfileById(profileId));
+	return (row as ProfileRow | null) ?? undefined;
 }
 
 function toInput(input: ProfileInput): ProfileInput {
@@ -124,9 +121,9 @@ function toInput(input: ProfileInput): ProfileInput {
 		name: input.name.trim(),
 		url: input.url.trim(),
 		mode: input.mode,
-		token: input.token?.trim() || undefined,
-		intervalSeconds: input.intervalSeconds,
-		numberOfCycles: input.numberOfCycles,
+		token: input.token?.trim() || null,
+		intervalSeconds: input.intervalSeconds ?? null,
+		numberOfCycles: input.numberOfCycles ?? null,
 	};
 }
 
@@ -134,9 +131,7 @@ export async function createProject(name: string): Promise<string | undefined> {
 	const trimmed = name.trim();
 	if (!trimmed) return undefined;
 	try {
-		const project = await invoke<ProjectRow>("create_project", {
-			name: trimmed,
-		});
+		const project = await run(commands.createProject(trimmed));
 		await reload();
 		return project.id;
 	} catch (e) {
@@ -149,7 +144,7 @@ export async function renameProject(projectId: string, name: string) {
 	const trimmed = name.trim();
 	if (!trimmed) return;
 	try {
-		await invoke("rename_project", { id: projectId, name: trimmed });
+		await run(commands.renameProject(projectId, trimmed));
 		await reload();
 	} catch (e) {
 		reportInvokeError("Failed to rename project", e);
@@ -158,7 +153,7 @@ export async function renameProject(projectId: string, name: string) {
 
 export async function deleteProject(projectId: string) {
 	try {
-		await invoke("delete_project", { id: projectId });
+		await run(commands.deleteProject(projectId));
 		await reload();
 	} catch (e) {
 		reportInvokeError("Failed to delete project", e);
@@ -172,10 +167,7 @@ export async function createProfile(
 	const trimmed = toInput(input);
 	if (!trimmed.name || !trimmed.url) return undefined;
 	try {
-		const created = await invoke<ProfileRow>("create_profile", {
-			projectId,
-			input: trimmed,
-		});
+		const created = await run(commands.createProfile(projectId, trimmed));
 		await reload();
 		return created.id;
 	} catch (e) {
@@ -188,7 +180,7 @@ export async function updateProfile(profileId: string, input: ProfileInput) {
 	const trimmed = toInput(input);
 	if (!trimmed.name || !trimmed.url) return;
 	try {
-		await invoke("update_profile", { id: profileId, input: trimmed });
+		await run(commands.updateProfile(profileId, trimmed));
 		await reload();
 	} catch (e) {
 		reportInvokeError("Failed to update profile", e);
@@ -197,7 +189,7 @@ export async function updateProfile(profileId: string, input: ProfileInput) {
 
 export async function deleteProfile(profileId: string) {
 	try {
-		await invoke("delete_profile", { id: profileId });
+		await run(commands.deleteProfile(profileId));
 		await reload();
 	} catch (e) {
 		reportInvokeError("Failed to delete profile", e);

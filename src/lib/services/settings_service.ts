@@ -1,7 +1,8 @@
-import { invoke } from "@tauri-apps/api/core";
 import { type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
+import { commands } from "$lib/bindings";
 import { type AppSettings, CollectionType, ThemeMode } from "$lib/types";
+import { run } from "./invoke.js";
 
 const THEME_CACHE_KEY = "pprof-viz-settings";
 
@@ -45,8 +46,8 @@ async function ensureHydrated() {
 	if (hydrated) return;
 	hydrated = true;
 	try {
-		const loaded = await invoke<AppSettings>("get_settings");
-		settingsStore.set(loaded);
+		const loaded = await run(commands.getSettings());
+		settingsStore.set(loaded as AppSettings);
 	} catch {
 		// Leave fallback in place — Rust may not be ready yet during very
 		// early boot. We'll re-hydrate next time updateSettings is called.
@@ -63,8 +64,10 @@ if (browser) {
 }
 
 export async function updateSettings(patch: Partial<AppSettings>) {
-	const updated = await invoke<AppSettings>("update_settings", { patch });
-	settingsStore.set(updated);
+	const current = getSettingsSnapshot();
+	const merged = { ...current, ...patch };
+	const updated = await run(commands.updateSettings(merged));
+	settingsStore.set(updated as AppSettings);
 }
 
 export function getSettingsSnapshot(): AppSettings {

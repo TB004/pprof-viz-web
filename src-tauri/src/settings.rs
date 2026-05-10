@@ -7,7 +7,7 @@ use tauri_plugin_store::StoreExt;
 const SETTINGS_STORE: &str = "settings.json";
 const SETTINGS_KEY: &str = "app";
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "lowercase")]
 pub enum ThemeMode {
     Light,
@@ -15,7 +15,7 @@ pub enum ThemeMode {
     System,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, sqlx::Type, specta::Type)]
 #[serde(rename_all = "lowercase")]
 #[sqlx(type_name = "TEXT", rename_all = "lowercase")]
 pub enum CollectionType {
@@ -23,7 +23,7 @@ pub enum CollectionType {
     Stream,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
     pub theme: ThemeMode,
@@ -56,35 +56,19 @@ fn load(app: &AppHandle) -> Result<AppSettings, String> {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_settings(app: AppHandle) -> Result<AppSettings, String> {
     load(&app)
 }
 
 #[tauri::command]
-pub async fn update_settings(
-    app: AppHandle,
-    patch: serde_json::Value,
-) -> Result<AppSettings, String> {
+#[specta::specta]
+pub async fn update_settings(app: AppHandle, settings: AppSettings) -> Result<AppSettings, String> {
     let store = app.store(SETTINGS_STORE).map_err(|e| e.to_string())?;
-
-    let current = load(&app)?;
-    let mut current_value = serde_json::to_value(&current).map_err(|e| e.to_string())?;
-
-    if let (serde_json::Value::Object(target), serde_json::Value::Object(patch)) =
-        (&mut current_value, patch)
-    {
-        for (k, v) in patch {
-            target.insert(k, v);
-        }
-    }
-
-    let updated: AppSettings = serde_json::from_value(current_value).map_err(|e| e.to_string())?;
-
     store.set(
         SETTINGS_KEY,
-        serde_json::to_value(&updated).map_err(|e| e.to_string())?,
+        serde_json::to_value(&settings).map_err(|e| e.to_string())?,
     );
     store.save().map_err(|e| e.to_string())?;
-
-    Ok(updated)
+    Ok(settings)
 }

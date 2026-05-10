@@ -139,6 +139,24 @@ pub async fn list_profiles(app: AppHandle) -> Result<Vec<ProfileRow>, String> {
     .await
 }
 
+#[tauri::command]
+pub async fn get_profile_by_id(
+    app: AppHandle,
+    id: String,
+) -> Result<Option<ProfileRow>, String> {
+    with_pool(&app, |pool| async move {
+        sqlx::query_as::<_, ProfileRow>(
+            "SELECT id, project_id, name, url, mode, token, interval_seconds, \
+             number_of_cycles, created_at, updated_at FROM profiles WHERE id = ?",
+        )
+        .bind(&id)
+        .fetch_optional(&pool)
+        .await
+        .map_err(|e| e.to_string())
+    })
+    .await
+}
+
 /// Load a single profile by id, returning a [`ProfileDescriptor`] suitable
 /// for the collection worker. Not exposed as a Tauri command — internal
 /// to the Rust side (the collection module calls it during start_collection).

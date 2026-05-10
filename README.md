@@ -1,15 +1,14 @@
-# 📊 pprof-viz
+# <img src="src-tauri/icons/icon.png" alt="pprof-viz logo" height="50" style="vertical-align:middle"> Pprof-Viz
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Docker Image Version](https://img.shields.io/docker/v/tb004/pprof-viz?sort=semver)](https://hub.docker.com/r/tb004/pprof-viz)
 
-**A modern, real-time dashboard for visualizing Go runtime telemetry.**
+**A modern, real-time desktop dashboard for visualizing Go runtime telemetry.**
 
 ## 🔍 Overview
 
-`pprof-viz` is a high-performance Progressive Web App (PWA) built with **Svelte 5**. It serves as the frontend for the `pprof-viz-agent` backend, providing a comprehensive, real-time visualization of Go's internal `runtime/metrics`.
+`Pprof-Viz` is a cross-platform desktop application built with **Tauri v2** and **Svelte 5**. It serves as the frontend for the `pprof-viz-agent` backend, providing a comprehensive, real-time visualization of Go's internal `runtime/metrics`.
 
-Unlike standard `pprof` which is designed for ad-hoc, deep-dive stack trace analysis, `pprof-viz` is built for **continuous, high-resolution monitoring**. It transforms continuous streams of telemetry data into an intuitive, operator-friendly dashboard, giving you immediate insight into CPU usage, Garbage Collection behavior, memory allocation, and scheduler latencies.
+Unlike standard `pprof` which is designed for ad-hoc, deep-dive stack trace analysis, `Pprof-Viz` is built for **continuous, high-resolution monitoring**. It transforms continuous streams of telemetry data into an intuitive, operator-friendly dashboard, giving you immediate insight into CPU usage, Garbage Collection behavior, memory allocation, and scheduler latencies.
 
 ## ✨ Key Features
 
@@ -17,16 +16,18 @@ Unlike standard `pprof` which is designed for ad-hoc, deep-dive stack trace anal
 - **🕒 Session Awareness**: Persistent shell layout with a session status bar showing active profiling state, elapsed time, and collected samples.
 - **📈 Dedicated Dashboards**: Route-based views specifically tailored for CPU, GC, Memory, Scheduler, and Miscellaneous runtime behavior.
 - **🎛️ Profile Management**: Built-in collection profile selection and lifecycle controls.
-- **🚀 Modern Tech Stack**: Built with Svelte 5, shadcn-svelte components, and Tailwind CSS v4 for a fluid, responsive UI.
-- **📱 PWA Ready**: Installable as a desktop application with web app manifest and service worker support.
+- **🚀 Modern Tech Stack**: Built with Tauri v2, Svelte 5, shadcn-svelte components, and Tailwind CSS v4.
+- **🖥️ Native Desktop**: Distributed as `.dmg` (macOS), `.msi` (Windows), and Flatpak (Linux).
 
 ## 🛠️ Getting Started
 
 ### 📋 Prerequisites
 
-To build and run the frontend locally, you will need:
+To build and run the app locally, you will need:
 - [Bun](https://bun.sh/) (Package Manager)
 - [Just](https://github.com/casey/just) (Task Runner)
+- [Rust](https://rustup.rs/) (toolchain for the Tauri shell)
+- Tauri's platform prerequisites — see [tauri.app/start/prerequisites](https://tauri.app/start/prerequisites/)
 - A running instance of [`pprof-viz-agent`](https://github.com/TB004/pprof-viz-agent)
 
 ### 📥 Installation & Development
@@ -36,41 +37,26 @@ To build and run the frontend locally, you will need:
    bun install
    ```
 
-2. **Run the development server:**
+2. **Run the desktop app in dev mode:**
    ```bash
    just dev
    ```
-   This will start the Vite dev server. Open your browser to the local URL provided in the terminal.
+   This launches the Tauri app with hot-reload from the Vite dev server.
 
-3. **Build for production:**
+3. **Build a release bundle for your platform:**
    ```bash
    just build
    ```
-   This generates static files in the `build/` directory.
-
-4. **Preview the production build:**
-   ```bash
-   bun run preview
-   ```
-
-## 🐳 Docker
-
-A pre-built Docker image is available on Docker Hub, making it easy to deploy alongside your backend services.
-
-```bash
-docker run -p 8080:80 tb004/pprof-viz:latest
-```
-
-Check out the [Docker Hub repository](https://hub.docker.com/r/tb004/pprof-viz) for more details and Docker Compose examples.
+   Bundles land under `src-tauri/target/release/bundle/`.
 
 ## 🏗️ Architecture & Integration
 
-`pprof-viz` is a static Single Page Application (SPA/PWA) that connects directly from the user's browser to the target `pprof-viz-agent` via ConnectRPC.
+`Pprof-Viz` is a Tauri v2 desktop app. The Svelte frontend handles the UI; the Rust shell handles persistence (settings store, sqlite for projects/profiles), in-memory collection state, and the ConnectRPC client that talks to the agent.
 
 For a complete monitoring setup:
 1. **Embed** the `pprof-viz-agent` in your Go application.
-2. **Deploy** the `pprof-viz` static frontend (via Docker, GitHub Pages, Vercel, or any static file server).
-3. **Connect** the frontend to your Go application's agent endpoint.
+2. **Install** the `Pprof-Viz` desktop app on your machine.
+3. **Connect** the app to your Go application's agent endpoint.
 
 ## 📄 License
 

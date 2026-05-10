@@ -1,8 +1,8 @@
-# 🤝 Contributing to pprof-viz
+# 🤝 Contributing to Pprof-Viz
 
-First off, thank you for considering contributing to `pprof-viz`! It's people like you who make open-source tools great.
+First off, thank you for considering contributing to `Pprof-Viz`! It's people like you who make open-source tools great.
 
-This project is a high-performance frontend for Go runtime telemetry. Our goal is to provide a polished, reliable, and operator-friendly experience for real-time observability.
+This project is a high-performance desktop frontend for Go runtime telemetry. Our goal is to provide a polished, reliable, and operator-friendly experience for real-time observability.
 
 ---
 
@@ -10,7 +10,9 @@ This project is a high-performance frontend for Go runtime telemetry. Our goal i
 
 ### Prerequisites
 To set up the development environment, you'll need:
-- **[Bun](https://bun.sh/)**: Our package manager and runtime.
+- **[Rust](https://rustup.rs/)**: The toolchain for the Tauri backend.
+- **Tauri Prerequisites**: OS-specific build tools (C++ build tools on Windows, Xcode command line tools on macOS, webkit2gtk on Linux). See [tauri.app/start/prerequisites](https://tauri.app/start/prerequisites/).
+- **[Bun](https://bun.sh/)**: Our frontend package manager and runtime.
 - **[Just](https://github.com/casey/just)**: Our task runner for common commands.
 - **[pprof-viz-agent](https://github.com/TB004/pprof-viz-agent)**: Required if you want to test with live data.
 
@@ -20,24 +22,24 @@ To set up the development environment, you'll need:
    git clone https://github.com/TB004/pprof-viz.git
    cd pprof-viz
    ```
-2. **Install dependencies:**
+2. **Install frontend dependencies:**
    ```bash
    bun install
    ```
-3. **Start the development server:**
+3. **Start the development environment:**
    ```bash
    just dev
    ```
+   This will spin up the Vite dev server and launch the Tauri desktop application.
 
 ---
 
 ## 🏗️ Technical Architecture
 
-Before you start coding, it's helpful to understand the core pillars of the project:
+Before you start coding, it's critical to understand the separation of concerns in this project:
 
-- **Svelte 5 (Runes)**: We use the latest Svelte 5 syntax (`$state`, `$derived`, `$effect`). Please avoid Svelte 4 patterns.
-- **Services Pattern**: All business logic and state management live in `src/lib/services/`. Components should import services directly rather than prop-drilling.
-- **Static First**: The app is built with `adapter-static`. All routes are prerendered; there is no Node.js runtime in production.
+- **Tauri v2 (Rust Backend)**: The `src-tauri` directory acts as the brain. It handles local persistence (SQLite for projects/profiles), the ConnectRPC client, and the in-memory state of active profiling collections. 
+- **Svelte 5 (Frontend)**: The `src` directory is a thin, reactive presentation layer built with Svelte 5 Runes (`$state`, `$derived`). It communicates with the backend exclusively via Tauri IPC (`invoke` and `listen`).
 - **Styling**: We use **Tailwind CSS v4** and **shadcn-svelte** components.
 
 ---
@@ -48,11 +50,13 @@ We use `just` to ensure consistency across development. Please run these command
 
 | Command | Description |
 | :--- | :--- |
-| `just dev` | Starts the Vite development server. |
-| `just check` | Runs SvelteKit sync and `svelte-check` for type safety. |
-| `just lint` | Performs static analysis using Biome. |
-| `just format` | Automatically formats code using Biome. |
-| `just verify` | **The Golden Rule**: Runs check, lint, and format-check in one go. |
+| `just dev` | Starts the Tauri application with frontend hot-reloading. |
+| `just check` | Runs SvelteKit sync and `svelte-check` for frontend type safety. |
+| `just lint` | Performs static analysis on the frontend using Biome. |
+| `just format` | Automatically formats frontend code using Biome. |
+| `just verify` | Runs check, lint, and format-check in one go. |
+
+*Note: For the Rust backend, please use standard Cargo commands like `cargo clippy` and `cargo fmt` inside the `src-tauri` directory.*
 
 ---
 
@@ -69,8 +73,9 @@ We use `just` to ensure consistency across development. Please run these command
 
 We welcome the use of AI tools (Gemini, Claude, Copilot, etc.) to help you write code, but we ask that you follow these rules:
 1. **No "Vibe-Coding"**: Understand the code the AI generates. You are responsible for every line you submit.
-2. **Svelte 5 Awareness**: Ensure the AI isn't hallucinating Svelte 4 syntax (like `onMount` or `$:`)—we strictly use Svelte 5 Runes.
-3. **Surgical Edits**: Prefer minimal, high-impact changes over large, AI-generated refactors.
+2. **Know the Split**: Ensure the AI puts business/network logic in Rust and UI state in Svelte.
+3. **Svelte 5 Awareness**: Ensure the AI isn't hallucinating Svelte 4 syntax (like `onMount` or `$:`)—we strictly use Svelte 5 Runes.
+4. **Surgical Edits**: Prefer minimal, high-impact changes over large, AI-generated refactors.
 
 ---
 
@@ -78,11 +83,11 @@ We welcome the use of AI tools (Gemini, Claude, Copilot, etc.) to help you write
 
 1. **Branching**: Create a feature branch (e.g., `feat/add-memory-chart`).
 2. **Commits**: Use clear, imperative messages (e.g., `add: cpu usage sparkline`).
-3. **Verification**: Run `just verify` to ensure everything is green.
+3. **Verification**: Run `just verify` and ensure the Rust backend compiles cleanly without clippy warnings.
 4. **The PR**: Fill out the template. Include screenshots or screen recordings for any visual changes.
 
 ---
 
 ## ⚖️ License
 
-By contributing to `pprof-viz`, you agree that your contributions will be licensed under the project's [MIT License](./LICENSE).
+By contributing to `Pprof-Viz`, you agree that your contributions will be licensed under the project's [MIT License](./LICENSE).

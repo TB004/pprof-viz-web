@@ -1,0 +1,60 @@
+# Flatpak manifest for Pprof-Viz.
+#
+# Build locally:
+#   1. Build the .deb first:        cargo tauri build --bundles deb
+#   2. Symlink the .deb next to this file as `pprof-viz.deb`, or update the
+#      `path:` below to point at the produced artifact under
+#      `src-tauri/target/release/bundle/deb/`.
+#   3. flatpak-builder --force-clean --user --install build-flatpak \
+#        packaging/flatpak/com.tb004.pprof-viz.yml
+#
+# Run:
+#   flatpak run com.tb004.pprof_viz
+#
+# Note on the application id: Flatpak forbids hyphens in the final segment, so
+# `pprof-viz` becomes `pprof_viz`. The Tauri bundle identifier
+# (`com.tb004.pprof-viz`) is unchanged; only the Flatpak app id differs.
+
+app-id: com.tb004.pprof_viz
+runtime: org.gnome.Platform
+runtime-version: "50"
+sdk: org.gnome.Sdk
+command: pprof-viz
+
+finish-args:
+  # Display + GPU
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --device=dri
+  # Network access for the ConnectRPC endpoint
+  - --share=network
+  # WebKitGTK needs this on some setups
+  - --talk-name=org.freedesktop.Notifications
+  # Persist Tauri's app data (settings, sqlite db) under XDG dirs
+  - --filesystem=xdg-config/pprof-viz:create
+  - --filesystem=xdg-data/pprof-viz:create
+  - --filesystem=xdg-cache/pprof-viz:create
+
+modules:
+  - name: pprof-viz
+    buildsystem: simple
+    build-commands:
+      - ar x pprof-viz.deb
+      - tar -xf data.tar.*
+      - cp -r usr/bin/pprof-viz /app/bin/pprof-viz
+      - install -Dm644 usr/share/applications/pprof-viz.desktop
+        /app/share/applications/com.tb004.pprof_viz.desktop
+      - desktop-file-edit
+        --set-key=Exec --set-value="pprof-viz %U"
+        /app/share/applications/com.tb004.pprof_viz.desktop
+      - for size in 32x32 128x128 256x256 512x512; do
+          src="usr/share/icons/hicolor/$size/apps/pprof-viz.png";
+          if [ -f "$src" ]; then
+            install -Dm644 "$src"
+              "/app/share/icons/hicolor/$size/apps/com.tb004.pprof_viz.png";
+          fi;
+        done
+    sources:
+      - type: file
+        path: pprof-viz.deb

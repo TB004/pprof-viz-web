@@ -2,11 +2,11 @@ import { invoke } from "@tauri-apps/api/core";
 import { derived, type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
 import { ErrorService } from "$lib/services";
-import {
+import type {
 	CollectionType,
-	type ProfileInput,
-	type ProfileRow,
-	type ProjectRow,
+	ProfileInput,
+	ProfileRow,
+	ProjectRow,
 } from "$lib/types";
 
 export interface CollectionProfile {
@@ -18,12 +18,8 @@ export interface CollectionProfile {
 	mode: CollectionType;
 }
 
-export interface ProfileRecord extends ProfileRow {
-	mode: CollectionType;
-}
-
 export interface ProfileProject extends ProjectRow {
-	profiles: ProfileRecord[];
+	profiles: ProfileRow[];
 }
 
 export interface ProfileCatalogState {
@@ -54,22 +50,17 @@ function reportInvokeError(action: string, e: unknown) {
 	void ErrorService.registerError(`${action}: ${message}`);
 }
 
-function asEnum(mode: ProfileRow["mode"]): CollectionType {
-	return mode === "snapshot" ? CollectionType.Snapshot : CollectionType.Stream;
-}
-
 async function reload() {
 	const [projects, profiles] = await Promise.all([
 		invoke<ProjectRow[]>("list_projects"),
 		invoke<ProfileRow[]>("list_profiles"),
 	]);
 
-	const profilesByProjectId = new Map<string, ProfileRecord[]>();
+	const profilesByProjectId = new Map<string, ProfileRow[]>();
 	for (const row of profiles) {
-		const record: ProfileRecord = { ...row, mode: asEnum(row.mode) };
 		const list = profilesByProjectId.get(row.projectId);
-		if (list) list.push(record);
-		else profilesByProjectId.set(row.projectId, [record]);
+		if (list) list.push(row);
+		else profilesByProjectId.set(row.projectId, [row]);
 	}
 
 	const catalog = projects.map((project) => ({
@@ -121,12 +112,11 @@ export async function getProjectById(
 
 export async function getProfileById(
 	profileId: string,
-): Promise<ProfileRecord | undefined> {
+): Promise<ProfileRow | undefined> {
 	const row = await invoke<ProfileRow | null>("get_profile_by_id", {
 		id: profileId,
 	});
-	if (!row) return undefined;
-	return { ...row, mode: asEnum(row.mode) };
+	return row ?? undefined;
 }
 
 function toInput(input: ProfileInput): ProfileInput {

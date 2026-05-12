@@ -34,7 +34,7 @@ impl ErrorLog {
     pub fn push(&self, message: String) -> AppError {
         let entry = AppError {
             id: ulid::Ulid::new().to_string(),
-            message: message,
+            message,
             timestamp: utils::now_millis(),
         };
         let mut entries = self.entries.lock().unwrap();

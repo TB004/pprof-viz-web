@@ -43,18 +43,17 @@ src/lib/components/
 State shared across complex component groups (like `ProfileManagerDialog`) lives in co-located `.svelte.ts` files using Svelte 5 runes (`$state`).
 
 ## 🛠️ Development & Commands
-All quality and build commands are run via `just` (task runner):
+All quality and build commands are run via `just` (task runner). These commands are unified to handle **both** the Svelte frontend and the Rust backend simultaneously:
 
 | Task | Command | Description |
 | :--- | :--- | :--- |
 | **Dev Mode** | `just dev` | Starts Vite dev server + Tauri window with hot-reload. |
 | **Build** | `just build` | Compiles the frontend and builds the release Tauri binary. |
-| **Type Check** | `just check` | SvelteKit sync + svelte-check type checking. |
-| **Lint (Web)** | `just lint` | Biome static analysis (read-only) for frontend. |
-| **Format (Web)**| `just format` | Biome formatter (write) for frontend. |
-| **Verify** | `just verify` | Runs all checks, linters, and format-checks. |
-
-*Note: AI agents should also run standard Rust tooling (`cargo check`, `cargo clippy`, `cargo fmt`) when modifying the `src-tauri/` directory.*
+| **Type Check** | `just check` | SvelteKit sync, svelte-check, and `cargo check`. |
+| **Lint** | `just lint` | Biome static analysis and `cargo clippy`. |
+| **Format**| `just format` | Biome format and `cargo fmt`. |
+| **Verify** | `just verify` | Runs the full pipeline: check, lint, and format-check. |
+| **Security** | `just vuln` | Dependency audits (`bun audit`, `cargo audit`). |
 
 ## 📏 Engineering Standards
 

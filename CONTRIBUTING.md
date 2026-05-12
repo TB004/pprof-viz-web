@@ -46,17 +46,15 @@ Before you start coding, it's critical to understand the separation of concerns 
 
 ## 📜 Development Workflow
 
-We use `just` to ensure consistency across development. Please run these commands before submitting a PR:
+We use `just` to ensure consistency across development. The commands are unified to handle both the Svelte frontend and Rust backend simultaneously. Please run these commands before submitting a PR:
 
 | Command | Description |
 | :--- | :--- |
 | `just dev` | Starts the Tauri application with frontend hot-reloading. |
-| `just check` | Runs SvelteKit sync and `svelte-check` for frontend type safety. |
-| `just lint` | Performs static analysis on the frontend using Biome. |
-| `just format` | Automatically formats frontend code using Biome. |
-| `just verify` | Runs check, lint, and format-check in one go. |
-
-*Note: For the Rust backend, please use standard Cargo commands like `cargo clippy` and `cargo fmt` inside the `src-tauri` directory.*
+| `just check` | Runs SvelteKit sync, `svelte-check`, and `cargo check`. |
+| `just lint` | Performs static analysis using Biome (frontend) and Clippy (backend). |
+| `just format` | Automatically formats code using Biome and `cargo fmt`. |
+| `just verify` | Runs check, lint, and format-check across the entire stack in one go. |
 
 ---
 
@@ -83,7 +81,7 @@ We welcome the use of AI tools (Gemini, Claude, Copilot, etc.) to help you write
 
 1. **Branching**: Create a feature branch (e.g., `feat/add-memory-chart`).
 2. **Commits**: Use clear, imperative messages (e.g., `add: cpu usage sparkline`).
-3. **Verification**: Run `just verify` and ensure the Rust backend compiles cleanly without clippy warnings.
+3. **Verification**: Run `just verify` to ensure everything is green (it automatically checks both Rust and Svelte).
 4. **The PR**: Fill out the template. Include screenshots or screen recordings for any visual changes.
 
 ---

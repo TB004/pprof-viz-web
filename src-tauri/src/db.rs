@@ -64,10 +64,8 @@ pub struct ProfileRow {
     pub url: String,
     pub mode: CollectionType,
     pub token: Option<String>,
-    #[specta(type = Option<f64>)]
-    pub interval_seconds: Option<i64>,
-    #[specta(type = Option<f64>)]
-    pub number_of_cycles: Option<i64>,
+    pub interval_seconds: Option<i16>,
+    pub number_of_cycles: Option<i16>,
     #[specta(type = f64)]
     pub created_at: i64,
     #[specta(type = f64)]
@@ -83,8 +81,8 @@ pub struct ProfileDescriptor {
     pub url: String,
     pub mode: CollectionType,
     pub token: Option<String>,
-    pub interval_seconds: Option<i64>,
-    pub number_of_cycles: Option<i64>,
+    pub interval_seconds: Option<i16>,
+    pub number_of_cycles: Option<i16>,
 }
 
 #[derive(Debug, Clone, Deserialize, specta::Type)]
@@ -94,10 +92,8 @@ pub struct ProfileInput {
     pub url: String,
     pub mode: CollectionType,
     pub token: Option<String>,
-    #[specta(type = Option<f64>)]
-    pub interval_seconds: Option<i64>,
-    #[specta(type = Option<f64>)]
-    pub number_of_cycles: Option<i64>,
+    pub interval_seconds: Option<i16>,
+    pub number_of_cycles: Option<i16>,
 }
 
 async fn with_pool<F, Fut, T>(app: &AppHandle, f: F) -> Result<T, String>
@@ -124,12 +120,10 @@ where
 #[specta::specta]
 pub async fn list_projects(app: AppHandle) -> Result<Vec<ProjectRow>, String> {
     with_pool(&app, |pool| async move {
-        sqlx::query_as::<_, ProjectRow>(
-            "SELECT id, name, created_at, updated_at FROM projects ORDER BY created_at ASC",
-        )
-        .fetch_all(&pool)
-        .await
-        .map_err(|e| e.to_string())
+        sqlx::query_as::<_, ProjectRow>("SELECT * FROM projects ORDER BY created_at ASC")
+            .fetch_all(&pool)
+            .await
+            .map_err(|e| e.to_string())
     })
     .await
 }
@@ -138,50 +132,36 @@ pub async fn list_projects(app: AppHandle) -> Result<Vec<ProjectRow>, String> {
 #[specta::specta]
 pub async fn list_profiles(app: AppHandle) -> Result<Vec<ProfileRow>, String> {
     with_pool(&app, |pool| async move {
-        sqlx::query_as::<_, ProfileRow>(
-            "SELECT id, project_id, name, url, mode, token, interval_seconds, \
-             number_of_cycles, created_at, updated_at FROM profiles ORDER BY created_at ASC",
-        )
-        .fetch_all(&pool)
-        .await
-        .map_err(|e| e.to_string())
+        sqlx::query_as::<_, ProfileRow>("SELECT * FROM profiles ORDER BY created_at ASC")
+            .fetch_all(&pool)
+            .await
+            .map_err(|e| e.to_string())
     })
     .await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn get_project_by_id(
-    app: AppHandle,
-    id: String,
-) -> Result<Option<ProjectRow>, String> {
+pub async fn get_project_by_id(app: AppHandle, id: String) -> Result<Option<ProjectRow>, String> {
     with_pool(&app, |pool| async move {
-        sqlx::query_as::<_, ProjectRow>(
-            "SELECT id, name, created_at, updated_at FROM projects WHERE id = ?",
-        )
-        .bind(&id)
-        .fetch_optional(&pool)
-        .await
-        .map_err(|e| e.to_string())
+        sqlx::query_as::<_, ProjectRow>("SELECT * FROM projects WHERE id = ?")
+            .bind(&id)
+            .fetch_optional(&pool)
+            .await
+            .map_err(|e| e.to_string())
     })
     .await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn get_profile_by_id(
-    app: AppHandle,
-    id: String,
-) -> Result<Option<ProfileRow>, String> {
+pub async fn get_profile_by_id(app: AppHandle, id: String) -> Result<Option<ProfileRow>, String> {
     with_pool(&app, |pool| async move {
-        sqlx::query_as::<_, ProfileRow>(
-            "SELECT id, project_id, name, url, mode, token, interval_seconds, \
-             number_of_cycles, created_at, updated_at FROM profiles WHERE id = ?",
-        )
-        .bind(&id)
-        .fetch_optional(&pool)
-        .await
-        .map_err(|e| e.to_string())
+        sqlx::query_as::<_, ProfileRow>("SELECT * FROM profiles WHERE id = ?")
+            .bind(&id)
+            .fetch_optional(&pool)
+            .await
+            .map_err(|e| e.to_string())
     })
     .await
 }
@@ -192,15 +172,12 @@ pub async fn get_profile_by_id(
 pub async fn load_profile(app: &AppHandle, profile_id: &str) -> Result<ProfileDescriptor, String> {
     let id = profile_id.to_string();
     with_pool(app, |pool| async move {
-        sqlx::query_as::<_, ProfileDescriptor>(
-            "SELECT id, name, url, mode, token, interval_seconds, number_of_cycles \
-             FROM profiles WHERE id = ?",
-        )
-        .bind(&id)
-        .fetch_optional(&pool)
-        .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| format!("profile '{id}' not found"))
+        sqlx::query_as::<_, ProfileDescriptor>("SELECT * FROM profiles WHERE id = ?")
+            .bind(&id)
+            .fetch_optional(&pool)
+            .await
+            .map_err(|e| e.to_string())?
+            .ok_or_else(|| format!("profile '{id}' not found"))
     })
     .await
 }

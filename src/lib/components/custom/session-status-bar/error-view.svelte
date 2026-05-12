@@ -32,6 +32,7 @@ const errorState = ErrorService.errorState;
 				<Card.Action>
 					<Button
 						variant="ghost"
+						class="bg-secondary"
 						size="icon-sm"
 						onclick={() => (showErrors = false)}
 					>

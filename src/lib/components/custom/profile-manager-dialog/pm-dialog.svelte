@@ -228,7 +228,7 @@ async function testConnection() {
 										>
 										<Input
 											bind:value={dialogState.profileToken}
-											placeholder="Bearer eyJ..."
+											placeholder="eyJ..."
 											type="password"
 										/>
 									</label>

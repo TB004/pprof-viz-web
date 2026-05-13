@@ -23,15 +23,13 @@ jobs:
 
       - name: Install system dependencies
         run: apt install -y libwebkit2gtk-4.1-dev \
-          build-essential \
           curl \
-          g++ \
-          wget \
-          file \
-          libxdo-dev \
-          libssl-dev \
-          libayatana-appindicator3-dev \
-          librsvg2-dev
+          gcc \
+          libappindicator3-dev \
+          librsvg2-dev \
+          patchelf \
+          unzip \
+          protobuf-compiler
 
       - name: Set up Bun
         run: curl -fsSL https://bun.sh/install | bash
@@ -41,6 +39,12 @@ jobs:
 
       - name: Install Rust
         run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+      - name: Reinitiate bashrc
+        run: source /root/.bashrc
+
+      - name: Install Cargo binstall
+        run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
 
       - name: Restore Bun and dependency cache
         id: bun-cache
@@ -62,6 +66,9 @@ jobs:
       - name: Install dependencies
         if: steps.bun-cache.outputs.cache-hit != 'true'
         run: bun install
+
+      - name: Install cargo tools
+        run: cargo binstall -y --disable-telemetry cargo-audit
 
       - name: Run vulnerability scan
         run: just vuln

@@ -33,20 +33,25 @@ To build and run the app locally, you will need:
 ### 📥 Installation & Development
 
 1. **Install dependencies:**
+
    ```bash
    bun install
    ```
 
 2. **Run the desktop app in dev mode:**
+
    ```bash
    just dev
    ```
+
    This launches the Tauri app with hot-reload from the Vite dev server.
 
 3. **Build a release bundle for your platform:**
+
    ```bash
    just build
    ```
+
    Bundles land under `src-tauri/target/release/bundle/`.
 
 ## 🏗️ Architecture & Integration

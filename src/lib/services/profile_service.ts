@@ -91,14 +91,22 @@ export const profileOptions: Readable<CollectionProfile[]> = derived(
 	profileCatalogStore,
 	(catalog) =>
 		catalog.projects.flatMap((project) =>
-			project.profiles.map((profile) => ({
-				value: profile.id,
-				label: profile.name,
-				projectId: project.id,
-				projectName: project.name,
-				url: new URL(profile.url),
-				mode: profile.mode,
-			})),
+			project.profiles.flatMap((profile) => {
+				try {
+					return [
+						{
+							value: profile.id,
+							label: profile.name,
+							projectId: project.id,
+							projectName: project.name,
+							url: new URL(profile.url),
+							mode: profile.mode,
+						},
+					];
+				} catch {
+					return [];
+				}
+			}),
 		),
 );
 

@@ -37,7 +37,7 @@ impl ErrorLog {
             message,
             timestamp: utils::now_millis(),
         };
-        let mut entries = self.entries.lock().unwrap();
+        let mut entries = self.entries.lock().unwrap_or_else(|e| e.into_inner());
         entries.push_front(entry.clone());
         while entries.len() > MAX_ERRORS {
             entries.pop_back();
@@ -48,18 +48,24 @@ impl ErrorLog {
     pub fn snapshot(&self) -> Vec<AppError> {
         self.entries
             .lock()
-            .expect("error log poisoned")
+            .unwrap_or_else(|e| e.into_inner())
             .iter()
             .cloned()
             .collect()
     }
 
     pub fn clear(&self) {
-        self.entries.lock().unwrap().clear();
+        self.entries
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clear();
     }
 
     pub fn remove(&self, id: &str) {
-        self.entries.lock().unwrap().retain(|entry| entry.id != id);
+        self.entries
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .retain(|entry| entry.id != id);
     }
 }
 

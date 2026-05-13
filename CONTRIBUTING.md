@@ -9,7 +9,9 @@ This project is a high-performance desktop frontend for Go runtime telemetry. Ou
 ## 🛠️ Getting Started
 
 ### Prerequisites
+
 To set up the development environment, you'll need:
+
 - **[Rust](https://rustup.rs/)**: The toolchain for the Tauri backend.
 - **Tauri Prerequisites**: OS-specific build tools (C++ build tools on Windows, Xcode command line tools on macOS, webkit2gtk on Linux). See [tauri.app/start/prerequisites](https://tauri.app/start/prerequisites/).
 - **[Bun](https://bun.sh/)**: Our frontend package manager and runtime.

@@ -56,6 +56,15 @@ async function handleProfileSelect(projectId: string, profileId: string) {
 	dialogState.editorMode = "profile";
 
 	const snapshot = await ProfileService.getProfileById(profileId);
+
+	// Discard the result if the user selected a different profile while we were awaiting.
+	if (
+		dialogState.selectedProfileId !== profileId ||
+		dialogState.selectedProjectId !== projectId
+	) {
+		return;
+	}
+
 	dialogState.profileName = snapshot?.name ?? "";
 	dialogState.profileUrl = snapshot?.url ?? "";
 	dialogState.profileMode = snapshot?.mode ?? CollectionType.Stream;

@@ -65,6 +65,9 @@ jobs:
         with:
           path: |
             ./src-tauri/target
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
           key: ${{ runner.os }}-rust-${{ hashFiles('./src-tauri/Cargo.lock', './src-tauri/Cargo.toml') }}
 
       - name: Install dependencies
@@ -72,6 +75,7 @@ jobs:
         run: bun install
 
       - name: Install cargo tools
+        if: steps.rust-cache.outputs.cache-hit != 'true'
         run: cargo binstall -y --disable-telemetry cargo-audit
 
       - name: Run vulnerability scan

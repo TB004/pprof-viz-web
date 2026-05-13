@@ -85,7 +85,7 @@ pub struct CollectionStore {
 
 impl CollectionStore {
     pub fn snapshot(&self) -> CollectionStateSnapshot {
-        let guard = self.inner.lock().unwrap();
+        let guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         match guard.as_ref() {
             Some(session) => CollectionStateSnapshot {
                 status: session.status,
@@ -116,14 +116,14 @@ impl CollectionStore {
     /// the previous session's cancel sender so the caller can stop the
     /// outgoing worker before the new one starts.
     fn replace(&self, session: CollectionSession) -> Option<watch::Sender<bool>> {
-        let mut guard = self.inner.lock().unwrap();
+        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         let prev = guard.take().map(|s| s.cancel_tx);
         *guard = Some(session);
         prev
     }
 
     fn current_cancel(&self) -> Option<watch::Sender<bool>> {
-        let guard = self.inner.lock().unwrap();
+        let guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         guard.as_ref().map(|s| s.cancel_tx.clone())
     }
 
@@ -132,7 +132,7 @@ impl CollectionStore {
     /// freshly-started session. Returns the new sample count, or `None`
     /// when the worker should exit.
     fn push_frame(&self, session_id: &str, frame: Frame) -> Option<usize> {
-        let mut guard = self.inner.lock().unwrap();
+        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         let session = guard.as_mut()?;
         if session.session_id != session_id {
             return None;
@@ -145,7 +145,7 @@ impl CollectionStore {
     }
 
     fn last_frame_value(&self, session_id: &str) -> Option<Value> {
-        let guard = self.inner.lock().unwrap();
+        let guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         let session = guard.as_ref()?;
         if session.session_id != session_id {
             return None;
@@ -154,7 +154,7 @@ impl CollectionStore {
     }
 
     fn set_metadata(&self, session_id: &str, value: Value) {
-        let mut guard = self.inner.lock().unwrap();
+        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         if let Some(session) = guard.as_mut()
             && session.session_id == session_id
         {
@@ -166,7 +166,7 @@ impl CollectionStore {
     /// the session has already been replaced by a newer one, this is a
     /// no-op.
     fn mark_idle(&self, session_id: &str) {
-        let mut guard = self.inner.lock().unwrap();
+        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         if let Some(session) = guard.as_mut()
             && session.session_id == session_id
         {

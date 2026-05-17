@@ -1,6 +1,7 @@
 <script lang="ts">
 import {
 	ActivityIcon,
+	BracesIcon,
 	CheckIcon,
 	ChevronsRightIcon,
 	CpuIcon,
@@ -17,13 +18,14 @@ import { Button } from "$lib/components/ui/button";
 import * as Card from "$lib/components/ui/card";
 import { CollectionService } from "$lib/services";
 import { profileOptions } from "$lib/services/profile_service.js";
+import { CollectionStatus } from "$lib/types";
 
 const collectionState = CollectionService.collectionState;
 
 const hasProfiles = $derived($profileOptions.length > 0);
 const hasSelectedProfile = $derived(!!$collectionState.selectedProfile);
 const isRunning = $derived(
-	$collectionState.status === CollectionService.CollectionStatus.Running,
+	$collectionState.status === CollectionStatus.Running,
 );
 
 const activeStep = $derived(
@@ -62,6 +64,7 @@ const dataRoutes: { title: string; url: string; icon: Component }[] = [
 	{ title: "Memory", url: "/memory", icon: LayersIcon },
 	{ title: "Scheduler", url: "/scheduler", icon: HistoryIcon },
 	{ title: "Miscellaneous", url: "/miscellaneous", icon: PackageIcon },
+	{ title: "Raw", url: "/raw", icon: BracesIcon },
 ];
 </script>
 
@@ -73,7 +76,7 @@ const dataRoutes: { title: string; url: string; icon: Component }[] = [
 				<div
 					class="flex h-14 w-14 items-center justify-center rounded-2xl border border-border/60 bg-muted/40 shadow-sm"
 				>
-					<img src="/logo.svg" alt="pprof-viz" class="h-8 w-8 opacity-85">
+					<ActivityIcon class="size-7 text-foreground/85" />
 				</div>
 			</div>
 			<h1 class="text-xl font-semibold tracking-tight">

@@ -1,19 +1,19 @@
 <script lang="ts">
 import { CircleAlertIcon, Trash2Icon, XIcon } from "@lucide/svelte";
-import type { Readable } from "svelte/store";
 import { fly } from "svelte/transition";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as ScrollArea from "$lib/components/ui/scroll-area/index.js";
-import * as ErrorService from "$lib/services/error_service.js";
+import { ErrorService } from "$lib/services";
 
 type Props = {
 	showErrors: boolean;
-	errorState: Readable<ErrorService.CollectionError[]>;
 };
 
-let { showErrors = $bindable(), errorState }: Props = $props();
+let { showErrors = $bindable() }: Props = $props();
+
+const errorState = ErrorService.errorState;
 </script>
 
 <div
@@ -32,6 +32,7 @@ let { showErrors = $bindable(), errorState }: Props = $props();
 				<Card.Action>
 					<Button
 						variant="ghost"
+						class="bg-secondary"
 						size="icon-sm"
 						onclick={() => (showErrors = false)}
 					>
@@ -63,7 +64,9 @@ let { showErrors = $bindable(), errorState }: Props = $props();
 											{error.message}
 										</Item.Title>
 										<Item.Description class="line-clamp-none text-xs">
-											{ErrorService.formatErrorTimestamp(error.timestamp)}
+											{ErrorService.formatErrorTimestamp(
+                                                error.timestamp,
+                                            )}
 										</Item.Description>
 									</Item.Content>
 									<Item.Actions>
@@ -71,7 +74,10 @@ let { showErrors = $bindable(), errorState }: Props = $props();
 											variant="ghost"
 											size="icon-sm"
 											class="text-red-500 hover:bg-red-500/10 hover:text-red-600"
-											onclick={() => ErrorService.removeError(error.id)}
+											onclick={() =>
+                                                ErrorService.removeError(
+                                                    error.id,
+                                                )}
 										>
 											<Trash2Icon class="size-3.5" />
 										</Button>

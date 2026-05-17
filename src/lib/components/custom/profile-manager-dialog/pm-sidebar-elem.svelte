@@ -11,6 +11,7 @@ import { get } from "svelte/store";
 import { Button } from "$lib/components/ui/button/index.js";
 import { ProfileService } from "$lib/services";
 import type { ProfileProject } from "$lib/services/profile_service";
+import { CollectionType } from "$lib/types";
 import { clearProfileForm, dialogState } from "./state.svelte.ts";
 
 type Props = {
@@ -49,19 +50,30 @@ function openDeleteProjectDialog(projectId: string) {
 
 // When a profile is selected, we need to update the dialog state with the selected
 // profile's information and switch to the profile editor mode.
-function handleProfileSelect(projectId: string, profileId: string) {
+async function handleProfileSelect(projectId: string, profileId: string) {
 	dialogState.selectedProjectId = projectId;
 	dialogState.selectedProfileId = profileId;
 	dialogState.editorMode = "profile";
 
-	const snapshot = ProfileService.getProfileById(profileId);
-	dialogState.profileName = snapshot?.profile.name ?? "";
-	dialogState.profileUrl = snapshot?.profile.url ?? "";
-	dialogState.profileMode =
-		snapshot?.profile.mode ?? ProfileService.CollectionType.Stream;
-	dialogState.profileToken = snapshot?.profile.token ?? "";
-	dialogState.profileIntervalSeconds = snapshot?.profile.intervalSeconds ?? 1;
-	dialogState.profileNumberOfCycles = snapshot?.profile.numberOfCycles ?? 0;
+	// Clear form fields before the await to avoid showing stale data while loading.
+	clearProfileForm();
+
+	const snapshot = await ProfileService.getProfileById(profileId);
+
+	// Discard the result if the user selected a different profile while we were awaiting.
+	if (
+		dialogState.selectedProjectId !== projectId ||
+		dialogState.selectedProfileId !== profileId
+	) {
+		return;
+	}
+
+	dialogState.profileName = snapshot?.name ?? "";
+	dialogState.profileUrl = snapshot?.url ?? "";
+	dialogState.profileMode = snapshot?.mode ?? CollectionType.Stream;
+	dialogState.profileToken = snapshot?.token ?? "";
+	dialogState.profileIntervalSeconds = snapshot?.intervalSeconds ?? 1;
+	dialogState.profileNumberOfCycles = snapshot?.numberOfCycles ?? 0;
 }
 </script>
 
@@ -90,10 +102,10 @@ function handleProfileSelect(projectId: string, profileId: string) {
 				size="icon-xs"
 				class="hover:bg-sidebar-foreground/10 dark:hover:bg-sidebar-foreground/10 hover:text-sidebar-accent-foreground"
 				onclick={(event) => {
-					event.preventDefault();
-					event.stopPropagation();
-					openRenameProjectDialog(project.id);
-				}}
+                    event.preventDefault();
+                    event.stopPropagation();
+                    openRenameProjectDialog(project.id);
+                }}
 			>
 				<PencilIcon class="size-3.5" />
 				<span class="sr-only">Edit project</span>
@@ -103,10 +115,10 @@ function handleProfileSelect(projectId: string, profileId: string) {
 				size="icon-xs"
 				class="hover:bg-sidebar-foreground/10 dark:hover:bg-sidebar-foreground/10 hover:text-sidebar-accent-foreground"
 				onclick={(event) => {
-					event.preventDefault();
-					event.stopPropagation();
-					startNewProfile(project.id);
-				}}
+                    event.preventDefault();
+                    event.stopPropagation();
+                    startNewProfile(project.id);
+                }}
 			>
 				<PlusIcon class="size-3.5" />
 				<span class="sr-only">Add profile</span>
@@ -116,10 +128,10 @@ function handleProfileSelect(projectId: string, profileId: string) {
 				size="icon-xs"
 				class="hover:bg-destructive/10 dark:hover:bg-destructive/10 hover:text-destructive dark:hover:text-destructive"
 				onclick={(event) => {
-					event.preventDefault();
-					event.stopPropagation();
-					openDeleteProjectDialog(project.id);
-				}}
+                    event.preventDefault();
+                    event.stopPropagation();
+                    openDeleteProjectDialog(project.id);
+                }}
 			>
 				<Trash2Icon class="size-3.5" />
 				<span class="sr-only">Delete project</span>

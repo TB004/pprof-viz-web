@@ -1,6 +1,7 @@
 name: Pull Request Checks
 
 on:
+  workflow_dispatch:
   pull_request:
     branches:
       - main
@@ -17,15 +18,37 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Update APT-Repos
+        run: sudo apt-get update
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            curl \
+            gcc \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            unzip \
+            protobuf-compiler \
+            libprotobuf-dev \
+
       - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> $GITHUB_PATH
 
       - name: Install Just
-        uses: taiki-e/install-action@v2
-        with:
-          tool: just
+        run: curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | sudo bash -s -- --to /usr/bin
+
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install Cargo binstall
+        run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
 
       - name: Restore Bun and dependency cache
         id: bun-cache
@@ -36,9 +59,24 @@ jobs:
             node_modules
           key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock', 'package.json') }}
 
+      - name: Restore Rust and dependency cache
+        id: rust-cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ./src-tauri/target
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-rust-${{ hashFiles('./src-tauri/Cargo.lock', './src-tauri/Cargo.toml') }}
+
       - name: Install dependencies
         if: steps.bun-cache.outputs.cache-hit != 'true'
         run: bun install
+
+      - name: Install cargo tools
+        if: steps.rust-cache.outputs.cache-hit != 'true'
+        run: cargo binstall -y --disable-telemetry cargo-audit
 
       - name: Run vulnerability scan
         run: just vuln

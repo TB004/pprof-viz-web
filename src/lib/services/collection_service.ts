@@ -1,14 +1,19 @@
-import { Code, ConnectError } from "@connectrpc/connect";
+import { listen } from "@tauri-apps/api/event";
 import { type Readable, writable } from "svelte/store";
-import type { AllResponse, MetadataResponse } from "$lib/proto/gen/agent_pb";
-import { AgentService, ErrorService, ProfileService } from "$lib/services";
-
-export type CollectionType = ProfileService.CollectionType;
-
-export enum CollectionStatus {
-	Idle = "idle",
-	Running = "running",
-}
+import { browser } from "$app/environment";
+import { commands } from "$lib/bindings";
+import { ErrorService, ProfileService } from "$lib/services";
+import {
+	type CollectionStateSnapshot,
+	CollectionStatus,
+	type CollectionType,
+	EVENT_FRAME,
+	EVENT_METADATA,
+	EVENT_STATE,
+	type Frame,
+	type MetadataResponse,
+} from "$lib/types";
+import { run } from "./invoke.js";
 
 export interface CollectionState {
 	status: CollectionStatus;
@@ -17,38 +22,35 @@ export interface CollectionState {
 	selectedProfile?: string;
 	selectedProfileLabel?: string;
 	url?: URL;
-	mode?: ProfileService.CollectionType;
-	data?: AllResponse[];
+	mode?: CollectionType;
+	data?: Frame[];
 	metadata?: MetadataResponse;
-}
-
-export function formatElapsedTime(totalSeconds: number): string {
-	const hours = Math.floor(totalSeconds / 3600);
-	const minutes = Math.floor((totalSeconds % 3600) / 60);
-	const seconds = totalSeconds % 60;
-
-	return `${hours}h ${minutes}m ${seconds}s`;
+	startedAt?: number;
 }
 
 const defaultCollectionState: CollectionState = {
 	status: CollectionStatus.Idle,
 	collectedSamples: 0,
 	elapsedSeconds: 0,
-	selectedProfile: undefined,
-	selectedProfileLabel: undefined,
-	url: undefined,
-	mode: undefined,
-	data: undefined,
-	metadata: undefined,
 };
 
 const collectionStateStore = writable<CollectionState>(defaultCollectionState);
 
-let timerHandle: ReturnType<typeof setInterval> | undefined;
-let collectionStartedAt: number | undefined;
-let streamAbortController: AbortController | undefined;
+export const collectionState: Readable<CollectionState> = {
+	subscribe: collectionStateStore.subscribe,
+};
 
-function getCollectionStateSnapshot(): CollectionState {
+let hydrated = false;
+let timerHandle: ReturnType<typeof setInterval> | undefined;
+
+export function formatElapsedTime(totalSeconds: number): string {
+	const hours = Math.floor(totalSeconds / 3600);
+	const minutes = Math.floor((totalSeconds % 3600) / 60);
+	const seconds = totalSeconds % 60;
+	return `${hours}h ${minutes}m ${seconds}s`;
+}
+
+function getSnapshot(): CollectionState {
 	let snapshot = defaultCollectionState;
 	const unsubscribe = collectionStateStore.subscribe((value) => {
 		snapshot = value;
@@ -57,184 +59,172 @@ function getCollectionStateSnapshot(): CollectionState {
 	return snapshot;
 }
 
-function applySelectedProfile(profileId?: string) {
-	const snapshot = profileId
-		? ProfileService.getProfileById(profileId)
-		: undefined;
-
-	collectionStateStore.update((state) => ({
-		...state,
-		selectedProfile: snapshot?.profile.id,
-		selectedProfileLabel: snapshot?.profile.name,
-		url: snapshot ? new URL(snapshot.profile.url) : undefined,
-		mode: snapshot?.profile.mode,
-	}));
+function asStatus(raw: CollectionStateSnapshot["status"]): CollectionStatus {
+	return raw === "running" ? CollectionStatus.Running : CollectionStatus.Idle;
 }
 
-function updateElapsedTimeFromStart() {
-	const startedAt = collectionStartedAt;
-	if (startedAt === undefined) {
-		return;
-	}
-
-	collectionStateStore.update((state) => ({
-		...state,
-		elapsedSeconds: Math.max(0, Math.floor((Date.now() - startedAt) / 1000)),
-	}));
-}
-
-// Merge two sub-messages by carrying forward any field from `prev` that is
-// absent (undefined) in `next`. This handles delta-encoded streams where only
-// changed fields are sent to save bandwidth.
-function mergeSubMessage<T extends object>(
-	prev: T | undefined,
-	next: T | undefined,
-): T | undefined {
-	if (!prev) return next;
-	if (!next) return prev;
-	const defined = Object.fromEntries(
-		Object.entries(next).filter(([, v]) => v !== undefined),
-	);
-	return { ...prev, ...defined } as T;
-}
-
-function mergeFrame(prev: AllResponse, next: AllResponse): AllResponse {
-	return {
-		...prev,
-		cpu: mergeSubMessage(prev.cpu, next.cpu),
-		scheduler: mergeSubMessage(prev.scheduler, next.scheduler),
-		gc: mergeSubMessage(prev.gc, next.gc),
-		memory: mergeSubMessage(prev.memory, next.memory),
-		goDebug: mergeSubMessage(prev.goDebug, next.goDebug),
-		cgo: mergeSubMessage(prev.cgo, next.cgo),
-		sync: mergeSubMessage(prev.sync, next.sync),
-	} as AllResponse;
-}
-
-function isCancellation(err: unknown): boolean {
-	if (err instanceof ConnectError && err.code === Code.Canceled) {
-		return true;
-	}
-	if (err instanceof Error && err.name === "AbortError") {
-		return true;
-	}
-	return false;
-}
-
-export const collectionState: Readable<CollectionState> = {
-	subscribe: collectionStateStore.subscribe,
-};
-
-export async function selectProfile(profileId?: string): Promise<void> {
-	const currentState = getCollectionStateSnapshot();
-	if (
-		currentState.status === CollectionStatus.Running &&
-		profileId !== currentState.selectedProfile
-	) {
-		ErrorService.registerError(
-			"Stop the current collection before changing the collection profile.",
-		);
-		return;
-	}
-
-	await ProfileService.setActiveProfile(profileId);
-	applySelectedProfile(profileId);
-}
-
-export async function startCollection(): Promise<void> {
-	const state = getCollectionStateSnapshot();
-
-	const profile = ProfileService.getProfileById(state.selectedProfile ?? "");
-
-	collectionStateStore.update((s) => ({
-		...s,
-		status: CollectionStatus.Running,
-		elapsedSeconds: 0,
-		collectedSamples: 0,
-		data: undefined,
-		metadata: undefined,
-	}));
-
-	// Start timer
-	collectionStartedAt = Date.now();
-	updateElapsedTimeFromStart();
-	timerHandle = setInterval(updateElapsedTimeFromStart, 1000);
-
-	const agent = new AgentService(state.url?.toString() || "");
-
-	// Fetch metadata in the background — failure is non-fatal.
+function asUrl(raw: string | null | undefined): URL | undefined {
+	if (!raw) return undefined;
 	try {
-		const metadata = await agent.getMetadata();
-		collectionStateStore.update((s) => ({ ...s, metadata }));
-	} catch (e) {
-		ErrorService.registerError(`Failed to fetch Metadata: ${e}`);
-		stopCollection();
-		return;
+		return new URL(raw);
+	} catch {
+		return undefined;
 	}
+}
 
-	// Fetch data
-	try {
-		if (state.mode === ProfileService.CollectionType.Snapshot) {
-			const data = await agent.snapshotAll();
-			collectionStateStore.update((s) => ({
-				...s,
-				data: [...(s.data ?? []), data],
-				collectedSamples: 1,
-			}));
-		} else {
-			const intervalSeconds = profile?.profile.intervalSeconds ?? 1;
-			const numberOfCycles = profile?.profile.numberOfCycles ?? 0;
-
-			streamAbortController = new AbortController();
-			const stream = agent.streamAll(
-				intervalSeconds,
-				numberOfCycles,
-				streamAbortController.signal,
-			);
-
-			for await (const frame of stream) {
-				collectionStateStore.update((s) => {
-					const prev = s.data?.at(-1);
-					const merged = prev ? mergeFrame(prev, frame) : frame;
-					return {
-						...s,
-						data: [...(s.data ?? []), merged],
-						collectedSamples: s.collectedSamples + 1,
-					};
-				});
+function startElapsedTimer() {
+	if (timerHandle !== undefined) return;
+	const tick = () => {
+		collectionStateStore.update((state) => {
+			if (state.status !== CollectionStatus.Running || !state.startedAt) {
+				return state;
 			}
-		}
-	} catch (err) {
-		if (!isCancellation(err)) {
-			ErrorService.registerError(
-				err instanceof Error ? err.message : "Collection failed unexpectedly.",
-			);
-		}
-	} finally {
-		if (getCollectionStateSnapshot().status === CollectionStatus.Running) {
-			stopCollection();
-		}
-	}
+			return {
+				...state,
+				elapsedSeconds: Math.max(
+					0,
+					Math.floor((Date.now() - state.startedAt) / 1000),
+				),
+			};
+		});
+	};
+	tick();
+	timerHandle = setInterval(tick, 1000);
 }
 
-export function stopCollection() {
-	if (streamAbortController) {
-		streamAbortController.abort();
-		streamAbortController = undefined;
-	}
-
-	// Stop timer
+function stopElapsedTimer() {
 	if (timerHandle !== undefined) {
 		clearInterval(timerHandle);
 		timerHandle = undefined;
 	}
-	collectionStartedAt = undefined;
+}
+
+function applySnapshot(snapshot: CollectionStateSnapshot) {
+	collectionStateStore.update((state) => {
+		const startedAt = snapshot.startedAt ?? undefined;
+		const next: CollectionState = {
+			...state,
+			status: asStatus(snapshot.status),
+			collectedSamples: snapshot.sampleCount ?? 0,
+			data: snapshot.frames as Frame[],
+			metadata: (snapshot.metadata as MetadataResponse | null) ?? undefined,
+			startedAt,
+			mode: snapshot.mode ?? undefined,
+			url: asUrl(snapshot.profileUrl),
+		};
+		if (snapshot.profileId) {
+			next.selectedProfile = snapshot.profileId;
+			next.selectedProfileLabel = snapshot.profileName ?? undefined;
+		}
+		next.elapsedSeconds = startedAt
+			? Math.max(0, Math.floor((Date.now() - startedAt) / 1000))
+			: 0;
+		return next;
+	});
+	if (asStatus(snapshot.status) === CollectionStatus.Running) {
+		startElapsedTimer();
+	} else {
+		stopElapsedTimer();
+	}
+}
+
+let unlisteners: Array<() => void> = [];
+
+if (browser) {
+	void (async () => {
+		try {
+			// Register listeners before fetching the initial snapshot so no
+			// events are missed between the two operations.
+			const [unlistenState, unlistenFrame, unlistenMetadata] =
+				await Promise.all([
+					listen<CollectionStateSnapshot>(EVENT_STATE, (event) => {
+						applySnapshot(event.payload);
+					}),
+					listen<Frame>(EVENT_FRAME, (event) => {
+						collectionStateStore.update((state) => ({
+							...state,
+							data: [...(state.data ?? []), event.payload],
+							collectedSamples: (state.data?.length ?? 0) + 1,
+						}));
+					}),
+					listen<MetadataResponse>(EVENT_METADATA, (event) => {
+						collectionStateStore.update((state) => ({
+							...state,
+							metadata: event.payload,
+						}));
+					}),
+				]);
+			unlisteners.push(unlistenState, unlistenFrame, unlistenMetadata);
+		} catch (e) {
+			void ErrorService.registerError(
+				`Failed to register collection listeners: ${e}`,
+			);
+			return;
+		}
+
+		if (!hydrated) {
+			hydrated = true;
+			try {
+				const snapshot = await run(commands.getCollectionSnapshot());
+				applySnapshot(snapshot as unknown as CollectionStateSnapshot);
+			} catch (e) {
+				hydrated = false;
+				void ErrorService.registerError(
+					`Failed to load collection state: ${e}`,
+				);
+			}
+		}
+	})();
+}
+
+export function cleanup() {
+	for (const unlisten of unlisteners) unlisten();
+	unlisteners = [];
+	stopElapsedTimer();
+}
+
+export async function selectProfile(profileId?: string): Promise<void> {
+	if (!profileId) {
+		collectionStateStore.update((state) => ({
+			...state,
+			selectedProfile: undefined,
+			selectedProfileLabel: undefined,
+			url: undefined,
+			mode: undefined,
+		}));
+		return;
+	}
+
+	const located = await ProfileService.getProfileById(profileId);
+	if (!located) return;
 
 	collectionStateStore.update((state) => ({
 		...state,
-		status: CollectionStatus.Idle,
+		selectedProfile: located.id,
+		selectedProfileLabel: located.name,
+		url: asUrl(located.url),
+		mode: located.mode,
 	}));
+}
 
-	// Deselect profile to reset collection parameters in the UI
-	selectProfile(undefined);
+export async function startCollection(): Promise<void> {
+	const state = getSnapshot();
+	if (!state.selectedProfile) return;
+	try {
+		await run(commands.startCollection(state.selectedProfile));
+	} catch (e) {
+		await ErrorService.registerError(
+			e instanceof Error ? e.message : `Failed to start collection: ${e}`,
+		);
+	}
+}
+
+export async function stopCollection(): Promise<void> {
+	try {
+		await run(commands.stopCollection());
+	} catch (e) {
+		await ErrorService.registerError(
+			e instanceof Error ? e.message : `Failed to stop collection: ${e}`,
+		);
+	}
 }

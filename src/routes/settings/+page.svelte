@@ -4,29 +4,30 @@ import * as Card from "$lib/components/ui/card/index.js";
 import Input from "$lib/components/ui/input/input.svelte";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import { ProfileService, SettingsService } from "$lib/services";
+import { CollectionType, ThemeMode } from "$lib/types";
 
 const themeOptions: Array<{
-	value: SettingsService.ThemeMode;
+	value: ThemeMode;
 	label: string;
 	icon: typeof MonitorIcon;
 }> = [
-	{ value: "system", label: "System", icon: MonitorIcon },
-	{ value: "light", label: "Light", icon: SunIcon },
-	{ value: "dark", label: "Dark", icon: MoonIcon },
+	{ value: ThemeMode.System, label: "System", icon: MonitorIcon },
+	{ value: ThemeMode.Light, label: "Light", icon: SunIcon },
+	{ value: ThemeMode.Dark, label: "Dark", icon: MoonIcon },
 ];
 
 const modeOptions: Array<{
-	value: ProfileService.CollectionType;
+	value: CollectionType;
 	title: string;
 	description: string;
 }> = [
 	{
-		value: ProfileService.CollectionType.Snapshot,
+		value: CollectionType.Snapshot,
 		title: "Snapshot",
 		description: "Capture a focused point-in-time profile.",
 	},
 	{
-		value: ProfileService.CollectionType.Stream,
+		value: CollectionType.Stream,
 		title: "Stream",
 		description: "Continuously follow runtime changes.",
 	},
@@ -165,7 +166,7 @@ const settings = SettingsService.settings;
 					</div>
 				</div>
 
-				{#if $settings.defaultMode === ProfileService.CollectionType.Stream}
+				{#if $settings.defaultMode === CollectionType.Stream}
 					<div class="grid gap-4 sm:grid-cols-2">
 						<label class="block">
 							<span class="mb-3 block text-sm font-medium text-foreground">

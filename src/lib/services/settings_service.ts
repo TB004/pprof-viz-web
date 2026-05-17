@@ -1,22 +1,13 @@
 import { type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
-import { CollectionType } from "./profile_service.js";
+import { commands } from "$lib/bindings";
+import { type AppSettings, CollectionType, ThemeMode } from "$lib/types";
+import { run } from "./invoke.js";
 
-export type ThemeMode = "light" | "dark" | "system";
-
-export interface AppSettings {
-	theme: ThemeMode;
-	defaultName: string;
-	defaultUrl: string;
-	defaultMode: CollectionType;
-	defaultIntervalSeconds: number;
-	defaultNumberOfCycles: number;
-}
-
-const SETTINGS_KEY = "pprof-viz-settings";
+const THEME_CACHE_KEY = "pprof-viz-settings";
 
 const fallbackSettings: AppSettings = {
-	theme: "system",
+	theme: ThemeMode.System,
 	defaultName: "",
 	defaultUrl: "",
 	defaultMode: CollectionType.Stream,
@@ -24,65 +15,64 @@ const fallbackSettings: AppSettings = {
 	defaultNumberOfCycles: 0,
 };
 
-function loadSettings(): AppSettings {
-	if (!browser) return fallbackSettings;
-	try {
-		const stored = localStorage.getItem(SETTINGS_KEY);
-		if (stored) {
-			return { ...fallbackSettings, ...JSON.parse(stored) };
-		}
-	} catch {
-		// ignore
-	}
-	return fallbackSettings;
-}
-
-function applyTheme(theme: ThemeMode) {
-	const isDark =
-		theme === "dark" ||
-		(theme === "system" &&
-			window.matchMedia("(prefers-color-scheme: dark)").matches);
-	document.documentElement.classList.toggle("dark", isDark);
-}
-
-let systemMediaCleanup: (() => void) | undefined;
-
-function syncSystemWatcher(theme: ThemeMode) {
-	systemMediaCleanup?.();
-	systemMediaCleanup = undefined;
-
-	if (theme !== "system") return;
-
-	const mq = window.matchMedia("(prefers-color-scheme: dark)");
-	const handler = () => applyTheme("system");
-	mq.addEventListener("change", handler);
-	systemMediaCleanup = () => mq.removeEventListener("change", handler);
-}
-
-const settingsStore = writable<AppSettings>(loadSettings());
-
-if (browser) {
-	settingsStore.subscribe((s) => {
-		applyTheme(s.theme);
-		syncSystemWatcher(s.theme);
-	});
-}
+const settingsStore = writable<AppSettings>(fallbackSettings);
 
 export const settings: Readable<AppSettings> = {
 	subscribe: settingsStore.subscribe,
 };
 
-export function updateSettings(patch: Partial<AppSettings>) {
-	settingsStore.update((current) => {
-		const updated = { ...current, ...patch };
-		localStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
-		return updated;
+let hydrated = false;
+
+function applyTheme(theme: ThemeMode) {
+	const isDark =
+		theme === ThemeMode.Dark ||
+		(theme === ThemeMode.System &&
+			window.matchMedia("(prefers-color-scheme: dark)").matches);
+	document.documentElement.classList.toggle("dark", isDark);
+}
+
+// Mirror only the theme to localStorage so the inline script in `app.html`
+// can avoid a flash of the wrong theme on cold start. Rust remains the
+// source of truth for everything else.
+function cacheThemeForBoot(theme: ThemeMode) {
+	try {
+		localStorage.setItem(THEME_CACHE_KEY, JSON.stringify({ theme }));
+	} catch {
+		// quota / private mode — ignore
+	}
+}
+
+async function ensureHydrated() {
+	if (hydrated) return;
+	hydrated = true;
+	try {
+		const loaded = await run(commands.getSettings());
+		settingsStore.set(loaded as AppSettings);
+	} catch {
+		// Leave fallback in place — Rust may not be ready yet during very
+		// early boot. We'll re-hydrate next time updateSettings is called.
+		hydrated = false;
+	}
+}
+
+if (browser) {
+	settingsStore.subscribe((s) => {
+		applyTheme(s.theme);
+		cacheThemeForBoot(s.theme);
 	});
+	void ensureHydrated();
+}
+
+export async function updateSettings(patch: Partial<AppSettings>) {
+	const current = getSettingsSnapshot();
+	const merged = { ...current, ...patch };
+	const updated = await run(commands.updateSettings(merged));
+	settingsStore.set(updated as AppSettings);
 }
 
 export function getSettingsSnapshot(): AppSettings {
 	let snapshot = fallbackSettings;
-	const unsubscribe = settingsStore.subscribe((value) => {
+	const unsubscribe = settings.subscribe((value) => {
 		snapshot = value;
 	});
 	unsubscribe();

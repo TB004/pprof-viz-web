@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>de.tb004.pprof_viz</id>
+
+  <name>Pprof-Viz</name>
+  <summary>Live visualizer for Go runtime metrics streamed via ConnectRPC</summary>
+
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+
+  <url type="homepage">https://github.com/TB004/pprof-viz</url>
+
+  <developer id="de.tb004">
+    <name>Tizian Bahr</name>
+  </developer>
+
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+
+  <description>
+    <p>
+      A modern, real-time desktop dashboard for visualizing Go runtime telemetry.
+      Pprof-Viz is a cross-platform desktop application built with Tauri v2 and Svelte 5.
+      It serves as the frontend for the pprof-viz-agent backend, providing a comprehensive,
+      real-time visualization of Go's internal <code>runtime/metrics</code>.
+    </p>
+    <p>
+      Unlike standard <code>pprof</code>, which is designed for ad-hoc, deep-dive stack trace
+      analysis, Pprof-Viz is built for continuous, high-resolution monitoring. It transforms
+      live telemetry streams into an intuitive dashboard, giving you immediate insight into
+      CPU usage, Garbage Collection behavior, memory allocation, and scheduler latencies.
+    </p>
+    <p>Key features:</p>
+    <ul>
+      <li>Real-time telemetry: seamlessly streams and visualizes live Go runtime metrics.</li>
+      <li>Session awareness: status bar showing active profiling state, elapsed time, and collected samples.</li>
+      <li>Dedicated dashboards: route-based views for CPU, GC, Memory, Scheduler, and Miscellaneous metrics.</li>
+      <li>Profile management: built-in collection profile selection and lifecycle controls.</li>
+      <li>Native desktop: distributed as .dmg (macOS), .msi (Windows), and Flatpak (Linux).</li>
+    </ul>
+    <p>
+      For a complete monitoring setup: embed <code>pprof-viz-agent</code> in your Go
+      application, install Pprof-Viz, then connect to your agent's endpoint.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">de.tb004.pprof_viz.desktop</launchable>
+
+  <icon type="stock">de.tb004.pprof_viz</icon>
+
+  <categories>
+    <category>Development</category>
+    <category>Debugger</category>
+  </categories>
+
+  <provides>
+    <binary>pprof-viz</binary>
+  </provides>
+
+  <releases>
+    <release version="0.1.0" date="2026-05-13">
+      <description>
+        <p>Initial release.</p>
+      </description>
+    </release>
+  </releases>
+
+  <content_rating type="oars-1.1" />
+</component>

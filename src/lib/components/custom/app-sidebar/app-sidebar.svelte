@@ -12,7 +12,6 @@ import {
 } from "@lucide/svelte";
 import { ProfileChooser } from "$lib/components/custom/app-sidebar";
 import { PMDialog } from "$lib/components/custom/profile-manager-dialog";
-import Separator from "$lib/components/ui/separator/separator.svelte";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 
 const menuItems = [
@@ -34,13 +33,16 @@ let profileManagerOpen = $state(false);
 </script>
 
 <Sidebar.Root variant="floating">
-	<Sidebar.Header>
-		<div class="flex items-center gap-2">
-			<img src="/logo.svg" alt="Pprof Viz Logo" class="h-8 w-8">
-			<h1 class="text-lg font-semibold">Pprof-Viz</h1>
-		</div>
-	</Sidebar.Header>
-	<Separator />
+	<!--
+		Empty drag region that reserves vertical space for the macOS traffic
+		lights (positioned by the OS at the top-left of the window). Kept
+		platform-agnostic — Linux/Windows just see an empty top strip, which
+		is harmless cosmetically.
+
+		`deep` makes the entire subtree draggable; Tauri's drag handler still
+		opts out of clickable elements (buttons, links, inputs) automatically.
+	-->
+	<Sidebar.Header class="h-8" data-tauri-drag-region="deep"></Sidebar.Header>
 	<Sidebar.Content>
 		<Sidebar.Group>
 			<Sidebar.GroupLabel>Application</Sidebar.GroupLabel>

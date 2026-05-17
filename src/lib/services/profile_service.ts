@@ -175,6 +175,12 @@ export async function createProfile(
 	const trimmed = toInput(input);
 	if (!trimmed.name || !trimmed.url) return undefined;
 	try {
+		new URL(trimmed.url);
+	} catch {
+		reportInvokeError("Failed to create profile", new Error("Invalid URL"));
+		return undefined;
+	}
+	try {
 		const created = await run(commands.createProfile(projectId, trimmed));
 		await reload();
 		return created.id;
@@ -187,6 +193,12 @@ export async function createProfile(
 export async function updateProfile(profileId: string, input: ProfileInput) {
 	const trimmed = toInput(input);
 	if (!trimmed.name || !trimmed.url) return;
+	try {
+		new URL(trimmed.url);
+	} catch {
+		reportInvokeError("Failed to update profile", new Error("Invalid URL"));
+		return;
+	}
 	try {
 		await run(commands.updateProfile(profileId, trimmed));
 		await reload();

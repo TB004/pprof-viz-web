@@ -62,7 +62,7 @@ async function handleProfileChange(value?: string) {
 						No profiles yet
 					</Select.Item>
 				{:else}
-					<ScrollArea class="h-50">
+					<ScrollArea class="h-80">
 						{#each $profileOptions as profile (profile.value)}
 							<Select.Item value={profile.value} label={profile.label}>
 								<div class="flex flex-col items-start gap-0.5">

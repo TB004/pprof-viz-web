@@ -2,7 +2,7 @@
 
 This document serves as the foundational mandate for all AI interactions within the `pprof-viz` repository. It provides guidance to all AI agents (e.g., Gemini, Claude Code, GitHub Copilot CLI, Codex) regarding the project's purpose, architecture, and engineering standards to ensure consistency and technical integrity.
 
-## 🚀 Project Overview
+## Project Overview
 
 `Pprof-Viz` is a cross-platform desktop application built with **Tauri v2** and **Svelte 5**. It connects to a `pprof-viz-agent` backend to display live Go runtime profiling data (CPU, GC, memory, scheduler) in a high-performance, real-time dashboard.
 
@@ -18,7 +18,7 @@ The heavy lifting (persistence, ConnectRPC client, and collection state) is hand
 - **Task Runner**: Just
 - **Linting & Formatting**: Biome (Frontend), Clippy/Rustfmt (Backend)
 
-## 🏗️ Architecture & Directory Structure
+## Architecture & Directory Structure
 
 ### Backend (`src-tauri/`)
 
@@ -50,7 +50,7 @@ src/lib/components/
 
 State shared across complex component groups (like `ProfileManagerDialog`) lives in co-located `.svelte.ts` files using Svelte 5 runes (`$state`).
 
-## 🛠️ Development & Commands
+## Development & Commands
 
 All quality and build commands are run via `just` (task runner). These commands are unified to handle **both** the Svelte frontend and the Rust backend simultaneously:
 
@@ -64,7 +64,7 @@ All quality and build commands are run via `just` (task runner). These commands 
 | **Verify** | `just verify` | Runs the full pipeline: check, lint, and format-check. |
 | **Security** | `just vuln` | Dependency audits (`bun audit`, `cargo audit`). |
 
-## 📏 Engineering Standards
+## Engineering Standards
 
 ### Rust (Backend)
 
@@ -88,7 +88,7 @@ All quality and build commands are run via `just` (task runner). These commands 
 - Biome cannot parse Svelte 5 `{#snippet}` blocks with TypeScript parameter annotations (syntax error).
 - Suppress Svelte 5 getter/setter `bind:prop={() => x, (v) => set(v)}` syntax warnings with `// biome-ignore lint/complexity/noCommaOperator: Svelte 5 getter/setter bind syntax`.
 
-## 🤖 AI Interaction Guidelines
+## AI Interaction Guidelines
 
 - **Verify Logic**: Contributions can be AI-assisted, but all code must be verified for correctness.
 - **Understand the Split**: Know whether a feature belongs in Rust (business logic, network, disk) or Svelte (presentation, UI state).

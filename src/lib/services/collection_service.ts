@@ -139,27 +139,35 @@ async function hydrate() {
 	}
 }
 
+let unlisteners: Array<() => void> = [];
+
 if (browser) {
 	void hydrate();
 
-	void listen<CollectionStateSnapshot>(EVENT_STATE, (event) => {
+	listen<CollectionStateSnapshot>(EVENT_STATE, (event) => {
 		applySnapshot(event.payload);
-	});
+	}).then((unlisten) => unlisteners.push(unlisten));
 
-	void listen<Frame>(EVENT_FRAME, (event) => {
+	listen<Frame>(EVENT_FRAME, (event) => {
 		collectionStateStore.update((state) => ({
 			...state,
 			data: [...(state.data ?? []), event.payload],
 			collectedSamples: (state.data?.length ?? 0) + 1,
 		}));
-	});
+	}).then((unlisten) => unlisteners.push(unlisten));
 
-	void listen<MetadataResponse>(EVENT_METADATA, (event) => {
+	listen<MetadataResponse>(EVENT_METADATA, (event) => {
 		collectionStateStore.update((state) => ({
 			...state,
 			metadata: event.payload,
 		}));
-	});
+	}).then((unlisten) => unlisteners.push(unlisten));
+}
+
+export function cleanup() {
+	for (const unlisten of unlisteners) unlisten();
+	unlisteners = [];
+	stopElapsedTimer();
 }
 
 export async function selectProfile(profileId?: string): Promise<void> {

@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV BUN_INSTALL=/root/.bun
 ENV PATH="/root/.bun/bin:${PATH}"
 
-RUN apt-get update -o Acquire::Check-Date=false && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libwebkit2gtk-4.1-dev \
     libappindicator3-dev \
     librsvg2-dev \

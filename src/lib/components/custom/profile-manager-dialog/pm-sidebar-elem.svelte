@@ -55,12 +55,15 @@ async function handleProfileSelect(projectId: string, profileId: string) {
 	dialogState.selectedProfileId = profileId;
 	dialogState.editorMode = "profile";
 
+	// Clear form fields before the await to avoid showing stale data while loading.
+	clearProfileForm();
+
 	const snapshot = await ProfileService.getProfileById(profileId);
 
 	// Discard the result if the user selected a different profile while we were awaiting.
 	if (
-		dialogState.selectedProfileId !== profileId ||
-		dialogState.selectedProjectId !== projectId
+		dialogState.selectedProjectId !== projectId ||
+		dialogState.selectedProfileId !== profileId
 	) {
 		return;
 	}

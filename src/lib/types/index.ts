@@ -180,8 +180,8 @@ export const EVENT_METADATA = "collection://metadata";
 export interface ProjectRow {
 	id: string;
 	name: string;
-	createdAt: number | null;
-	updatedAt: number | null;
+	createdAt: number;
+	updatedAt: number;
 }
 
 export interface ProfileRow {
@@ -193,8 +193,8 @@ export interface ProfileRow {
 	token: string | null;
 	intervalSeconds: number | null;
 	numberOfCycles: number | null;
-	createdAt: number | null;
-	updatedAt: number | null;
+	createdAt: number;
+	updatedAt: number;
 }
 
 export interface ProfileInput {

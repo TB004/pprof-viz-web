@@ -19,19 +19,26 @@ To set up the development environment, you'll need:
 - **[pprof-viz-agent](https://github.com/TB004/pprof-viz-agent)**: Required if you want to test with live data.
 
 ### Local Setup
+
 1. **Clone the repository:**
+
    ```bash
    git clone https://github.com/TB004/pprof-viz.git
    cd pprof-viz
    ```
+
 2. **Install frontend dependencies:**
+
    ```bash
    bun install
    ```
+
 3. **Start the development environment:**
+
    ```bash
    just dev
    ```
+
    This will spin up the Vite dev server and launch the Tauri desktop application.
 
 ---
@@ -40,7 +47,7 @@ To set up the development environment, you'll need:
 
 Before you start coding, it's critical to understand the separation of concerns in this project:
 
-- **Tauri v2 (Rust Backend)**: The `src-tauri` directory acts as the brain. It handles local persistence (SQLite for projects/profiles), the ConnectRPC client, and the in-memory state of active profiling collections. 
+- **Tauri v2 (Rust Backend)**: The `src-tauri` directory acts as the brain. It handles local persistence (SQLite for projects/profiles), the ConnectRPC client, and the in-memory state of active profiling collections.
 - **Svelte 5 (Frontend)**: The `src` directory is a thin, reactive presentation layer built with Svelte 5 Runes (`$state`, `$derived`). It communicates with the backend exclusively via Tauri IPC (`invoke` and `listen`).
 - **Styling**: We use **Tailwind CSS v4** and **shadcn-svelte** components.
 
@@ -72,6 +79,7 @@ We use `just` to ensure consistency across development. The commands are unified
 ## 🤖 AI-Assisted Contributions
 
 We welcome the use of AI tools (Gemini, Claude, Copilot, etc.) to help you write code, but we ask that you follow these rules:
+
 1. **No "Vibe-Coding"**: Understand the code the AI generates. You are responsible for every line you submit.
 2. **Know the Split**: Ensure the AI puts business/network logic in Rust and UI state in Svelte.
 3. **Svelte 5 Awareness**: Ensure the AI isn't hallucinating Svelte 4 syntax (like `onMount` or `$:`)—we strictly use Svelte 5 Runes.

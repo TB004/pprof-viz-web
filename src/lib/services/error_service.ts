@@ -28,10 +28,19 @@ async function refresh() {
 	}
 }
 
+let unlistenNewError: (() => void) | null = null;
+
 if (browser) {
 	void refresh();
 	// Rust emits this event whenever a new error is pushed to ErrorLog.
-	void listen(EVENT_NEW_ERROR, () => void refresh());
+	listen(EVENT_NEW_ERROR, () => void refresh()).then((unlisten) => {
+		unlistenNewError = unlisten;
+	});
+}
+
+export function cleanup() {
+	unlistenNewError?.();
+	unlistenNewError = null;
 }
 
 export function formatErrorTimestamp(timestamp: number | null): string {

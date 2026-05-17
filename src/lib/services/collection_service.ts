@@ -128,24 +128,13 @@ function applySnapshot(snapshot: CollectionStateSnapshot) {
 	}
 }
 
-async function hydrate() {
-	if (hydrated) return;
-	hydrated = true;
-	try {
-		const snapshot = await run(commands.getCollectionSnapshot());
-		applySnapshot(snapshot as unknown as CollectionStateSnapshot);
-	} catch {
-		hydrated = false;
-	}
-}
-
 let unlisteners: Array<() => void> = [];
 
 if (browser) {
-	void hydrate();
-
 	void (async () => {
 		try {
+			// Register listeners before fetching the initial snapshot so no
+			// events are missed between the two operations.
 			const [unlistenState, unlistenFrame, unlistenMetadata] =
 				await Promise.all([
 					listen<CollectionStateSnapshot>(EVENT_STATE, (event) => {
@@ -170,6 +159,20 @@ if (browser) {
 			void ErrorService.registerError(
 				`Failed to register collection listeners: ${e}`,
 			);
+			return;
+		}
+
+		if (!hydrated) {
+			hydrated = true;
+			try {
+				const snapshot = await run(commands.getCollectionSnapshot());
+				applySnapshot(snapshot as unknown as CollectionStateSnapshot);
+			} catch (e) {
+				hydrated = false;
+				void ErrorService.registerError(
+					`Failed to load collection state: ${e}`,
+				);
+			}
 		}
 	})();
 }

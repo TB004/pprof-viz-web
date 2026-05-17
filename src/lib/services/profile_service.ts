@@ -148,14 +148,20 @@ function toInput(input: ProfileInput): ProfileInput {
 export async function createProject(name: string): Promise<string | undefined> {
 	const trimmed = name.trim();
 	if (!trimmed) return undefined;
+	let id: string;
 	try {
 		const project = await run(commands.createProject(trimmed));
-		await reload();
-		return project.id;
+		id = project.id;
 	} catch (e) {
 		reportInvokeError("Failed to create project", e);
 		return undefined;
 	}
+	try {
+		await reload();
+	} catch (e) {
+		reportInvokeError("Failed to reload after creating project", e);
+	}
+	return id;
 }
 
 export async function renameProject(projectId: string, name: string) {
@@ -163,18 +169,28 @@ export async function renameProject(projectId: string, name: string) {
 	if (!trimmed) return;
 	try {
 		await run(commands.renameProject(projectId, trimmed));
-		await reload();
 	} catch (e) {
 		reportInvokeError("Failed to rename project", e);
+		return;
+	}
+	try {
+		await reload();
+	} catch (e) {
+		reportInvokeError("Failed to reload after renaming project", e);
 	}
 }
 
 export async function deleteProject(projectId: string) {
 	try {
 		await run(commands.deleteProject(projectId));
-		await reload();
 	} catch (e) {
 		reportInvokeError("Failed to delete project", e);
+		return;
+	}
+	try {
+		await reload();
+	} catch (e) {
+		reportInvokeError("Failed to reload after deleting project", e);
 	}
 }
 
@@ -190,14 +206,20 @@ export async function createProfile(
 		reportInvokeError("Failed to create profile", new Error("Invalid URL"));
 		return undefined;
 	}
+	let id: string;
 	try {
 		const created = await run(commands.createProfile(projectId, trimmed));
-		await reload();
-		return created.id;
+		id = created.id;
 	} catch (e) {
 		reportInvokeError("Failed to create profile", e);
 		return undefined;
 	}
+	try {
+		await reload();
+	} catch (e) {
+		reportInvokeError("Failed to reload after creating profile", e);
+	}
+	return id;
 }
 
 export async function updateProfile(profileId: string, input: ProfileInput) {
@@ -211,18 +233,28 @@ export async function updateProfile(profileId: string, input: ProfileInput) {
 	}
 	try {
 		await run(commands.updateProfile(profileId, trimmed));
-		await reload();
 	} catch (e) {
 		reportInvokeError("Failed to update profile", e);
+		return;
+	}
+	try {
+		await reload();
+	} catch (e) {
+		reportInvokeError("Failed to reload after updating profile", e);
 	}
 }
 
 export async function deleteProfile(profileId: string) {
 	try {
 		await run(commands.deleteProfile(profileId));
-		await reload();
 	} catch (e) {
 		reportInvokeError("Failed to delete profile", e);
+		return;
+	}
+	try {
+		await reload();
+	} catch (e) {
+		reportInvokeError("Failed to reload after deleting profile", e);
 	}
 }
 

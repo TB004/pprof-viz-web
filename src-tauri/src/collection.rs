@@ -302,50 +302,77 @@ async fn run_session(
 ) {
     let store = app.state::<AppState>().collection.clone();
 
-    // Metadata is non-fatal — the original TS code stops the session if it
-    // fails. Match that.
-    match client.get_metadata().await {
-        Ok(meta) => match serde_json::to_value(&meta) {
-            Ok(value) => {
-                if store.set_metadata(&session_id, value.clone()) {
-                    let _ = app.emit(EVENT_METADATA, &value);
-                }
-            }
-            Err(e) => {
-                errors::report(&app, format!("failed to serialize metadata: {e}"));
+    // Metadata fetch — races against cancellation so a stop request during
+    // the RPC call is honoured immediately.
+    tokio::select! {
+        biased;
+        changed = cancel_rx.changed() => {
+            if changed.is_err() || *cancel_rx.borrow() {
                 finish(&app, &store, &session_id);
                 return;
             }
-        },
-        Err(e) => {
-            errors::report(&app, format!("failed to fetch metadata: {e}"));
-            finish(&app, &store, &session_id);
-            return;
+        }
+        result = client.get_metadata() => match result {
+            Ok(meta) => match serde_json::to_value(&meta) {
+                Ok(value) => {
+                    if store.set_metadata(&session_id, value.clone()) {
+                        let _ = app.emit(EVENT_METADATA, &value);
+                    }
+                }
+                Err(e) => {
+                    errors::report(&app, format!("failed to serialize metadata: {e}"));
+                    finish(&app, &store, &session_id);
+                    return;
+                }
+            },
+            Err(e) => {
+                errors::report(&app, format!("failed to fetch metadata: {e}"));
+                finish(&app, &store, &session_id);
+                return;
+            }
         }
     }
 
-    if cancel_rx.has_changed().unwrap_or(false) && *cancel_rx.borrow() {
-        finish(&app, &store, &session_id);
-        return;
-    }
-
     match profile.mode {
-        CollectionType::Snapshot => match client.snapshot_all().await {
-            Ok(resp) => {
-                if let Ok(value) = serde_json::to_value(&resp)
-                    && store
-                        .push_frame(&session_id, Frame(value.clone()))
-                        .is_some()
-                {
-                    let _ = app.emit(EVENT_FRAME, &value);
+        CollectionType::Snapshot => {
+            tokio::select! {
+                biased;
+                changed = cancel_rx.changed() => {
+                    if changed.is_err() || *cancel_rx.borrow() {
+                        finish(&app, &store, &session_id);
+                        return;
+                    }
+                }
+                result = client.snapshot_all() => match result {
+                    Ok(resp) => {
+                        if let Ok(value) = serde_json::to_value(&resp)
+                            && store.push_frame(&session_id, Frame(value.clone())).is_some()
+                        {
+                            let _ = app.emit(EVENT_FRAME, &value);
+                        }
+                    }
+                    Err(e) => errors::report(&app, format!("snapshot failed: {e}")),
                 }
             }
-            Err(e) => errors::report(&app, format!("snapshot failed: {e}")),
-        },
+        }
         CollectionType::Stream => {
             let interval = profile.interval_seconds.unwrap_or(1) as u32;
             let cycles = profile.number_of_cycles.unwrap_or(0) as u32;
-            let stream_result = client.stream_all(interval, cycles).await;
+            // Pin the future so both select! arms share the same RPC call.
+            let stream_fut = client.stream_all(interval, cycles);
+            tokio::pin!(stream_fut);
+            let stream_result = tokio::select! {
+                biased;
+                changed = cancel_rx.changed() => {
+                    if changed.is_err() || *cancel_rx.borrow() {
+                        finish(&app, &store, &session_id);
+                        return;
+                    }
+                    // cancel_rx changed to false — impossible in practice, fall through.
+                    (&mut stream_fut).await
+                }
+                result = &mut stream_fut => result,
+            };
             match stream_result {
                 Ok(mut stream) => loop {
                     tokio::select! {

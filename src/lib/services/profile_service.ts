@@ -113,15 +113,25 @@ export const profileOptions: Readable<CollectionProfile[]> = derived(
 export async function getProjectById(
 	projectId: string,
 ): Promise<ProjectRow | undefined> {
-	const row = await run(commands.getProjectById(projectId));
-	return (row as ProjectRow | null) ?? undefined;
+	try {
+		const row = await run(commands.getProjectById(projectId));
+		return (row as ProjectRow | null) ?? undefined;
+	} catch (e) {
+		reportInvokeError("Failed to get project", e);
+		return undefined;
+	}
 }
 
 export async function getProfileById(
 	profileId: string,
 ): Promise<ProfileRow | undefined> {
-	const row = await run(commands.getProfileById(profileId));
-	return (row as ProfileRow | null) ?? undefined;
+	try {
+		const row = await run(commands.getProfileById(profileId));
+		return (row as ProfileRow | null) ?? undefined;
+	} catch (e) {
+		reportInvokeError("Failed to get profile", e);
+		return undefined;
+	}
 }
 
 function toInput(input: ProfileInput): ProfileInput {

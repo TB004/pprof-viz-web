@@ -153,12 +153,15 @@ impl CollectionStore {
         session.frames.back().map(|f| f.0.clone())
     }
 
-    fn set_metadata(&self, session_id: &str, value: Value) {
+    fn set_metadata(&self, session_id: &str, value: Value) -> bool {
         let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         if let Some(session) = guard.as_mut()
             && session.session_id == session_id
         {
             session.metadata = Some(value);
+            true
+        } else {
+            false
         }
     }
 
@@ -304,8 +307,9 @@ async fn run_session(
     match client.get_metadata().await {
         Ok(meta) => match serde_json::to_value(&meta) {
             Ok(value) => {
-                store.set_metadata(&session_id, value.clone());
-                let _ = app.emit(EVENT_METADATA, &value);
+                if store.set_metadata(&session_id, value.clone()) {
+                    let _ = app.emit(EVENT_METADATA, &value);
+                }
             }
             Err(e) => {
                 errors::report(&app, format!("failed to serialize metadata: {e}"));
@@ -329,8 +333,9 @@ async fn run_session(
         CollectionType::Snapshot => match client.snapshot_all().await {
             Ok(resp) => {
                 if let Ok(value) = serde_json::to_value(&resp) {
-                    store.push_frame(&session_id, Frame(value.clone()));
-                    let _ = app.emit(EVENT_FRAME, &value);
+                    if store.push_frame(&session_id, Frame(value.clone())).is_some() {
+                        let _ = app.emit(EVENT_FRAME, &value);
+                    }
                 }
             }
             Err(e) => errors::report(&app, format!("snapshot failed: {e}")),

@@ -144,24 +144,31 @@ let unlisteners: Array<() => void> = [];
 if (browser) {
 	void hydrate();
 
-	listen<CollectionStateSnapshot>(EVENT_STATE, (event) => {
-		applySnapshot(event.payload);
-	}).then((unlisten) => unlisteners.push(unlisten));
-
-	listen<Frame>(EVENT_FRAME, (event) => {
-		collectionStateStore.update((state) => ({
-			...state,
-			data: [...(state.data ?? []), event.payload],
-			collectedSamples: (state.data?.length ?? 0) + 1,
-		}));
-	}).then((unlisten) => unlisteners.push(unlisten));
-
-	listen<MetadataResponse>(EVENT_METADATA, (event) => {
-		collectionStateStore.update((state) => ({
-			...state,
-			metadata: event.payload,
-		}));
-	}).then((unlisten) => unlisteners.push(unlisten));
+	void (async () => {
+		try {
+			const [unlistenState, unlistenFrame, unlistenMetadata] = await Promise.all([
+				listen<CollectionStateSnapshot>(EVENT_STATE, (event) => {
+					applySnapshot(event.payload);
+				}),
+				listen<Frame>(EVENT_FRAME, (event) => {
+					collectionStateStore.update((state) => ({
+						...state,
+						data: [...(state.data ?? []), event.payload],
+						collectedSamples: (state.data?.length ?? 0) + 1,
+					}));
+				}),
+				listen<MetadataResponse>(EVENT_METADATA, (event) => {
+					collectionStateStore.update((state) => ({
+						...state,
+						metadata: event.payload,
+					}));
+				}),
+			]);
+			unlisteners.push(unlistenState, unlistenFrame, unlistenMetadata);
+		} catch (e) {
+			void ErrorService.registerError(`Failed to register collection listeners: ${e}`);
+		}
+	})();
 }
 
 export function cleanup() {

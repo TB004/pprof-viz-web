@@ -97,14 +97,14 @@ jobs:
             --user \
             --install-deps-from=flathub \
             --repo=flatpak-repo \
-            ./packaging/flatpak/build-dir \
-            ./packaging/flatpak/de.tb004.pprof_viz.yml
+            build-dir \
+            de.tb004.pprof_viz.yml
 
           flatpak build-bundle \
             --arch=${{ matrix.target }} \
             --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo \
             flatpak-repo \
-            ./packaging/flatpak/pprof-viz_${{ matrix.target }}.flatpak \
+            pprof-viz_${{ matrix.target }}.flatpak \
             de.tb004.pprof_viz
 
       - name: Upload flatpak to release

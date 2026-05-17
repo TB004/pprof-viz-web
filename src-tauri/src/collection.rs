@@ -332,10 +332,12 @@ async fn run_session(
     match profile.mode {
         CollectionType::Snapshot => match client.snapshot_all().await {
             Ok(resp) => {
-                if let Ok(value) = serde_json::to_value(&resp) {
-                    if store.push_frame(&session_id, Frame(value.clone())).is_some() {
-                        let _ = app.emit(EVENT_FRAME, &value);
-                    }
+                if let Ok(value) = serde_json::to_value(&resp)
+                    && store
+                        .push_frame(&session_id, Frame(value.clone()))
+                        .is_some()
+                {
+                    let _ = app.emit(EVENT_FRAME, &value);
                 }
             }
             Err(e) => errors::report(&app, format!("snapshot failed: {e}")),

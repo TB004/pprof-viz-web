@@ -146,27 +146,30 @@ if (browser) {
 
 	void (async () => {
 		try {
-			const [unlistenState, unlistenFrame, unlistenMetadata] = await Promise.all([
-				listen<CollectionStateSnapshot>(EVENT_STATE, (event) => {
-					applySnapshot(event.payload);
-				}),
-				listen<Frame>(EVENT_FRAME, (event) => {
-					collectionStateStore.update((state) => ({
-						...state,
-						data: [...(state.data ?? []), event.payload],
-						collectedSamples: (state.data?.length ?? 0) + 1,
-					}));
-				}),
-				listen<MetadataResponse>(EVENT_METADATA, (event) => {
-					collectionStateStore.update((state) => ({
-						...state,
-						metadata: event.payload,
-					}));
-				}),
-			]);
+			const [unlistenState, unlistenFrame, unlistenMetadata] =
+				await Promise.all([
+					listen<CollectionStateSnapshot>(EVENT_STATE, (event) => {
+						applySnapshot(event.payload);
+					}),
+					listen<Frame>(EVENT_FRAME, (event) => {
+						collectionStateStore.update((state) => ({
+							...state,
+							data: [...(state.data ?? []), event.payload],
+							collectedSamples: (state.data?.length ?? 0) + 1,
+						}));
+					}),
+					listen<MetadataResponse>(EVENT_METADATA, (event) => {
+						collectionStateStore.update((state) => ({
+							...state,
+							metadata: event.payload,
+						}));
+					}),
+				]);
 			unlisteners.push(unlistenState, unlistenFrame, unlistenMetadata);
 		} catch (e) {
-			void ErrorService.registerError(`Failed to register collection listeners: ${e}`);
+			void ErrorService.registerError(
+				`Failed to register collection listeners: ${e}`,
+			);
 		}
 	})();
 }

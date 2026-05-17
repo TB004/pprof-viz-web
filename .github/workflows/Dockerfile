@@ -1,19 +1,25 @@
-FROM rust:1.95-slim-bookworm
+FROM ubuntu:26.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV BUN_INSTALL=/root/.bun
-ENV PATH="/root/.bun/bin:${PATH}"
+ENV PATH="/root/.cargo/bin:/root/.bun/bin:${PATH}"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libwebkit2gtk-4.1-dev \
-    libappindicator3-dev \
-    librsvg2-dev \
-    patchelf \
+    build-essential \
+    ca-certificates \
     curl \
-    unzip \
-    protobuf-compiler \
+    libappindicator3-dev \
     libprotobuf-dev \
-&& rm -rf /var/lib/apt/lists/*
+    librsvg2-dev \
+    libssl-dev \
+    libwebkit2gtk-4.1-dev \
+    patchelf \
+    pkg-config \
+    protobuf-compiler \
+    unzip
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+    | sh -s -- -y --default-toolchain 1.95.0 --no-modify-path
 
 RUN curl -fsSL https://bun.sh/install -o /tmp/bun-install.sh \
     && bash /tmp/bun-install.sh \

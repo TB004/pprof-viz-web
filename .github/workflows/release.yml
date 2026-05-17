@@ -54,7 +54,7 @@ jobs:
           platforms: ${{ matrix.target }}
 
       - name: Update APT-Repos
-        run: sudo apt update && sudo apt upgrade -y
+        run: sudo apt update
 
       - name: Install system dependencies
         run: sudo apt install -y flatpak flatpak-builder jq

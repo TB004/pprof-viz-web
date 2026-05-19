@@ -42,9 +42,9 @@ modules:
     build-commands:
       - ar x pprof-viz.deb
       - tar -xf data.tar.*
-      - install -Dm755 usr/bin/pprof-viz /app/bin/pprof-viz
+      - install -Dm755 usr/bin/Pprof-Viz /app/bin/pprof-viz
       - for size in 32x32 128x128 256x256 512x512; do
-          src="usr/share/icons/hicolor/$size/apps/pprof-viz.png";
+          src="usr/share/icons/hicolor/$size/apps/Pprof-Viz.png";
           if [ -f "$src" ]; then
             install -Dm644 "$src" "/app/share/icons/hicolor/$size/apps/de.tb004.pprof_viz.png";
           fi;

@@ -11,18 +11,16 @@ permissions:
 
 jobs:
   verify:
-    name: Vulnerability, verification, and coverage
+    name: Vulnerability and verification
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Update APT-Repos
-        run: sudo apt-get update
-
       - name: Install system dependencies
         run: |
+          sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             libwebkit2gtk-4.1-dev \
             curl \
@@ -39,17 +37,6 @@ jobs:
           curl -fsSL https://bun.sh/install | bash
           echo "$HOME/.bun/bin" >> $GITHUB_PATH
 
-      - name: Install Just
-        run: curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | sudo bash -s -- --to /usr/bin
-
-      - name: Install Rust
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
-      - name: Install Cargo binstall
-        run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-
       - name: Restore Bun and dependency cache
         id: bun-cache
         uses: actions/cache@v5
@@ -58,6 +45,14 @@ jobs:
             ~/.bun/install/cache
             node_modules
           key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock', 'package.json') }}
+
+      - name: Install Just
+        run: curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | sudo bash -s -- --to /usr/bin
+
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
       - name: Restore Rust and dependency cache
         id: rust-cache
@@ -70,13 +65,16 @@ jobs:
             ~/.cargo/git
           key: ${{ runner.os }}-rust-${{ hashFiles('./src-tauri/Cargo.lock', './src-tauri/Cargo.toml') }}
 
-      - name: Install dependencies
-        if: steps.bun-cache.outputs.cache-hit != 'true'
-        run: bun install
+      - name: Install Cargo binstall
+        run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | sh
 
       - name: Install cargo tools
         if: steps.rust-cache.outputs.cache-hit != 'true'
         run: cargo binstall -y --disable-telemetry cargo-audit
+
+      - name: Install dependencies
+        if: steps.bun-cache.outputs.cache-hit != 'true'
+        run: bun install
 
       - name: Run vulnerability scan
         run: just vuln

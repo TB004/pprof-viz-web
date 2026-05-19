@@ -7,11 +7,6 @@
 name: Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "Release tag to upload assets to (e.g. v0.1.0)"
-        required: true
   release:
     types: [published]
 
@@ -20,8 +15,8 @@ permissions:
 
 jobs:
   Release_Linux:
-    name: Build app to Linux flatpaks
-    runs-on: ubuntu-latest
+    name: Build app as Linux flatpaks
+    runs-on: ${{ matrix.runs-on }}
 
     strategy:
       fail-fast: false
@@ -29,47 +24,95 @@ jobs:
         include:
           - target: x86_64
             deb_arch: amd64
+            runs-on: ubuntu-latest
           - target: aarch64
             deb_arch: arm64
+            runs-on: ubuntu-24.04-arm
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Set up QEMU for cross-platform builds
-        if: matrix.target != 'x86_64'
-        uses: docker/setup-qemu-action@v4
-        with:
-          platforms: ${{ matrix.target }}
-
-      - name: Update APT-Repos
-        run: sudo apt update
-
       - name: Install system dependencies
-        run: sudo apt install -y flatpak flatpak-builder jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            curl \
+            flatpak \
+            flatpak-builder \
+            gcc \
+            jq \
+            libappindicator3-dev \
+            libprotobuf-dev \
+            librsvg2-dev \
+            libwebkit2gtk-4.1-dev \
+            patchelf \
+            protobuf-compiler \
+            unzip
 
-      - name: Install docker tools
-        run: curl --proto '=https' --tlsv1.2 -sSf https://get.docker.com/ | sh
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+            | sh -s -- -y --default-toolchain 1.95.0 --no-modify-path
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
 
-      - name: Setup flatpak repo
+      - name: Cache Cargo registry and build artifacts
+        id: cargo-cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('src-tauri/Cargo.lock', 'src-tauri/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-cargo-
+
+      - name: Install Bun
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+
+      - name: Cache Bun packages
+        id: bun-cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: ${{ runner.os }}-${{ matrix.target }}-bun-${{ hashFiles('bun.lock', 'package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-bun-
+
+      - name: Install cargo-binstall
+        if: steps.cargo-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -L --proto '=https' --tlsv1.2 -sSf \
+            https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh \
+            | sh
+
+      - name: Install Tauri CLI
+        if: steps.cargo-cache.outputs.cache-hit != 'true'
+        run: cargo binstall -y --disable-telemetry tauri-cli
+
+      - name: Install Bun dependencies
+        if: steps.bun-cache.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Setup Flatpak repo
         run: flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
-      - name: Build builder image
-        run: |
-          docker build \
-            --platform linux/${{ matrix.target }} \
-            -t tauri-builder \
-            -f .github/workflows/Dockerfile \
-            .
+      - name: Cache Flatpak builder
+        uses: actions/cache@v5
+        with:
+          path: packaging/flatpak/.flatpak-builder
+          key: ${{ runner.os }}-${{ matrix.target }}-flatpak-builder-${{ hashFiles('packaging/flatpak/de.tb004.pprof_viz.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.target }}-flatpak-builder-
 
       - name: Build .deb package
-        run: |
-          docker run --rm \
-            --platform linux/${{ matrix.target }} \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace \
-            tauri-builder \
-            bash -c "bun install --frozen-lockfile && cargo tauri build --ci --bundles deb"
+        run: cargo tauri build --ci --bundles deb
 
       - name: Stage .deb for flatpak-builder
         run: |

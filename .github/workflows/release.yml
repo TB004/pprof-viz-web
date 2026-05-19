@@ -2,7 +2,7 @@
 #   - macOS arm64  → .dmg  (uploaded to release directly)
 #   - Windows x64  → .msi  (uploaded to release directly)
 #   - Windows arm64 → .msi (uploaded to release directly)
-#   - Linux x86_64 / aarch64 / riscv64 → .deb (artifact only, intermediate for flatpak)
+#   - Linux x86_64 / aarch64 → .deb (artifact only, intermediate for flatpak)
 
 name: Release
 
@@ -22,7 +22,6 @@ jobs:
   Release_Linux:
     name: Build app to Linux flatpaks
     runs-on: ubuntu-latest
-    continue-on-error: ${{ matrix.continue-on-error == true }}
 
     strategy:
       fail-fast: false
@@ -32,9 +31,6 @@ jobs:
             deb_arch: amd64
           - target: aarch64
             deb_arch: arm64
-          - target: riscv64
-            deb_arch: riscv64
-            continue-on-error: true
 
     steps:
       - name: Checkout repository

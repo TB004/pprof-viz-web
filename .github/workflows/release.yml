@@ -8,6 +8,10 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to upload assets to (e.g. v0.1.0)"
+        required: true
   release:
     types: [published]
 
@@ -99,7 +103,8 @@ jobs:
       - name: Upload flatpak to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event_name == 'release' && github.ref_name || inputs.tag }}
         run: |
-          gh release upload "${{ github.ref_name }}" \
+          gh release upload "$RELEASE_TAG" \
             packaging/flatpak/pprof-viz_${{ matrix.target }}.flatpak \
             --clobber

@@ -50,7 +50,7 @@ impl AgentClient {
         if let Some(token) = token.map(str::trim).filter(|t| !t.is_empty()) {
             let value = HeaderValue::from_str(&format!("Bearer {token}"))
                 .map_err(|_| AgentRpcError::AuthToken)?;
-            config = config.default_header(AUTHORIZATION, value);
+            config = config.with_default_header(AUTHORIZATION, value);
         }
 
         Ok(Self {

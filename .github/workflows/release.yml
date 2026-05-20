@@ -94,7 +94,7 @@ jobs:
 
       - name: Install Tauri CLI
         if: steps.cargo-cache.outputs.cache-hit != 'true'
-        run: cargo binstall -y --disable-telemetry tauri-cli
+        run: command -v cargo-tauri || cargo binstall -y --disable-telemetry tauri-cli
 
       - name: Install Bun dependencies
         if: steps.bun-cache.outputs.cache-hit != 'true'
@@ -203,7 +203,7 @@ jobs:
 
       - name: Install Tauri CLI
         if: steps.cargo-cache.outputs.cache-hit != 'true'
-        run: cargo binstall -y --disable-telemetry tauri-cli
+        run: command -v cargo-tauri || cargo binstall -y --disable-telemetry tauri-cli
 
       - name: Install Bun dependencies
         if: steps.bun-cache.outputs.cache-hit != 'true'
@@ -218,7 +218,7 @@ jobs:
         run: |
           VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
           gh release upload "${{ github.ref_name }}" \
-            "src-tauri/target/release/bundle/dmg/Pprof-Viz_${VERSION}_aarch64.dmg" \
+            "src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/Pprof-Viz_${VERSION}_aarch64.dmg" \
             --clobber
 
   Release_Windows:
@@ -232,9 +232,11 @@ jobs:
           - target: x86_64
             runs-on: windows-latest
             msi_arch: x64
+            rust_target: x86_64-pc-windows-msvc
           - target: aarch64
             runs-on: windows-11-arm
             msi_arch: arm64
+            rust_target: aarch64-pc-windows-msvc
 
     steps:
       - name: Checkout repository
@@ -249,6 +251,7 @@ jobs:
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
             | sh -s -- -y --default-toolchain 1.95.0 --no-modify-path
           echo "$USERPROFILE/.cargo/bin" >> "$GITHUB_PATH"
+          rustup target add ${{ matrix.rust_target }}
 
       - name: Cache Cargo registry and build artifacts
         id: cargo-cache
@@ -289,14 +292,15 @@ jobs:
 
       - name: Install Tauri CLI
         if: steps.cargo-cache.outputs.cache-hit != 'true'
-        run: cargo binstall -y --disable-telemetry tauri-cli
+        shell: bash
+        run: command -v cargo-tauri || cargo binstall -y --disable-telemetry tauri-cli
 
       - name: Install Bun dependencies
         if: steps.bun-cache.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
 
       - name: Build .msi
-        run: cargo tauri build --ci --bundles msi
+        run: cargo tauri build --ci --bundles msi --target ${{ matrix.rust_target }}
 
       - name: Upload .msi to release
         env:
@@ -305,5 +309,5 @@ jobs:
         run: |
           VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
           gh release upload "${{ github.ref_name }}" \
-            "src-tauri/target/release/bundle/msi/Pprof-Viz_${VERSION}_${{ matrix.msi_arch }}_en-US.msi" \
+            "src-tauri/target/${{ matrix.rust_target }}/release/bundle/msi/Pprof-Viz_${VERSION}_${{ matrix.msi_arch }}_en-US.msi" \
             --clobber

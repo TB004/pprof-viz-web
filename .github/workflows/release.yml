@@ -1,8 +1,7 @@
 # `bundle-native` builds platform installers on native runners:
 #   - macOS arm64  → .dmg  (uploaded to release directly)
-#   - Windows x64  → .msi  (uploaded to release directly)
-#   - Windows arm64 → .msi (uploaded to release directly)
-#   - Linux x86_64 / aarch64 → .deb (artifact only, intermediate for flatpak)
+#   - Windows x86_64 / arm64  → .msi  (uploaded to release directly)
+#   - Linux x86_64 / arm64 → .deb (artifact only, intermediate for flatpak)
 
 name: Release
 
@@ -143,8 +142,80 @@ jobs:
       - name: Upload flatpak to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ github.event_name == 'release' && github.ref_name || inputs.tag }}
         run: |
-          gh release upload "$RELEASE_TAG" \
+          gh release upload "${{ github.ref_name }}" \
             packaging/flatpak/pprof-viz_${{ matrix.target }}.flatpak \
+            --clobber
+
+  Release_macOS:
+    name: Build app for macOS
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install system dependencies
+        run: brew install protobuf
+
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+            | sh -s -- -y --default-toolchain 1.95.0 --no-modify-path
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - name: Cache Cargo registry and build artifacts
+        id: cargo-cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: ${{ runner.os }}-aarch64-cargo-${{ hashFiles('src-tauri/Cargo.lock', 'src-tauri/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-aarch64-cargo-
+
+      - name: Install Bun
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+
+      - name: Cache Bun packages
+        id: bun-cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: ${{ runner.os }}-aarch64-bun-${{ hashFiles('bun.lock', 'package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-aarch64-bun-
+
+      - name: Install cargo-binstall
+        if: steps.cargo-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -L --proto '=https' --tlsv1.2 -sSf \
+            https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh \
+            | sh
+
+      - name: Install Tauri CLI
+        if: steps.cargo-cache.outputs.cache-hit != 'true'
+        run: cargo binstall -y --disable-telemetry tauri-cli
+
+      - name: Install Bun dependencies
+        if: steps.bun-cache.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Build .dmg
+        run: cargo tauri build --ci --bundles dmg
+
+      - name: Upload .dmg to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
+          gh release upload "${{ github.ref_name }}" \
+            "src-tauri/target/release/bundle/dmg/Pprof-Viz_${VERSION}_aarch64.dmg" \
             --clobber

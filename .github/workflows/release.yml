@@ -18,7 +18,6 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
 
     strategy:
-      fail-fast: false
       matrix:
         include:
           - target: x86_64
@@ -234,7 +233,7 @@ jobs:
             msi_arch: x64
             rust_target: x86_64-pc-windows-msvc
           - target: aarch64
-            runs-on: windows-11-arm
+            runs-on: windows-latest
             msi_arch: arm64
             rust_target: aarch64-pc-windows-msvc
 

@@ -55,16 +55,6 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .manage(AppState::default())
         .invoke_handler(builder.invoke_handler())
-        .setup(|app| {
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
-            }
-            Ok(())
-        })
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| {
             eprintln!("error while running tauri application: {e}");

@@ -24,26 +24,19 @@ connectrpc = { version = "0.6.0", features = [
     "client",
     "client-tls",
 ] }
-rustls = { version = "0.23.40", default-features = false, features = [
-    "std",
-    "ring",
-] }
+rustls = "0.23.40"
 webpki-roots = "1.0.7"
 buffa = { version = "0.6.0", features = ["json"] }
 buffa-types = { version = "0.6.0", features = ["json"] }
 http = "1.4.0"
 http-body = "1.0.1"
-serde_json = "1.0.149"
+serde_json = "1.0.150"
 serde = { version = "1.0.228", features = ["derive"] }
 thiserror = "2.0.18"
-log = "0.4.29"
 ulid = { version = "1.2.1", features = ["serde"] }
 url = "2.5.8"
 tokio = { version = "1.52.3", features = ["sync", "rt", "macros", "time"] }
-tokio-stream = "0.1.18"
-futures-util = "0.3.32"
 tauri = { version = "2.11.2", features = [] }
-tauri-plugin-log = "2.8.0"
 tauri-plugin-store = "2.4.3"
 tauri-plugin-sql = { version = "2.4.0", features = ["sqlite"] }
 sqlx = { version = "0.8.6", default-features = false, features = [

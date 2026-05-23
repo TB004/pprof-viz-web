@@ -54,6 +54,8 @@ export const commands = {
 		typedError<null, string>(__TAURI_INVOKE("update_profile", { id, input })),
 	deleteProfile: (id: string) =>
 		typedError<null, string>(__TAURI_INVOKE("delete_profile", { id })),
+	resetAllData: () =>
+		typedError<null, string>(__TAURI_INVOKE("reset_all_data")),
 	registerError: (message: string) =>
 		typedError<AppError, string>(__TAURI_INVOKE("register_error", { message })),
 	getErrors: () => typedError<AppError[], string>(__TAURI_INVOKE("get_errors")),

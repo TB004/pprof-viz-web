@@ -23,6 +23,7 @@ fn make_builder() -> tauri_specta::Builder<tauri::Wry> {
         db::create_profile,
         db::update_profile,
         db::delete_profile,
+        db::reset_all_data,
         errors::register_error,
         errors::get_errors,
         errors::clear_errors,

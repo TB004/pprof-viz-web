@@ -8,7 +8,7 @@ use sqlx::sqlite::SqlitePool;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_sql::{DbInstances, DbPool, Migration, MigrationKind};
 
-use crate::settings::CollectionType;
+use crate::settings;
 use crate::utils;
 
 pub const DB_URL: &str = "sqlite:pprof-viz.db";
@@ -62,7 +62,7 @@ pub struct ProfileRow {
     pub project_id: String,
     pub name: String,
     pub url: String,
-    pub mode: CollectionType,
+    pub mode: settings::CollectionType,
     pub token: Option<String>,
     pub interval_seconds: Option<i16>,
     pub number_of_cycles: Option<i16>,
@@ -79,7 +79,7 @@ pub struct ProfileDescriptor {
     pub id: String,
     pub name: String,
     pub url: String,
-    pub mode: CollectionType,
+    pub mode: settings::CollectionType,
     pub token: Option<String>,
     pub interval_seconds: Option<i16>,
     pub number_of_cycles: Option<i16>,
@@ -90,7 +90,7 @@ pub struct ProfileDescriptor {
 pub struct ProfileInput {
     pub name: String,
     pub url: String,
-    pub mode: CollectionType,
+    pub mode: settings::CollectionType,
     pub token: Option<String>,
     pub interval_seconds: Option<i16>,
     pub number_of_cycles: Option<i16>,
@@ -354,4 +354,25 @@ pub async fn delete_profile(app: AppHandle, id: String) -> Result<(), String> {
         Ok(())
     })
     .await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn reset_all_data(app: AppHandle) -> Result<(), String> {
+    // Clear all DB rows (profiles cascade from projects)
+    with_pool(&app, |pool| async move {
+        sqlx::query("DELETE FROM projects")
+            .execute(&pool)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    })
+    .await?;
+
+    // Reset settings to defaults
+    settings::update_settings(app, settings::AppSettings::default())
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
 }

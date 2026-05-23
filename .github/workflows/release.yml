@@ -249,7 +249,7 @@ jobs:
         shell: bash
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-            | sh -s -- -y --default-toolchain 1.95.0 --no-modify-path
+            | sh -s -- -y --default-toolchain 1.95.0 --default-host x86_64-pc-windows-msvc --no-modify-path
           echo "$USERPROFILE/.cargo/bin" >> "$GITHUB_PATH"
 
       - name: Install Rust (aarch64 native)

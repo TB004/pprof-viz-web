@@ -63,6 +63,21 @@ For a complete monitoring setup:
 2. **Install** the `Pprof-Viz` desktop app on your machine.
 3. **Connect** the app to your Go application's agent endpoint.
 
+## ⚠️ Installation Notes
+
+The pre-built release bundles are **not commercially signed**. This means your OS may warn you on first launch. Here is what to expect and how to proceed:
+
+**macOS** — Gatekeeper will block the app because it is ad-hoc signed rather than notarized. After opening the DMG and dragging the app to Applications, attempt to open it once. Then go to **System Settings → Privacy & Security**, scroll to the bottom, and click **Open Anyway** next to the Pprof-Viz entry. You only need to do this once.
+
+Alternatively, run the following in Terminal after copying the app:
+```sh
+xattr -dr com.apple.quarantine /Applications/Pprof-Viz.app
+```
+
+**Windows** — SmartScreen will show an "Unknown publisher" warning when you run the `.msi`. Click **More info → Run anyway** to proceed with installation.
+
+**Linux (Flatpak)** — No warning. Unsigned Flatpak bundles install and run without any restrictions.
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

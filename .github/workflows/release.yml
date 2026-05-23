@@ -244,20 +244,11 @@ jobs:
       - name: Install protobuf
         run: choco install protoc -y
 
-      - name: Install Rust (x86_64)
-        if: matrix.target == 'x86_64'
-        shell: bash
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-            | sh -s -- -y --default-toolchain 1.95.0 --default-host x86_64-pc-windows-msvc --no-modify-path
-          echo "$USERPROFILE/.cargo/bin" >> "$GITHUB_PATH"
-
-      - name: Install Rust (aarch64 native)
-        if: matrix.target == 'aarch64'
+      - name: Install Rust
         shell: pwsh
         run: |
           Invoke-WebRequest `
-            -Uri 'https://static.rust-lang.org/rustup/dist/aarch64-pc-windows-msvc/rustup-init.exe' `
+            -Uri "https://static.rust-lang.org/rustup/dist/${{ matrix.rust_target }}/rustup-init.exe" `
             -OutFile rustup-init.exe
           .\rustup-init.exe -y --default-toolchain 1.95.0 --no-modify-path
           "$env:USERPROFILE\.cargo\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append

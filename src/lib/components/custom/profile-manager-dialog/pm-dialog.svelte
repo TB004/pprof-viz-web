@@ -16,6 +16,7 @@ import {
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import Input from "$lib/components/ui/input/input.svelte";
+import * as ScrollArea from "$lib/components/ui/scroll-area/index.js";
 import { ProfileService } from "$lib/services";
 import { CollectionType } from "$lib/types";
 import { clearProfileForm, dialogState } from "./state.svelte.ts";
@@ -177,210 +178,218 @@ async function testConnection() {
 						</Dialog.Description>
 					</Dialog.Header>
 
-					<div class="min-h-0 flex-1 overflow-auto px-6 py-6">
-						{#if dialogState.editorMode === "new-profile" || dialogState.selectedProfileId}
-							<div class="mx-auto max-w-xl space-y-6">
-								<div>
-									<p class="text-sm font-medium text-muted-foreground">
-										{#if dialogState.editorMode === "new-profile"}
-											New profile
-										{:else}
-											Selected profile
-										{/if}
-									</p>
-									<h3 class="text-2xl font-semibold tracking-tight">
-										{#if dialogState.editorMode === "new-profile"}
-											Create profile
-										{:else}
-											{dialogState.profileName ||
-                                                "Untitled profile"}
-										{/if}
-									</h3>
-								</div>
-
-								<div class="space-y-6">
-									<label class="block">
-										<span class="mb-3 block text-sm font-medium text-foreground"
-											>Profile name</span
-										>
-										<Input
-											bind:value={dialogState.profileName}
-											placeholder="Production pprof"
-										/>
-									</label>
-
-									<label class="block">
-										<span class="mb-3 block text-sm font-medium text-foreground"
-											>URL</span
-										>
-										<Input
-											bind:value={dialogState.profileUrl}
-											placeholder="http://localhost:9090"
-										/>
-									</label>
-
-									<label class="block">
-										<span class="mb-3 block text-sm font-medium text-foreground"
-											>Auth token
-											<span class="ml-1 font-normal text-muted-foreground"
-												>(optional)</span
-											></span
-										>
-										<Input
-											bind:value={dialogState.profileToken}
-											placeholder="eyJ..."
-											type="password"
-										/>
-									</label>
-
+					<ScrollArea.Root class="min-h-0 flex-1 mr-1">
+						<div class="px-6 py-6">
+							{#if dialogState.editorMode === "new-profile" || dialogState.selectedProfileId}
+								<div class="mx-auto max-w-xl space-y-6">
 									<div>
-										<p class="mb-3 text-sm font-medium text-foreground">Mode</p>
-										<div class="grid gap-3 sm:grid-cols-2">
-											{#each modeOptions as option (option.value)}
-												<button
-													type="button"
-													class={`rounded-2xl border p-4 text-left transition-colors ${dialogState.profileMode === option.value ? "border-primary bg-primary/5" : "border-border/70 bg-muted/25 hover:border-primary/30"}`}
-													onclick={() =>
-                                                        (dialogState.profileMode =
-                                                            option.value)}
-												>
-													<div class="flex items-start justify-between gap-3">
-														<div>
-															<p
-																class="text-base font-semibold text-foreground"
-															>
-																{option.title}
-															</p>
-															<p class="mt-1 text-sm text-muted-foreground">
-																{option.description}
-															</p>
-														</div>
-														<div
-															class={`flex w-6 h-5 items-center justify-center rounded-full border ${dialogState.profileMode === option.value ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background"}`}
-														>
-															{#if dialogState.profileMode === option.value}
-																<CheckIcon class="size-3.5" />
-															{/if}
-														</div>
-													</div>
-												</button>
-											{/each}
-										</div>
+										<p class="text-sm font-medium text-muted-foreground">
+											{#if dialogState.editorMode === "new-profile"}
+												New profile
+											{:else}
+												Selected profile
+											{/if}
+										</p>
+										<h3 class="text-2xl font-semibold tracking-tight">
+											{#if dialogState.editorMode === "new-profile"}
+												Create profile
+											{:else}
+												{dialogState.profileName ||
+                                                    "Untitled profile"}
+											{/if}
+										</h3>
 									</div>
 
-									{#if dialogState.profileMode === CollectionType.Stream}
-										<div class="grid gap-4 sm:grid-cols-2">
-											<label class="block">
-												<span
-													class="mb-3 block text-sm font-medium text-foreground"
-													>Interval
-													<span class="ml-1 font-normal text-muted-foreground"
-														>(seconds)</span
-													></span
-												>
-												<Input
-													type="number"
-													min={1}
-													step={1}
-													bind:value={dialogState.profileIntervalSeconds}
-												/>
-											</label>
-											<label class="block">
-												<span
-													class="mb-3 block text-sm font-medium text-foreground"
-													>Cycles
-													<span class="ml-1 font-normal text-muted-foreground"
-														>(0 = infinite)</span
-													></span
-												>
-												<Input
-													type="number"
-													min={0}
-													step={1}
-													bind:value={dialogState.profileNumberOfCycles}
-												/>
-											</label>
-										</div>
-									{/if}
+									<div class="space-y-6">
+										<label class="block">
+											<span
+												class="mb-3 block text-sm font-medium text-foreground"
+												>Profile name</span
+											>
+											<Input
+												bind:value={dialogState.profileName}
+												placeholder="Production pprof"
+											/>
+										</label>
 
-									<div class="space-y-3 pt-2">
-										{#if pingStatus === "error" && pingError}
-											<p class="text-sm text-destructive">
-												{pingError}
+										<label class="block">
+											<span
+												class="mb-3 block text-sm font-medium text-foreground"
+												>URL</span
+											>
+											<Input
+												bind:value={dialogState.profileUrl}
+												placeholder="http://localhost:9090"
+											/>
+										</label>
+
+										<label class="block">
+											<span
+												class="mb-3 block text-sm font-medium text-foreground"
+												>Auth token
+												<span class="ml-1 font-normal text-muted-foreground"
+													>(optional)</span
+												></span
+											>
+											<Input
+												bind:value={dialogState.profileToken}
+												placeholder="eyJ..."
+												type="password"
+											/>
+										</label>
+
+										<div>
+											<p class="mb-3 text-sm font-medium text-foreground">
+												Mode
 											</p>
-										{/if}
-										<div
-											class="flex flex-wrap items-center justify-between gap-3"
-										>
-											<div class="flex flex-wrap gap-2">
-												<Button variant="default" onclick={saveProfile}>
-													<CheckIcon class="size-4" />
-													<span
-														>{dialogState.editorMode ===
-                                                        "new-profile"
-                                                            ? "Create profile"
-                                                            : "Save profile"}</span
-													>
-												</Button>
-												<Button
-													variant="outline"
-													disabled={pingStatus ===
-                                                        "pending" ||
-                                                        !dialogState.profileUrl.trim()}
-													class={pingStatus ===
-                                                    "success"
-                                                        ? "border-green-500/40 bg-green-500/10 text-green-600 hover:bg-green-500/15 hover:text-green-600"
-                                                        : pingStatus === "error"
-                                                          ? "border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/15 hover:text-destructive"
-                                                          : ""}
-													onclick={testConnection}
-												>
-													{#if pingStatus === "pending"}
-														<LoaderCircleIcon class="size-4 animate-spin" />
-														<span>Testing...</span>
-													{:else if pingStatus === "success"}
-														<CircleCheckIcon class="size-4" />
-														<span>Connected</span>
-													{:else if pingStatus === "error"}
-														<CircleXIcon class="size-4" />
-														<span>Unreachable</span>
-													{:else}
-														<PlugZapIcon class="size-4" />
-														<span>Test connection</span>
-													{/if}
-												</Button>
-												{#if dialogState.selectedProfileId}
-													<Button
-														variant="destructive"
+											<div class="grid gap-3 sm:grid-cols-2">
+												{#each modeOptions as option (option.value)}
+													<button
+														type="button"
+														class={`rounded-2xl border p-4 text-left transition-colors ${dialogState.profileMode === option.value ? "border-primary bg-primary/5" : "border-border/70 bg-muted/25 hover:border-primary/30"}`}
 														onclick={() =>
-                                                            openDeleteProfileDialog(
-                                                                dialogState.selectedProfileId,
-                                                            )}
+                                                            (dialogState.profileMode =
+                                                                option.value)}
 													>
-														<Trash2Icon class="size-4" />
-														<span>Delete</span>
+														<div class="flex items-start justify-between gap-3">
+															<div>
+																<p
+																	class="text-base font-semibold text-foreground"
+																>
+																	{option.title}
+																</p>
+																<p class="mt-1 text-sm text-muted-foreground">
+																	{option.description}
+																</p>
+															</div>
+															<div
+																class={`flex w-6 h-5 items-center justify-center rounded-full border ${dialogState.profileMode === option.value ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background"}`}
+															>
+																{#if dialogState.profileMode === option.value}
+																	<CheckIcon class="size-3.5" />
+																{/if}
+															</div>
+														</div>
+													</button>
+												{/each}
+											</div>
+										</div>
+
+										{#if dialogState.profileMode === CollectionType.Stream}
+											<div class="grid gap-4 sm:grid-cols-2">
+												<label class="block">
+													<span
+														class="mb-3 block text-sm font-medium text-foreground"
+														>Interval
+														<span class="ml-1 font-normal text-muted-foreground"
+															>(seconds)</span
+														></span
+													>
+													<Input
+														type="number"
+														min={1}
+														step={1}
+														bind:value={dialogState.profileIntervalSeconds}
+													/>
+												</label>
+												<label class="block">
+													<span
+														class="mb-3 block text-sm font-medium text-foreground"
+														>Cycles
+														<span class="ml-1 font-normal text-muted-foreground"
+															>(0 = infinite)</span
+														></span
+													>
+													<Input
+														type="number"
+														min={0}
+														step={1}
+														bind:value={dialogState.profileNumberOfCycles}
+													/>
+												</label>
+											</div>
+										{/if}
+
+										<div class="space-y-3 pt-2">
+											{#if pingStatus === "error" && pingError}
+												<p class="text-sm text-destructive">
+													{pingError}
+												</p>
+											{/if}
+											<div
+												class="flex flex-wrap items-center justify-between gap-3"
+											>
+												<div class="flex flex-wrap gap-2">
+													<Button variant="default" onclick={saveProfile}>
+														<CheckIcon class="size-4" />
+														<span
+															>{dialogState.editorMode ===
+                                                            "new-profile"
+                                                                ? "Create profile"
+                                                                : "Save profile"}</span
+														>
 													</Button>
-												{/if}
+													<Button
+														variant="outline"
+														disabled={pingStatus ===
+                                                            "pending" ||
+                                                            !dialogState.profileUrl.trim()}
+														class={pingStatus ===
+                                                        "success"
+                                                            ? "border-green-500/40 bg-green-500/10 text-green-600 hover:bg-green-500/15 hover:text-green-600"
+                                                            : pingStatus ===
+                                                                "error"
+                                                              ? "border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/15 hover:text-destructive"
+                                                              : ""}
+														onclick={testConnection}
+													>
+														{#if pingStatus === "pending"}
+															<LoaderCircleIcon class="size-4 animate-spin" />
+															<span>Testing...</span>
+														{:else if pingStatus === "success"}
+															<CircleCheckIcon class="size-4" />
+															<span>Connected</span>
+														{:else if pingStatus === "error"}
+															<CircleXIcon class="size-4" />
+															<span>Unreachable</span>
+														{:else}
+															<PlugZapIcon class="size-4" />
+															<span>Test connection</span>
+														{/if}
+													</Button>
+													{#if dialogState.selectedProfileId}
+														<Button
+															variant="destructive"
+															onclick={() =>
+                                                                openDeleteProfileDialog(
+                                                                    dialogState.selectedProfileId,
+                                                                )}
+														>
+															<Trash2Icon class="size-4" />
+															<span>Delete</span>
+														</Button>
+													{/if}
+												</div>
 											</div>
 										</div>
 									</div>
 								</div>
-							</div>
-						{:else}
-							<div class="flex h-113 items-center justify-center">
-								<div class="max-w-sm text-center">
-									<p class="text-sm font-medium text-foreground">
-										Select a profile or create a new one
-									</p>
-									<p class="mt-2 text-sm text-muted-foreground">
-										Use the sidebar on the left to add a profile to a project,
-										or select an existing profile to edit it or view its
-										details.
-									</p>
+							{:else}
+								<div class="flex h-113 items-center justify-center">
+									<div class="max-w-sm text-center">
+										<p class="text-sm font-medium text-foreground">
+											Select a profile or create a new one
+										</p>
+										<p class="mt-2 text-sm text-muted-foreground">
+											Use the sidebar on the left to add a profile to a project,
+											or select an existing profile to edit it or view its
+											details.
+										</p>
+									</div>
 								</div>
-							</div>
-						{/if}
-					</div>
+							{/if}
+						</div>
+					</ScrollArea.Root>
 				</div>
 			</section>
 		</div>

@@ -49,7 +49,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["dmg", "msi", "appimage"],
+    "targets": ["dmg", "msi", "deb"],
     "publisher": "Tizian Bahr",
     "homepage": "https://github.com/TB004/pprof-viz",
     "copyright": "Copyright (c) 2026 Tizian Bahr",
@@ -67,35 +67,8 @@
       "icons/icon.ico",
       "icons/icon.png"
     ],
-    "linux": {
-      "appimage": {
-        "bundleMediaFramework": false
-      },
-      "deb": {
-        "files": {}
-      },
-      "rpm": {
-        "epoch": 0,
-        "files": {},
-        "release": "1"
-      }
-    },
     "macOS": {
-      "dmg": {
-        "appPosition": {
-          "x": 180,
-          "y": 170
-        },
-        "applicationFolderPosition": {
-          "x": 480,
-          "y": 170
-        },
-        "windowSize": {
-          "height": 400,
-          "width": 660
-        }
-      },
-      "files": {},
+      "signingIdentity": "-",
       "hardenedRuntime": true,
       "minimumSystemVersion": "10.13"
     },
@@ -103,8 +76,6 @@
       "allowDowngrades": true,
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
-      "minimumWebview2Version": null,
-      "nsis": null,
       "signCommand": null,
       "timestampUrl": "http://timestamp.digicert.com",
       "tsp": false,
@@ -113,7 +84,8 @@
         "type": "downloadBootstrapper"
       },
       "wix": {
-        "language": "en-US"
+        "language": "en-US",
+        "upgradeCode": "e117a14a-4d3c-5471-b889-ff95bcf49b0c"
       }
     }
   }

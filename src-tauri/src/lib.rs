@@ -36,6 +36,14 @@ fn make_builder() -> tauri_specta::Builder<tauri::Wry> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Fixes drastic linux performance issues
+    #[cfg(target_os = "linux")]
+    unsafe {
+        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+        // Only if you see compositing issues on Wayland:
+        // std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+    }
+
     let builder = make_builder();
 
     #[cfg(debug_assertions)]
@@ -55,16 +63,6 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .manage(AppState::default())
         .invoke_handler(builder.invoke_handler())
-        .setup(|app| {
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
-            }
-            Ok(())
-        })
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| {
             eprintln!("error while running tauri application: {e}");

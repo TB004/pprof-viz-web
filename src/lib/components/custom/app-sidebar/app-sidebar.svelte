@@ -10,6 +10,8 @@ import {
 	PackageIcon,
 	SettingsIcon,
 } from "@lucide/svelte";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { onMount } from "svelte";
 import { ProfileChooser } from "$lib/components/custom/app-sidebar";
 import { PMDialog } from "$lib/components/custom/profile-manager-dialog";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
@@ -30,19 +32,30 @@ const footerItems = [
 ];
 
 let profileManagerOpen = $state(false);
+
+let isMac = $state(false);
+let isFullscreen = $state(false);
+
+onMount(() => {
+	isMac = navigator.platform.startsWith("Mac");
+
+	let unlisten: (() => void) | undefined;
+	(async () => {
+		const win = getCurrentWindow();
+		isFullscreen = await win.isFullscreen();
+		unlisten = await win.onResized(async () => {
+			isFullscreen = await win.isFullscreen();
+		});
+	})();
+
+	return () => unlisten?.();
+});
 </script>
 
 <Sidebar.Root variant="floating">
-	<!--
-		Empty drag region that reserves vertical space for the macOS traffic
-		lights (positioned by the OS at the top-left of the window). Kept
-		platform-agnostic — Linux/Windows just see an empty top strip, which
-		is harmless cosmetically.
-
-		`deep` makes the entire subtree draggable; Tauri's drag handler still
-		opts out of clickable elements (buttons, links, inputs) automatically.
-	-->
-	<Sidebar.Header class="h-8" data-tauri-drag-region="deep"></Sidebar.Header>
+	{#if isMac && !isFullscreen}
+		<Sidebar.Header class="h-8" data-tauri-drag-region="deep"></Sidebar.Header>
+	{/if}
 	<Sidebar.Content>
 		<Sidebar.Group>
 			<Sidebar.GroupLabel>Application</Sidebar.GroupLabel>
@@ -63,7 +76,9 @@ let profileManagerOpen = $state(false);
 				</Sidebar.Menu>
 			</Sidebar.GroupContent>
 		</Sidebar.Group>
-		<Sidebar.Group> <ProfileChooser bind:profileManagerOpen /> </Sidebar.Group>
+		<Sidebar.Group>
+			<ProfileChooser bind:profileManagerOpen />
+		</Sidebar.Group>
 	</Sidebar.Content>
 	<Sidebar.Footer>
 		<Sidebar.Menu>

@@ -27,10 +27,10 @@ finish-args:
   - --socket=fallback-x11
   - --socket=wayland
   - --device=dri
+  # GTK and WebKitGTK require session bus access (tao event loop, portals, a11y)
+  - --socket=session-bus
   # Network access for the ConnectRPC endpoint
   - --share=network
-  # WebKitGTK needs this on some setups
-  - --talk-name=org.freedesktop.Notifications
   # Persist Tauri's app data (settings, sqlite db) under XDG dirs
   - --filesystem=xdg-config/pprof-viz:create
   - --filesystem=xdg-data/pprof-viz:create

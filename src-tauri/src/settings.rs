@@ -47,18 +47,14 @@ impl Default for AppSettings {
     }
 }
 
-fn load(app: &AppHandle) -> Result<AppSettings, String> {
+#[tauri::command]
+#[specta::specta]
+pub async fn get_settings(app: AppHandle) -> Result<AppSettings, String> {
     let store = app.store(SETTINGS_STORE).map_err(|e| e.to_string())?;
     Ok(store
         .get(SETTINGS_KEY)
         .and_then(|v| serde_json::from_value(v).ok())
         .unwrap_or_default())
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn get_settings(app: AppHandle) -> Result<AppSettings, String> {
-    load(&app)
 }
 
 #[tauri::command]

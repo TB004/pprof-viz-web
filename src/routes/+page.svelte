@@ -83,7 +83,7 @@ const dataRoutes: { title: string; url: string; icon: Component }[] = [
 				{#if isRunning}
 					Collection in progress
 				{:else}
-					Get started with pprof-viz
+					Get started with Pprof-Viz
 				{/if}
 			</h1>
 			<p class="text-sm text-muted-foreground">

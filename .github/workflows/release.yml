@@ -298,6 +298,13 @@ jobs:
         if: steps.bun-cache.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
 
+      - name: Remove Strawberry Perl MinGW from PATH
+        if: matrix.target == 'aarch64'
+        shell: pwsh
+        run: |
+          $paths = $env:PATH -split ';' | Where-Object { $_ -notlike '*Strawberry*' }
+          "PATH=$($paths -join ';')" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Build .msi
         run: cargo tauri build --ci --bundles msi --target ${{ matrix.rust_target }}
 
@@ -308,5 +315,5 @@ jobs:
         run: |
           VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
           gh release upload "${{ github.ref_name }}" \
-            "src-tauri/target/${{ matrix.rust_target }}/release/bundle/msi/Pprof-Viz_${VERSION}_${{ matrix.msi_arch }}_en-US.msi" \
+            "src-tauri/target/${{ matrix.rust_target }}/release/bundle/msi/Pprof-Viz_${VERSION}_${{ matrix.msi_arch }}.msi" \
             --clobber

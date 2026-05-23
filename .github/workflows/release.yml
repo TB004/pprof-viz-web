@@ -135,7 +135,7 @@ jobs:
             --arch=${{ matrix.target }} \
             --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo \
             flatpak-repo \
-            pprof-viz_${{ matrix.target }}.flatpak \
+            Pprof-Viz_${{ matrix.target }}.flatpak \
             de.tb004.pprof_viz
 
       - name: Upload flatpak to release
@@ -143,7 +143,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "${{ github.ref_name }}" \
-            packaging/flatpak/pprof-viz_${{ matrix.target }}.flatpak \
+            packaging/flatpak/Pprof-Viz_${{ matrix.target }}.flatpak \
             --clobber
 
   Release_macOS:

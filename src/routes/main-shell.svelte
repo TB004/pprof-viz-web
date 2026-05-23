@@ -1,4 +1,5 @@
 <script lang="ts">
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { Snippet } from "svelte";
 import { onMount } from "svelte";
 import { page } from "$app/state";
@@ -17,17 +18,29 @@ const routeLabel = $derived.by(() => {
 	return routeSegment.charAt(0).toUpperCase() + routeSegment.slice(1);
 });
 
-// macOS keeps the traffic lights pinned to the top-left of the window even
-// when the sidebar is collapsed. Reserve ~80px of left padding on the main
-// header in that case so the trigger and the route badge don't sit
-// underneath the dots.
 let isMac = $state(false);
+let isFullscreen = $state(false);
+
 onMount(() => {
-	isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+	isMac = navigator.platform.startsWith("Mac");
+
+	let unlisten: (() => void) | undefined;
+	(async () => {
+		const win = getCurrentWindow();
+		isFullscreen = await win.isFullscreen();
+		unlisten = await win.onResized(async () => {
+			isFullscreen = await win.isFullscreen();
+		});
+	})();
+
+	return () => unlisten?.();
 });
 
+// Reserve left padding for the macOS traffic lights only when they are
+// visible: macOS, sidebar not covering them, and not in full-screen
+// (full-screen hides the traffic lights entirely).
 const reserveTrafficLightSpace = $derived(
-	isMac && (sidebar.state === "collapsed" || !sidebar.open),
+	isMac && !isFullscreen && (sidebar.state === "collapsed" || !sidebar.open),
 );
 </script>
 

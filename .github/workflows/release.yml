@@ -233,7 +233,7 @@ jobs:
             msi_arch: x64
             rust_target: x86_64-pc-windows-msvc
           - target: aarch64
-            runs-on: windows-latest
+            runs-on: windows-11-arm
             msi_arch: arm64
             rust_target: aarch64-pc-windows-msvc
 
@@ -244,13 +244,23 @@ jobs:
       - name: Install protobuf
         run: choco install protoc -y
 
-      - name: Install Rust
+      - name: Install Rust (x86_64)
+        if: matrix.target == 'x86_64'
         shell: bash
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
             | sh -s -- -y --default-toolchain 1.95.0 --no-modify-path
           echo "$USERPROFILE/.cargo/bin" >> "$GITHUB_PATH"
-          rustup target add ${{ matrix.rust_target }}
+
+      - name: Install Rust (aarch64 native)
+        if: matrix.target == 'aarch64'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest `
+            -Uri 'https://static.rust-lang.org/rustup/dist/aarch64-pc-windows-msvc/rustup-init.exe' `
+            -OutFile rustup-init.exe
+          .\rustup-init.exe -y --default-toolchain 1.95.0 --no-modify-path
+          "$env:USERPROFILE\.cargo\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Cache Cargo registry and build artifacts
         id: cargo-cache
@@ -298,13 +308,6 @@ jobs:
         if: steps.bun-cache.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
 
-      - name: Remove Strawberry Perl MinGW from PATH
-        if: matrix.target == 'aarch64'
-        shell: pwsh
-        run: |
-          $paths = $env:PATH -split ';' | Where-Object { $_ -notlike '*Strawberry*' }
-          "PATH=$($paths -join ';')" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
       - name: Build .msi
         run: cargo tauri build --ci --bundles msi --target ${{ matrix.rust_target }}
 
@@ -315,5 +318,5 @@ jobs:
         run: |
           VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
           gh release upload "${{ github.ref_name }}" \
-            "src-tauri/target/${{ matrix.rust_target }}/release/bundle/msi/Pprof-Viz_${VERSION}_${{ matrix.msi_arch }}.msi" \
+            "src-tauri/target/${{ matrix.rust_target }}/release/bundle/msi/Pprof-Viz_${VERSION}_${{ matrix.msi_arch }}_en-US.msi" \
             --clobber

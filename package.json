@@ -25,7 +25,7 @@
     "@types/node": "^25.8.0",
     "bits-ui": "^2.18.1",
     "clsx": "^2.1.1",
-    "layerchart": "2.0.0-next.63",
+    "layerchart": "2.0.0-next.64",
     "shadcn-svelte": "^1.2.7",
     "svelte": "^5.55.5",
     "svelte-check": "^4.4.8",

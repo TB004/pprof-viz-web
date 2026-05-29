@@ -72,6 +72,14 @@ export const commands = {
 		),
 	agentPing: (url: string, token: string | null) =>
 		typedError<null, string>(__TAURI_INVOKE("agent_ping", { url, token })),
+	checkUpdate: () =>
+		typedError<UpdateStatus, string>(__TAURI_INVOKE("check_update")),
+	installUpdate: (url: string, filename: string) =>
+		typedError<null, string>(
+			__TAURI_INVOKE("install_update", { url, filename }),
+		),
+	openReleasesPage: () =>
+		typedError<null, string>(__TAURI_INVOKE("open_releases_page")),
 };
 
 /* Types */
@@ -138,6 +146,25 @@ export type ProjectRow = {
 };
 
 export type ThemeMode = "light" | "dark" | "system";
+
+export type UpdateStatus = {
+	currentVersion: string;
+	latestVersion: string;
+	available: boolean;
+	releaseUrl: string;
+	/**
+	 *  `https://api.github.com/repos/.../releases/assets/{id}` — works for
+	 *  both public and private repos when fetched with
+	 *  `Accept: application/octet-stream`. `None` when no update is available
+	 *  or no matching asset was found.
+	 */
+	assetUrl: string | null;
+	/**
+	 *  Original asset filename (e.g. `Pprof-Viz_0.1.2_aarch64.dmg`).
+	 *  Needed so the downloaded file gets the right name and extension.
+	 */
+	assetFilename: string | null;
+};
 
 /* Tauri Specta runtime */
 async function typedError<T, E>(

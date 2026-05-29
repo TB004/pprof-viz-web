@@ -5,6 +5,7 @@ mod proto;
 mod rpc;
 mod settings;
 mod state;
+mod update;
 mod utils;
 
 use crate::state::AppState;
@@ -32,6 +33,9 @@ fn make_builder() -> tauri_specta::Builder<tauri::Wry> {
         collection::stop_collection,
         collection::get_collection_snapshot,
         rpc::agent_ping,
+        update::check_update,
+        update::install_update,
+        update::open_releases_page,
     ])
 }
 
@@ -44,6 +48,9 @@ pub fn run() {
         // Only if you see compositing issues on Wayland:
         // std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
     }
+
+    // Load .env if present (dev convenience; silently ignored in production).
+    dotenvy::dotenv().ok();
 
     let builder = make_builder();
 

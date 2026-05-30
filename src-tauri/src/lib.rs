@@ -35,7 +35,6 @@ fn make_builder() -> tauri_specta::Builder<tauri::Wry> {
         rpc::agent_ping,
         update::check_update,
         update::install_update,
-        update::open_releases_page,
     ])
 }
 

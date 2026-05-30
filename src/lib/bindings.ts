@@ -78,8 +78,6 @@ export const commands = {
 		typedError<null, string>(
 			__TAURI_INVOKE("install_update", { url, filename }),
 		),
-	openReleasesPage: () =>
-		typedError<null, string>(__TAURI_INVOKE("open_releases_page")),
 };
 
 /* Types */
@@ -153,10 +151,8 @@ export type UpdateStatus = {
 	available: boolean;
 	releaseUrl: string;
 	/**
-	 *  `https://api.github.com/repos/.../releases/assets/{id}` — works for
-	 *  both public and private repos when fetched with
-	 *  `Accept: application/octet-stream`. `None` when no update is available
-	 *  or no matching asset was found.
+	 *  `https://api.github.com/repos/.../releases/assets/{id}`.
+	 *  `None` when no update is available or no matching asset was found.
 	 */
 	assetUrl: string | null;
 	/**

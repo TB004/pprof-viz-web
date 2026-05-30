@@ -97,13 +97,9 @@ async function checkForUpdates() {
 async function installUpdate(status: UpdateStatus) {
 	updateState = { phase: "downloading" };
 	try {
-		if (status.assetUrl && status.assetFilename) {
-			await run(commands.installUpdate(status.assetUrl, status.assetFilename));
-		} else {
-			// Linux Flatpak or no matching asset — open releases page.
-			await run(commands.openReleasesPage());
-			updateState = { phase: "available", status };
-		}
+		await run(
+			commands.installUpdate(status.assetUrl ?? "", status.assetFilename ?? ""),
+		);
 	} catch (e) {
 		updateState = { phase: "error", message: String(e) };
 	}

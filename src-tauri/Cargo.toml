@@ -16,7 +16,7 @@ crate-type = ["rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2.6.2", features = [] }
-connectrpc-build = "0.6.0"
+connectrpc-build = "0.6.1"
 
 [dependencies]
 connectrpc = { version = "0.6.1", features = [

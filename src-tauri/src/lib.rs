@@ -82,11 +82,11 @@ pub fn run() {
             tauri::async_runtime::block_on(sqlx::migrate!("./migrations").run(&pool))?;
 
             app.manage(pool);
+            app.manage(settings::SettingsState::load(&data_dir));
             Ok(())
         })
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_store::Builder::new().build())
         .manage(AppState::default())
         .invoke_handler(builder.invoke_handler())
         .run(tauri::generate_context!())

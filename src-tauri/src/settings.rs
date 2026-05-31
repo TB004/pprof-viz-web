@@ -1,11 +1,10 @@
-//! `AppSettings` persisted via `tauri-plugin-store`.
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
-use tauri::AppHandle;
-use tauri_plugin_store::StoreExt;
+use tauri::{AppHandle, Manager};
+use tokio::sync::RwLock;
 
-const SETTINGS_STORE: &str = "settings.json";
-const SETTINGS_KEY: &str = "app";
+const SETTINGS_FILE: &str = "settings.json";
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "lowercase")]
@@ -47,24 +46,44 @@ impl Default for AppSettings {
     }
 }
 
+pub struct SettingsState {
+    inner: RwLock<AppSettings>,
+    path: PathBuf,
+}
+
+impl SettingsState {
+    pub fn load(data_dir: &Path) -> Self {
+        let path = data_dir.join(SETTINGS_FILE);
+        let settings = std::fs::read_to_string(&path)
+            .ok()
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or_default();
+        Self {
+            inner: RwLock::new(settings),
+            path,
+        }
+    }
+
+    pub async fn get(&self) -> AppSettings {
+        self.inner.read().await.clone()
+    }
+
+    pub async fn set(&self, settings: AppSettings) -> Result<AppSettings, String> {
+        let json = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
+        std::fs::write(&self.path, json).map_err(|e| e.to_string())?;
+        *self.inner.write().await = settings.clone();
+        Ok(settings)
+    }
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn get_settings(app: AppHandle) -> Result<AppSettings, String> {
-    let store = app.store(SETTINGS_STORE).map_err(|e| e.to_string())?;
-    Ok(store
-        .get(SETTINGS_KEY)
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default())
+    Ok(app.state::<SettingsState>().get().await)
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn update_settings(app: AppHandle, settings: AppSettings) -> Result<AppSettings, String> {
-    let store = app.store(SETTINGS_STORE).map_err(|e| e.to_string())?;
-    store.set(
-        SETTINGS_KEY,
-        serde_json::to_value(&settings).map_err(|e| e.to_string())?,
-    );
-    store.save().map_err(|e| e.to_string())?;
-    Ok(settings)
+    app.state::<SettingsState>().set(settings).await
 }

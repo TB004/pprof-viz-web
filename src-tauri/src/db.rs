@@ -320,9 +320,9 @@ pub async fn reset_all_data(app: AppHandle) -> Result<(), String> {
     .await?;
 
     // Reset settings to defaults
-    settings::update_settings(app, settings::AppSettings::default())
-        .await
-        .map_err(|e| e.to_string())?;
+    app.state::<settings::SettingsState>()
+        .set(settings::AppSettings::default())
+        .await?;
 
     Ok(())
 }

@@ -59,6 +59,9 @@
           },
           "suspicious": {
             "noAssignInExpressions": "off"
+          },
+          "complexity": {
+            "noCommaOperator": "off"
           }
         }
       }

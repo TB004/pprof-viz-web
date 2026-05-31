@@ -72,7 +72,7 @@ let updateState = $state<UpdateState>({ phase: "idle" });
 
 onMount(() => {
 	version = getVersion();
-	architecture = run(commands.getArch());
+	architecture = commands.getArch();
 	void checkForUpdates();
 });
 

@@ -1,48 +1,9 @@
-//! Project + Profile persistence (sqlite via `tauri-plugin-sql`).
-//!
-//! The plugin owns the connection pool; we borrow it from `DbInstances` to
-//! issue queries from Rust. The frontend never talks to sqlite directly.
-
 use serde::{Deserialize, Serialize};
-use sqlx::sqlite::SqlitePool;
+use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager};
-use tauri_plugin_sql::{DbInstances, DbPool, Migration, MigrationKind};
 
 use crate::settings;
 use crate::utils;
-
-pub const DB_URL: &str = "sqlite:pprof-viz.db";
-
-pub fn migrations() -> Vec<Migration> {
-    vec![Migration {
-        version: 1,
-        description: "create projects and profiles",
-        sql: r#"
-            CREATE TABLE projects (
-                id          TEXT PRIMARY KEY,
-                name        TEXT NOT NULL,
-                created_at  INTEGER NOT NULL,
-                updated_at  INTEGER NOT NULL
-            );
-
-            CREATE TABLE profiles (
-                id                  TEXT PRIMARY KEY,
-                project_id          TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-                name                TEXT NOT NULL,
-                url                 TEXT NOT NULL,
-                mode                TEXT NOT NULL CHECK (mode IN ('snapshot', 'stream')),
-                token               TEXT,
-                interval_seconds    INTEGER,
-                number_of_cycles    INTEGER,
-                created_at          INTEGER NOT NULL,
-                updated_at          INTEGER NOT NULL
-            );
-
-            CREATE INDEX idx_profiles_project ON profiles(project_id);
-        "#,
-        kind: MigrationKind::Up,
-    }]
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -101,18 +62,7 @@ where
     F: FnOnce(SqlitePool) -> Fut,
     Fut: std::future::Future<Output = Result<T, String>>,
 {
-    let instances = app.state::<DbInstances>();
-    let pool = {
-        let map = instances.0.read().await;
-        let db = map
-            .get(DB_URL)
-            .ok_or_else(|| format!("db '{DB_URL}' not loaded"))?;
-        match db {
-            DbPool::Sqlite(pool) => pool.clone(),
-            #[allow(unreachable_patterns)]
-            _ => return Err("db pool is not sqlite".into()),
-        }
-    };
+    let pool = app.state::<SqlitePool>().inner().clone();
     f(pool).await
 }
 

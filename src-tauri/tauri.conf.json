@@ -42,11 +42,6 @@
       }
     }
   },
-  "plugins": {
-    "sql": {
-      "preload": ["sqlite:pprof-viz.db"]
-    }
-  },
   "bundle": {
     "active": true,
     "targets": ["dmg", "msi", "deb"],

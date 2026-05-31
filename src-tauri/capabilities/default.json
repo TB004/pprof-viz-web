@@ -11,38 +11,6 @@
     "opener:default",
     "core:event:default",
     "core:window:allow-start-dragging",
-    "store:default",
-    {
-      "identifier": "sql:allow-load",
-      "allow": [
-        {
-          "url": "sqlite:pprof-viz.db"
-        }
-      ]
-    },
-    {
-      "identifier": "sql:allow-execute",
-      "allow": [
-        {
-          "url": "sqlite:pprof-viz.db"
-        }
-      ]
-    },
-    {
-      "identifier": "sql:allow-select",
-      "allow": [
-        {
-          "url": "sqlite:pprof-viz.db"
-        }
-      ]
-    },
-    {
-      "identifier": "sql:allow-close",
-      "allow": [
-        {
-          "url": "sqlite:pprof-viz.db"
-        }
-      ]
-    }
+    "store:default"
   ]
 }

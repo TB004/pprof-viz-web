@@ -8,6 +8,8 @@ mod state;
 mod update;
 mod utils;
 
+use tauri::Manager;
+
 use crate::state::AppState;
 
 fn make_builder() -> tauri_specta::Builder<tauri::Wry> {
@@ -62,11 +64,26 @@ pub fn run() {
         .expect("failed to export typescript bindings");
 
     tauri::Builder::default()
-        .plugin(
-            tauri_plugin_sql::Builder::default()
-                .add_migrations(db::DB_URL, db::migrations())
-                .build(),
-        )
+        .setup(|app| {
+            let data_dir = app.path().app_data_dir()?;
+            std::fs::create_dir_all(&data_dir)?;
+
+            let pool = tauri::async_runtime::block_on(
+                sqlx::sqlite::SqlitePoolOptions::new().connect_with(
+                    sqlx::sqlite::SqliteConnectOptions::new()
+                        .filename(data_dir.join("pprof-viz.db"))
+                        .create_if_missing(true)
+                        .foreign_keys(true)
+                        .auto_vacuum(sqlx::sqlite::SqliteAutoVacuum::Full)
+                        .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal),
+                ),
+            )?;
+
+            tauri::async_runtime::block_on(sqlx::migrate!("./migrations").run(&pool))?;
+
+            app.manage(pool);
+            Ok(())
+        })
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())

@@ -54,6 +54,8 @@ export const commands = {
 		typedError<null, string>(__TAURI_INVOKE("update_profile", { id, input })),
 	deleteProfile: (id: string) =>
 		typedError<null, string>(__TAURI_INVOKE("delete_profile", { id })),
+	resetAllData: () =>
+		typedError<null, string>(__TAURI_INVOKE("reset_all_data")),
 	registerError: (message: string) =>
 		typedError<AppError, string>(__TAURI_INVOKE("register_error", { message })),
 	getErrors: () => typedError<AppError[], string>(__TAURI_INVOKE("get_errors")),
@@ -70,6 +72,12 @@ export const commands = {
 		),
 	agentPing: (url: string, token: string | null) =>
 		typedError<null, string>(__TAURI_INVOKE("agent_ping", { url, token })),
+	checkUpdate: () =>
+		typedError<UpdateStatus, string>(__TAURI_INVOKE("check_update")),
+	installUpdate: (url: string, filename: string) =>
+		typedError<null, string>(
+			__TAURI_INVOKE("install_update", { url, filename }),
+		),
 };
 
 /* Types */
@@ -136,6 +144,23 @@ export type ProjectRow = {
 };
 
 export type ThemeMode = "light" | "dark" | "system";
+
+export type UpdateStatus = {
+	currentVersion: string;
+	latestVersion: string;
+	available: boolean;
+	releaseUrl: string;
+	/**
+	 *  `https://api.github.com/repos/.../releases/assets/{id}`.
+	 *  `None` when no update is available or no matching asset was found.
+	 */
+	assetUrl: string | null;
+	/**
+	 *  Original asset filename (e.g. `Pprof-Viz_0.1.2_aarch64.dmg`).
+	 *  Needed so the downloaded file gets the right name and extension.
+	 */
+	assetFilename: string | null;
+};
 
 /* Tauri Specta runtime */
 async function typedError<T, E>(

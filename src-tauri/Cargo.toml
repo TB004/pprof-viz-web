@@ -6,9 +6,7 @@ authors = ["Tizian Bahr"]
 license = "MIT"
 repository = "https://github.com/TB004/pprof-viz"
 edition = "2024"
-rust-version = "1.95.0"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+rust-version = "1.96.0"
 
 [lib]
 name = "app_lib"
@@ -19,6 +17,8 @@ tauri-build = { version = "2.6.2", features = [] }
 connectrpc-build = "0.6.1"
 
 [dependencies]
+reqwest = { version = "0.13.4", features = ["json"] }
+dotenvy = "0.15.7"
 connectrpc = { version = "0.6.1", features = [
     "default",
     "client",
@@ -39,6 +39,9 @@ tokio = { version = "1.52.3", features = ["sync", "rt", "macros", "time"] }
 tauri = { version = "2.11.2", features = [] }
 tauri-plugin-store = "2.4.3"
 tauri-plugin-sql = { version = "2.4.0", features = ["sqlite"] }
+tauri-plugin-os = "2.3.2"
+tauri-plugin-opener = "2.5.4"
+semver = "1.0.28"
 sqlx = { version = "0.8.6", default-features = false, features = [
     "runtime-tokio",
     "sqlite",
@@ -50,5 +53,6 @@ tauri-specta = { version = "=2.0.0-rc.25", features = ["typescript"] }
 
 [profile.release]
 codegen-units = 1
-strip = "debuginfo"
+strip = true
 lto = "fat"
+opt-level = 3

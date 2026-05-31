@@ -5,6 +5,7 @@ mod proto;
 mod rpc;
 mod settings;
 mod state;
+mod update;
 mod utils;
 
 use crate::state::AppState;
@@ -23,6 +24,7 @@ fn make_builder() -> tauri_specta::Builder<tauri::Wry> {
         db::create_profile,
         db::update_profile,
         db::delete_profile,
+        db::reset_all_data,
         errors::register_error,
         errors::get_errors,
         errors::clear_errors,
@@ -31,6 +33,8 @@ fn make_builder() -> tauri_specta::Builder<tauri::Wry> {
         collection::stop_collection,
         collection::get_collection_snapshot,
         rpc::agent_ping,
+        update::check_update,
+        update::install_update,
     ])
 }
 
@@ -43,6 +47,9 @@ pub fn run() {
         // Only if you see compositing issues on Wayland:
         // std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
     }
+
+    // Load .env if present (dev convenience; silently ignored in production).
+    dotenvy::dotenv().ok();
 
     let builder = make_builder();
 
@@ -60,6 +67,8 @@ pub fn run() {
                 .add_migrations(db::DB_URL, db::migrations())
                 .build(),
         )
+        .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .manage(AppState::default())
         .invoke_handler(builder.invoke_handler())

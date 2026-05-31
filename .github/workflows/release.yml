@@ -52,7 +52,7 @@ jobs:
       - name: Install Rust
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-            | sh -s -- -y --default-toolchain 1.95.0 --no-modify-path
+            | sh -s -- -y --default-toolchain 1.96.0 --no-modify-path
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
 
       - name: Cache Cargo registry and build artifacts
@@ -160,7 +160,7 @@ jobs:
       - name: Install Rust
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-            | sh -s -- -y --default-toolchain 1.95.0 --no-modify-path
+            | sh -s -- -y --default-toolchain 1.96.0 --no-modify-path
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
           rustup target add aarch64-apple-darwin
 
@@ -250,7 +250,7 @@ jobs:
           Invoke-WebRequest `
             -Uri "https://static.rust-lang.org/rustup/dist/${{ matrix.rust_target }}/rustup-init.exe" `
             -OutFile rustup-init.exe
-          .\rustup-init.exe -y --default-toolchain 1.95.0 --no-modify-path
+          .\rustup-init.exe -y --default-toolchain 1.96.0 --no-modify-path
           "$env:USERPROFILE\.cargo\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Cache Cargo registry and build artifacts

@@ -13,7 +13,6 @@ import {
 } from "@lucide/svelte";
 import { getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { arch } from "@tauri-apps/plugin-os";
 import { onMount } from "svelte";
 import type { UpdateStatus } from "$lib/bindings";
 import { commands } from "$lib/bindings";
@@ -55,8 +54,8 @@ const modeOptions: Array<{
 
 const settings = SettingsService.settings;
 
-let version = $state(new Promise(() => "-"));
-let architecture = $state("-");
+let version = $state(new Promise<string>(() => {}));
+let architecture = $state(new Promise<string>(() => {}));
 
 let resetDialogOpen = $state(false);
 let resetting = $state(false);
@@ -73,7 +72,7 @@ let updateState = $state<UpdateState>({ phase: "idle" });
 
 onMount(() => {
 	version = getVersion();
-	architecture = arch();
+	architecture = run(commands.getArch());
 	void checkForUpdates();
 });
 
@@ -491,7 +490,13 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 						{/await}
 					</span>
 					<span class="text-muted-foreground">Architecture</span>
-					<span class="font-medium font-mono">{architecture}</span>
+					<span class="font-medium font-mono">
+						{#await architecture}
+							—
+						{:then a}
+							{a}
+						{/await}
+					</span>
 					<span class="text-muted-foreground">Identifier</span>
 					<span class="font-medium font-mono">de.tb004.pprof-viz</span>
 					<span class="text-muted-foreground">Repository</span>

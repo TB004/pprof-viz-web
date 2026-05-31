@@ -72,6 +72,7 @@ export const commands = {
 		),
 	agentPing: (url: string, token: string | null) =>
 		typedError<null, string>(__TAURI_INVOKE("agent_ping", { url, token })),
+	getArch: () => typedError<string, string>(__TAURI_INVOKE("get_arch")),
 	checkUpdate: () =>
 		typedError<UpdateStatus, string>(__TAURI_INVOKE("check_update")),
 	installUpdate: (url: string, filename: string) =>

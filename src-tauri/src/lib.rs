@@ -14,6 +14,7 @@ use crate::state::AppState;
 
 fn make_builder() -> tauri_specta::Builder<tauri::Wry> {
     tauri_specta::Builder::new().commands(tauri_specta::collect_commands![
+        settings::get_arch,
         settings::get_settings,
         settings::update_settings,
         db::list_projects,
@@ -85,7 +86,6 @@ pub fn run() {
             app.manage(settings::SettingsState::load(&data_dir));
             Ok(())
         })
-        .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_opener::init())
         .manage(AppState::default())
         .invoke_handler(builder.invoke_handler())

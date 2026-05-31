@@ -78,6 +78,12 @@ impl SettingsState {
 
 #[tauri::command]
 #[specta::specta]
+pub fn get_arch() -> String {
+    std::env::consts::ARCH.to_string()
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn get_settings(app: AppHandle) -> Result<AppSettings, String> {
     Ok(app.state::<SettingsState>().get().await)
 }

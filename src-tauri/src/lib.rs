@@ -1,6 +1,7 @@
 mod collection;
 mod db;
 mod errors;
+mod opener;
 mod proto;
 mod rpc;
 mod settings;
@@ -38,6 +39,7 @@ fn make_builder() -> tauri_specta::Builder<tauri::Wry> {
         rpc::agent_ping,
         update::check_update,
         update::install_update,
+        opener::open,
     ])
 }
 
@@ -86,7 +88,6 @@ pub fn run() {
             app.manage(settings::SettingsState::load(&data_dir));
             Ok(())
         })
-        .plugin(tauri_plugin_opener::init())
         .manage(AppState::default())
         .invoke_handler(builder.invoke_handler())
         .run(tauri::generate_context!())

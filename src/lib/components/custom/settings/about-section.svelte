@@ -1,6 +1,5 @@
 <script lang="ts">
 import { getVersion } from "@tauri-apps/api/app";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { onMount } from "svelte";
 import { commands } from "$lib/bindings";
 import * as Card from "$lib/components/ui/card/index.js";
@@ -64,7 +63,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 				<button
 					type="button"
 					class="text-sm font-medium text-primary underline-offset-4 hover:underline"
-					onclick={() => openUrl("https://github.com/TB004/pprof-viz")}
+					onclick={() =>
+                        commands.open("https://github.com/TB004/pprof-viz")}
 				>
 					github.com/TB004/pprof-viz
 				</button>

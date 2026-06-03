@@ -44,6 +44,8 @@ export const commands = {
 	agentPing: (url: string, token: string | null) => typedError<null, string>(__TAURI_INVOKE("agent_ping", { url, token })),
 	checkUpdate: () => typedError<UpdateStatus, string>(__TAURI_INVOKE("check_update")),
 	installUpdate: (url: string, filename: string) => typedError<null, string>(__TAURI_INVOKE("install_update", { url, filename })),
+	/**  Opens a URL or file path with the OS default handler. */
+	open: (target: string) => typedError<null, string>(__TAURI_INVOKE("open", { target })),
 };
 
 /* Types */

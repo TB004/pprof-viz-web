@@ -6,7 +6,6 @@ import {
 	LoaderCircleIcon,
 	RefreshCwIcon,
 } from "@lucide/svelte";
-import { openUrl } from "@tauri-apps/plugin-opener";
 import { onMount } from "svelte";
 import type { UpdateStatus } from "$lib/bindings";
 import { commands } from "$lib/bindings";
@@ -44,11 +43,13 @@ async function checkForUpdates() {
 }
 
 async function installUpdate(status: UpdateStatus) {
+	if (!status.assetUrl || !status.assetFilename) {
+		await run(commands.open(status.releaseUrl));
+		return;
+	}
 	updateState = { phase: "downloading" };
 	try {
-		await run(
-			commands.installUpdate(status.assetUrl ?? "", status.assetFilename ?? ""),
-		);
+		await run(commands.installUpdate(status.assetUrl, status.assetFilename));
 	} catch (e) {
 		updateState = { phase: "error", message: String(e) };
 	}
@@ -101,7 +102,7 @@ async function installUpdate(status: UpdateStatus) {
 						<button
 							type="button"
 							class="text-xs text-muted-foreground underline underline-offset-4 cursor-pointer"
-							onclick={() => openUrl(s.releaseUrl)}
+							onclick={() => commands.open(s.releaseUrl)}
 						>
 							View release notes
 						</button>

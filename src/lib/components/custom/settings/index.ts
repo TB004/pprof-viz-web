@@ -1,0 +1,5 @@
+export { default as AboutSection } from "./about-section.svelte";
+export { default as AppearanceSection } from "./appearance-section.svelte";
+export { default as DangerZoneSection } from "./danger-zone-section.svelte";
+export { default as ProfileDefaultsSection } from "./profile-defaults-section.svelte";
+export { default as UpdatesSection } from "./updates-section.svelte";

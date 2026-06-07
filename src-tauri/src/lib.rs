@@ -1,6 +1,7 @@
 mod collection;
 mod db;
 mod errors;
+mod opener;
 mod proto;
 mod rpc;
 mod settings;
@@ -8,10 +9,13 @@ mod state;
 mod update;
 mod utils;
 
+use tauri::Manager;
+
 use crate::state::AppState;
 
 fn make_builder() -> tauri_specta::Builder<tauri::Wry> {
     tauri_specta::Builder::new().commands(tauri_specta::collect_commands![
+        settings::get_arch,
         settings::get_settings,
         settings::update_settings,
         db::list_projects,
@@ -35,6 +39,7 @@ fn make_builder() -> tauri_specta::Builder<tauri::Wry> {
         rpc::agent_ping,
         update::check_update,
         update::install_update,
+        opener::open,
     ])
 }
 
@@ -62,14 +67,27 @@ pub fn run() {
         .expect("failed to export typescript bindings");
 
     tauri::Builder::default()
-        .plugin(
-            tauri_plugin_sql::Builder::default()
-                .add_migrations(db::DB_URL, db::migrations())
-                .build(),
-        )
-        .plugin(tauri_plugin_os::init())
-        .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_store::Builder::new().build())
+        .setup(|app| {
+            let data_dir = app.path().app_data_dir()?;
+            std::fs::create_dir_all(&data_dir)?;
+
+            let pool = tauri::async_runtime::block_on(
+                sqlx::sqlite::SqlitePoolOptions::new().connect_with(
+                    sqlx::sqlite::SqliteConnectOptions::new()
+                        .filename(data_dir.join("pprof-viz.db"))
+                        .create_if_missing(true)
+                        .foreign_keys(true)
+                        .auto_vacuum(sqlx::sqlite::SqliteAutoVacuum::Full)
+                        .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal),
+                ),
+            )?;
+
+            tauri::async_runtime::block_on(sqlx::migrate!("./migrations").run(&pool))?;
+
+            app.manage(pool);
+            app.manage(settings::SettingsState::load(&data_dir));
+            Ok(())
+        })
         .manage(AppState::default())
         .invoke_handler(builder.invoke_handler())
         .run(tauri::generate_context!())

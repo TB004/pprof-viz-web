@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
-use tauri_plugin_opener::OpenerExt;
 
 const RELEASES_LATEST_API: &str = "https://api.github.com/repos/TB004/pprof-viz/releases/latest";
 const ASSETS_API: &str = "https://api.github.com/repos/TB004/pprof-viz/releases/assets";
@@ -130,10 +129,8 @@ pub async fn install_update(app: AppHandle, url: String, filename: String) -> Re
     let dest = std::env::temp_dir().join(&filename);
     std::fs::write(&dest, &bytes).map_err(|e| e.to_string())?;
 
-    // Open with the OS default handler (Finder for DMG, msiexec for MSI).
-    app.opener()
-        .open_path(dest.to_str().ok_or("non-UTF-8 temp path")?, None::<&str>)
-        .map_err(|e| e.to_string())?;
+    // Open with the OS default handler.
+    crate::opener::open(dest.to_str().ok_or("non-UTF-8 temp path")?.to_owned())?;
 
     // Exit so the installer can overwrite the running binary.
     app.exit(0);

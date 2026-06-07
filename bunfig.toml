@@ -1,0 +1,4 @@
+# All package updates musst be at least 7 days old
+# for improved security against supply-chain attacks
+[install]
+minimumReleaseAge = 604800

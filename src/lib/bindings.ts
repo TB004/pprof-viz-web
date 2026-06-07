@@ -4,108 +4,76 @@ import { invoke as __TAURI_INVOKE } from "@tauri-apps/api/core";
 
 /** Commands */
 export const commands = {
-	getSettings: () =>
-		typedError<AppSettings, string>(__TAURI_INVOKE("get_settings")),
-	updateSettings: (settings: AppSettings) =>
-		typedError<AppSettings, string>(
-			__TAURI_INVOKE("update_settings", { settings }),
-		),
-	listProjects: () =>
-		typedError<ProjectRow[], string>(__TAURI_INVOKE("list_projects")),
-	listProfiles: () =>
-		typedError<ProfileRow[], string>(__TAURI_INVOKE("list_profiles")),
-	getProjectById: (id: string) =>
-		typedError<
-			{
-				id: string;
-				name: string;
-				createdAt: number | null;
-				updatedAt: number | null;
-			} | null,
-			string
-		>(__TAURI_INVOKE("get_project_by_id", { id })),
-	getProfileById: (id: string) =>
-		typedError<
-			{
-				id: string;
-				projectId: string;
-				name: string;
-				url: string;
-				mode: CollectionType;
-				token: string | null;
-				intervalSeconds: number | null;
-				numberOfCycles: number | null;
-				createdAt: number | null;
-				updatedAt: number | null;
-			} | null,
-			string
-		>(__TAURI_INVOKE("get_profile_by_id", { id })),
-	createProject: (name: string) =>
-		typedError<ProjectRow, string>(__TAURI_INVOKE("create_project", { name })),
-	renameProject: (id: string, name: string) =>
-		typedError<null, string>(__TAURI_INVOKE("rename_project", { id, name })),
-	deleteProject: (id: string) =>
-		typedError<null, string>(__TAURI_INVOKE("delete_project", { id })),
-	createProfile: (projectId: string, input: ProfileInput) =>
-		typedError<ProfileRow, string>(
-			__TAURI_INVOKE("create_profile", { projectId, input }),
-		),
-	updateProfile: (id: string, input: ProfileInput) =>
-		typedError<null, string>(__TAURI_INVOKE("update_profile", { id, input })),
-	deleteProfile: (id: string) =>
-		typedError<null, string>(__TAURI_INVOKE("delete_profile", { id })),
-	resetAllData: () =>
-		typedError<null, string>(__TAURI_INVOKE("reset_all_data")),
-	registerError: (message: string) =>
-		typedError<AppError, string>(__TAURI_INVOKE("register_error", { message })),
+	getArch: () => __TAURI_INVOKE<string>("get_arch"),
+	getSettings: () => typedError<AppSettings, string>(__TAURI_INVOKE("get_settings")),
+	updateSettings: (settings: AppSettings) => typedError<AppSettings, string>(__TAURI_INVOKE("update_settings", { settings })),
+	listProjects: () => typedError<ProjectRow[], string>(__TAURI_INVOKE("list_projects")),
+	listProfiles: () => typedError<ProfileRow[], string>(__TAURI_INVOKE("list_profiles")),
+	getProjectById: (id: string) => typedError<{
+	id: string,
+	name: string,
+	createdAt: number | null,
+	updatedAt: number | null,
+} | null, string>(__TAURI_INVOKE("get_project_by_id", { id })),
+	getProfileById: (id: string) => typedError<{
+	id: string,
+	projectId: string,
+	name: string,
+	url: string,
+	mode: CollectionType,
+	token: string | null,
+	intervalSeconds: number | null,
+	numberOfCycles: number | null,
+	createdAt: number | null,
+	updatedAt: number | null,
+} | null, string>(__TAURI_INVOKE("get_profile_by_id", { id })),
+	createProject: (name: string) => typedError<ProjectRow, string>(__TAURI_INVOKE("create_project", { name })),
+	renameProject: (id: string, name: string) => typedError<null, string>(__TAURI_INVOKE("rename_project", { id, name })),
+	deleteProject: (id: string) => typedError<null, string>(__TAURI_INVOKE("delete_project", { id })),
+	createProfile: (projectId: string, input: ProfileInput) => typedError<ProfileRow, string>(__TAURI_INVOKE("create_profile", { projectId, input })),
+	updateProfile: (id: string, input: ProfileInput) => typedError<null, string>(__TAURI_INVOKE("update_profile", { id, input })),
+	deleteProfile: (id: string) => typedError<null, string>(__TAURI_INVOKE("delete_profile", { id })),
+	resetAllData: () => typedError<null, string>(__TAURI_INVOKE("reset_all_data")),
+	registerError: (message: string) => typedError<AppError, string>(__TAURI_INVOKE("register_error", { message })),
 	getErrors: () => typedError<AppError[], string>(__TAURI_INVOKE("get_errors")),
 	clearErrors: () => typedError<null, string>(__TAURI_INVOKE("clear_errors")),
-	removeError: (id: string) =>
-		typedError<null, string>(__TAURI_INVOKE("remove_error", { id })),
-	startCollection: (profileId: string) =>
-		typedError<null, string>(__TAURI_INVOKE("start_collection", { profileId })),
-	stopCollection: () =>
-		typedError<null, string>(__TAURI_INVOKE("stop_collection")),
-	getCollectionSnapshot: () =>
-		typedError<CollectionStateSnapshot, string>(
-			__TAURI_INVOKE("get_collection_snapshot"),
-		),
-	agentPing: (url: string, token: string | null) =>
-		typedError<null, string>(__TAURI_INVOKE("agent_ping", { url, token })),
-	checkUpdate: () =>
-		typedError<UpdateStatus, string>(__TAURI_INVOKE("check_update")),
-	installUpdate: (url: string, filename: string) =>
-		typedError<null, string>(
-			__TAURI_INVOKE("install_update", { url, filename }),
-		),
+	removeError: (id: string) => typedError<null, string>(__TAURI_INVOKE("remove_error", { id })),
+	startCollection: (profileId: string) => typedError<null, string>(__TAURI_INVOKE("start_collection", { profileId })),
+	stopCollection: () => typedError<null, string>(__TAURI_INVOKE("stop_collection")),
+	getCollectionSnapshot: () => typedError<CollectionStateSnapshot, string>(__TAURI_INVOKE("get_collection_snapshot")),
+	agentPing: (url: string, token: string | null) => typedError<null, string>(__TAURI_INVOKE("agent_ping", { url, token })),
+	checkUpdate: () => typedError<UpdateStatus, string>(__TAURI_INVOKE("check_update")),
+	installUpdate: (url: string, filename: string) => typedError<null, string>(__TAURI_INVOKE("install_update", { url, filename })),
+	/**  Opens a URL or file path with the OS default handler. */
+	open: (target: string) => typedError<null, string>(__TAURI_INVOKE("open", { target })),
 };
 
 /* Types */
 export type AppError = {
-	id: string;
-	message: string;
-	timestamp: number | null;
+	id: string,
+	message: string,
+	timestamp: number | null,
 };
 
 export type AppSettings = {
-	theme: ThemeMode;
-	defaultName: string;
-	defaultUrl: string;
-	defaultMode: CollectionType;
-	defaultIntervalSeconds: number;
-	defaultNumberOfCycles: number;
+	theme: ThemeMode,
+	defaultName: string,
+	defaultUrl: string,
+	defaultMode: CollectionType,
+	defaultIntervalSeconds: number,
+	defaultNumberOfCycles: number,
 };
 
 export type CollectionStateSnapshot = {
-	status: CollectionStatus;
-	profileId: string | null;
-	profileName: string | null;
-	profileUrl: string | null;
-	mode: CollectionType | null;
-	startedAt: number | null;
-	sampleCount: number | null;
-	frames: Frame[];
-	metadata: unknown | null;
+	status: CollectionStatus,
+	profileId: string | null,
+	profileName: string | null,
+	profileUrl: string | null,
+	mode: CollectionType | null,
+	startedAt: number | null,
+	sampleCount: number | null,
+	frames: Frame[],
+	metadata: unknown | null,
 };
 
 export type CollectionStatus = "idle" | "running";
@@ -115,61 +83,60 @@ export type CollectionType = "snapshot" | "stream";
 export type Frame = unknown;
 
 export type ProfileInput = {
-	name: string;
-	url: string;
-	mode: CollectionType;
-	token: string | null;
-	intervalSeconds: number | null;
-	numberOfCycles: number | null;
+	name: string,
+	url: string,
+	mode: CollectionType,
+	token: string | null,
+	intervalSeconds: number | null,
+	numberOfCycles: number | null,
 };
 
 export type ProfileRow = {
-	id: string;
-	projectId: string;
-	name: string;
-	url: string;
-	mode: CollectionType;
-	token: string | null;
-	intervalSeconds: number | null;
-	numberOfCycles: number | null;
-	createdAt: number | null;
-	updatedAt: number | null;
+	id: string,
+	projectId: string,
+	name: string,
+	url: string,
+	mode: CollectionType,
+	token: string | null,
+	intervalSeconds: number | null,
+	numberOfCycles: number | null,
+	createdAt: number | null,
+	updatedAt: number | null,
 };
 
 export type ProjectRow = {
-	id: string;
-	name: string;
-	createdAt: number | null;
-	updatedAt: number | null;
+	id: string,
+	name: string,
+	createdAt: number | null,
+	updatedAt: number | null,
 };
 
 export type ThemeMode = "light" | "dark" | "system";
 
 export type UpdateStatus = {
-	currentVersion: string;
-	latestVersion: string;
-	available: boolean;
-	releaseUrl: string;
+	currentVersion: string,
+	latestVersion: string,
+	available: boolean,
+	releaseUrl: string,
 	/**
 	 *  `https://api.github.com/repos/.../releases/assets/{id}`.
 	 *  `None` when no update is available or no matching asset was found.
 	 */
-	assetUrl: string | null;
+	assetUrl: string | null,
 	/**
 	 *  Original asset filename (e.g. `Pprof-Viz_0.1.2_aarch64.dmg`).
 	 *  Needed so the downloaded file gets the right name and extension.
 	 */
-	assetFilename: string | null;
+	assetFilename: string | null,
 };
 
 /* Tauri Specta runtime */
-async function typedError<T, E>(
-	result: Promise<T>,
-): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {
-	try {
-		return { status: "ok", data: await result };
-	} catch (e) {
-		if (e instanceof Error) throw e;
-		return { status: "error", error: e as any };
-	}
+async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {
+    try {
+        return { status: "ok", data: await result };
+    } catch (e) {
+        if (e instanceof Error) throw e;
+        return { status: "error", error: e as any };
+    }
 }
+

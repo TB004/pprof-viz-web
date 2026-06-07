@@ -5,7 +5,7 @@ import {
 	BracesIcon,
 	CpuIcon,
 	HistoryIcon,
-	HomeIcon,
+	House,
 	LayersIcon,
 	PackageIcon,
 	SettingsIcon,
@@ -26,7 +26,7 @@ const menuItems = [
 ];
 
 const footerItems = [
-	{ title: "Home", url: "/", icon: HomeIcon },
+	{ title: "Home", url: "/", icon: House },
 	{ title: "Archive", url: "/archive", icon: ArchiveIcon },
 	{ title: "Settings", url: "/settings", icon: SettingsIcon },
 ];

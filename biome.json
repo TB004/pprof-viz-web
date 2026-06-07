@@ -48,7 +48,7 @@
     {
       "includes": ["src/lib/bindings.ts"],
       "linter": { "enabled": false },
-      "formatter": { "enabled": true }
+      "formatter": { "enabled": false }
     },
     {
       "includes": ["**/*.svelte"],
@@ -59,6 +59,9 @@
           },
           "suspicious": {
             "noAssignInExpressions": "off"
+          },
+          "complexity": {
+            "noCommaOperator": "off"
           }
         }
       }

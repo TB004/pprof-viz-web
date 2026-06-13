@@ -1,5 +1,3 @@
-//! Process-wide application state, registered into Tauri's managed state map.
-
 use std::sync::Arc;
 
 use crate::collection::CollectionStore;

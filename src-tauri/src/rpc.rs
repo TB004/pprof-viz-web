@@ -1,13 +1,3 @@
-//! ConnectRPC client wrapping the agent service.
-//!
-//! Auto h1/h2 over plaintext (`http://`) or TLS (`https://`). The TLS root
-//! store is `webpki-roots` (Mozilla's CA bundle) — fits a developer tool
-//! that talks to arbitrary `https://` agents without native cert plumbing.
-//!
-//! Per-call timeouts are scoped to the unary `ping` command. Streaming
-//! calls (`stream_all`) deliberately have no deadline — they are expected
-//! to run indefinitely until the user stops the collection.
-
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
@@ -40,7 +30,7 @@ impl AgentClient {
             .map_err(|e: http::uri::InvalidUri| AgentRpcError::Url(e.to_string()))?;
 
         let transport = match uri.scheme_str() {
-            Some("http") => HttpClient::plaintext(),
+            Some("http") => HttpClient::plaintext_http2_only(),
             Some("https") => HttpClient::with_tls(tls_config()),
             Some(other) => return Err(AgentRpcError::Url(format!("unsupported scheme '{other}'"))),
             None => return Err(AgentRpcError::Url("missing scheme".into())),

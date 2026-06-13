@@ -1,18 +1,3 @@
-//! In-memory state for the active collection session and the streaming
-//! worker that pumps frames from the agent into it.
-//!
-//! Frontend never owns the frame history — it subscribes to events emitted
-//! here and asks for snapshots on mount. Only one collection runs at a
-//! time. Frame history is bounded by `MAX_FRAMES`; oldest frames drop out
-//! when full. Disk persistence is deferred.
-//!
-//! Stop semantics: stopping a collection sets the session's status to Idle
-//! but **keeps the frames** so the user can still inspect the dashboards
-//! after the stream ends. Frames are only cleared when a *new* session
-//! starts. Each session carries a unique `session_id` so an old worker
-//! that's still draining can't accidentally push frames into a freshly
-//! started session.
-
 use std::collections::VecDeque;
 use std::sync::Mutex;
 

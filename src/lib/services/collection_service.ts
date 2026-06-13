@@ -24,6 +24,7 @@ export interface CollectionState {
 	url?: URL;
 	mode?: CollectionType;
 	data?: Frame[];
+	dataTimestamps?: number[];
 	metadata?: MetadataResponse;
 	startedAt?: number;
 }
@@ -107,6 +108,10 @@ function applySnapshot(snapshot: CollectionStateSnapshot) {
 			status: asStatus(snapshot.status),
 			collectedSamples: snapshot.sampleCount ?? 0,
 			data: snapshot.frames as Frame[],
+			// Preserve timestamps when frames aren't reset (e.g. collection stopped).
+			// Clear only when a new session starts (frames array becomes empty).
+			dataTimestamps:
+				snapshot.frames.length === 0 ? undefined : state.dataTimestamps,
 			metadata: (snapshot.metadata as MetadataResponse | null) ?? undefined,
 			startedAt,
 			mode: snapshot.mode ?? undefined,
@@ -144,6 +149,7 @@ if (browser) {
 						collectionStateStore.update((state) => ({
 							...state,
 							data: [...(state.data ?? []), event.payload],
+							dataTimestamps: [...(state.dataTimestamps ?? []), Date.now()],
 							collectedSamples: (state.data?.length ?? 0) + 1,
 						}));
 					}),

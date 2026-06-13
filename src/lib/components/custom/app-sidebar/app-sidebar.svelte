@@ -52,7 +52,7 @@ onMount(() => {
 });
 </script>
 
-<Sidebar.Root variant="floating">
+<Sidebar.Root variant="sidebar">
 	{#if isMac && !isFullscreen}
 		<Sidebar.Header class="h-8" data-tauri-drag-region="deep"></Sidebar.Header>
 	{/if}

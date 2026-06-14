@@ -1,9 +1,3 @@
-//! Application-wide error log surfaced to the frontend via the
-//! `error://new` event and the `get_errors` / `clear_errors` /
-//! `remove_error` / `register_error` commands.
-//!
-//! Capacity is bounded; oldest entries are dropped when full.
-
 use std::collections::VecDeque;
 use std::sync::Mutex;
 

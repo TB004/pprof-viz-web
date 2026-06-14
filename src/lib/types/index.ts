@@ -17,6 +17,11 @@ export enum CollectionType {
 	Stream = "stream",
 }
 
+export enum HttpVersion {
+	Http2 = "http2",
+	Http3 = "http3",
+}
+
 export interface AppSettings {
 	theme: ThemeMode;
 	defaultName: string;
@@ -24,6 +29,7 @@ export interface AppSettings {
 	defaultMode: CollectionType;
 	defaultIntervalSeconds: number;
 	defaultNumberOfCycles: number;
+	defaultHttpVersion: HttpVersion;
 }
 
 // --- collection.rs ---
@@ -190,6 +196,7 @@ export interface ProfileRow {
 	name: string;
 	url: string;
 	mode: CollectionType;
+	httpVersion: HttpVersion;
 	token: string | null;
 	intervalSeconds: number | null;
 	numberOfCycles: number | null;
@@ -201,6 +208,7 @@ export interface ProfileInput {
 	name: string;
 	url: string;
 	mode: CollectionType;
+	httpVersion: HttpVersion;
 	token: string | null;
 	intervalSeconds: number | null;
 	numberOfCycles: number | null;

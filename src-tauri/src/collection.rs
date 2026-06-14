@@ -227,8 +227,8 @@ pub async fn stop_collection(app: AppHandle) -> Result<(), String> {
 #[specta::specta]
 pub async fn start_collection(app: AppHandle, profile_id: String) -> Result<(), String> {
     let profile = db::load_profile(&app, &profile_id).await?;
-    let client =
-        AgentClient::connect(&profile.url, profile.token.as_deref()).map_err(|e| e.to_string())?;
+    let client = AgentClient::connect(&profile.url, profile.token.as_deref(), profile.http_version)
+        .map_err(|e| e.to_string())?;
 
     let (cancel_tx, cancel_rx) = watch::channel(false);
     let session_id = ulid::Ulid::new().to_string();

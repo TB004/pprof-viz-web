@@ -24,6 +24,7 @@ pub struct ProfileRow {
     pub name: String,
     pub url: String,
     pub mode: settings::CollectionType,
+    pub http_version: settings::HttpVersion,
     pub token: Option<String>,
     pub interval_seconds: Option<i16>,
     pub number_of_cycles: Option<i16>,
@@ -41,6 +42,7 @@ pub struct ProfileDescriptor {
     pub name: String,
     pub url: String,
     pub mode: settings::CollectionType,
+    pub http_version: settings::HttpVersion,
     pub token: Option<String>,
     pub interval_seconds: Option<i16>,
     pub number_of_cycles: Option<i16>,
@@ -52,6 +54,7 @@ pub struct ProfileInput {
     pub name: String,
     pub url: String,
     pub mode: settings::CollectionType,
+    pub http_version: settings::HttpVersion,
     pub token: Option<String>,
     pub interval_seconds: Option<i16>,
     pub number_of_cycles: Option<i16>,
@@ -222,6 +225,7 @@ pub async fn create_profile(
         name: trimmed_name,
         url: trimmed_url,
         mode: input.mode,
+        http_version: input.http_version,
         token,
         interval_seconds: input.interval_seconds,
         number_of_cycles: input.number_of_cycles,
@@ -231,15 +235,16 @@ pub async fn create_profile(
 
     with_pool(&app, |pool| async move {
         sqlx::query(
-            "INSERT INTO profiles (id, project_id, name, url, mode, token, \
+            "INSERT INTO profiles (id, project_id, name, url, mode, http_version, token, \
                  interval_seconds, number_of_cycles, created_at, updated_at) \
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&row.id)
         .bind(&row.project_id)
         .bind(&row.name)
         .bind(&row.url)
         .bind(row.mode)
+        .bind(row.http_version)
         .bind(row.token.as_deref())
         .bind(row.interval_seconds)
         .bind(row.number_of_cycles)
@@ -273,12 +278,13 @@ pub async fn update_profile(app: AppHandle, id: String, input: ProfileInput) -> 
 
     with_pool(&app, move |pool| async move {
         sqlx::query(
-            "UPDATE profiles SET name = ?, url = ?, mode = ?, token = ?, \
+            "UPDATE profiles SET name = ?, url = ?, mode = ?, http_version = ?, token = ?, \
              interval_seconds = ?, number_of_cycles = ?, updated_at = ? WHERE id = ?",
         )
         .bind(&trimmed_name)
         .bind(&trimmed_url)
         .bind(input.mode)
+        .bind(input.http_version)
         .bind(token.as_deref())
         .bind(input.interval_seconds)
         .bind(input.number_of_cycles)

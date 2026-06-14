@@ -11,7 +11,7 @@ import { get } from "svelte/store";
 import { Button } from "$lib/components/ui/button/index.js";
 import { ProfileService } from "$lib/services";
 import type { ProfileProject } from "$lib/services/profile_service";
-import { CollectionType } from "$lib/types";
+import { CollectionType, HttpVersion } from "$lib/types";
 import { clearProfileForm, dialogState } from "./state.svelte.ts";
 
 type Props = {
@@ -69,8 +69,19 @@ async function handleProfileSelect(projectId: string, profileId: string) {
 	}
 
 	dialogState.profileName = snapshot?.name ?? "";
-	dialogState.profileUrl = snapshot?.url ?? "";
+	// Parse the stored URL back into scheme + host
+	try {
+		const parsed = new URL(snapshot?.url ?? "http://localhost");
+		dialogState.profileScheme = parsed.protocol.replace(":", "") as
+			| "http"
+			| "https";
+		dialogState.profileUrlHost = parsed.host;
+	} catch {
+		dialogState.profileScheme = "http";
+		dialogState.profileUrlHost = snapshot?.url ?? "";
+	}
 	dialogState.profileMode = snapshot?.mode ?? CollectionType.Stream;
+	dialogState.profileHttpVersion = snapshot?.httpVersion ?? HttpVersion.Http2;
 	dialogState.profileToken = snapshot?.token ?? "";
 	dialogState.profileIntervalSeconds = snapshot?.intervalSeconds ?? 1;
 	dialogState.profileNumberOfCycles = snapshot?.numberOfCycles ?? 0;

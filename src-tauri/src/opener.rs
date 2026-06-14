@@ -16,7 +16,7 @@ pub fn open(target: String) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         Command::new("cmd")
-            .args(["/C", "start", "", target])
+            .args(["/C", "start", "", &target])
             .spawn()
             .map(|_| ())
             .map_err(|e| e.to_string())

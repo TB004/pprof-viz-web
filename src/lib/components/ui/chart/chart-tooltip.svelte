@@ -129,7 +129,7 @@ const nestLabel = $derived(visibleSeries.length === 1 && indicator !== "dot");
                     chartCtx.tooltip.data,
                 )}
 				{@const indicatorColor =
-                    color || item.config?.color || item.color}
+                    color || itemConfig?.color || item.config?.color || item.color}
 				<div
 					class={cn(
                         "[&>svg]:text-muted-foreground flex w-full flex-wrap items-stretch gap-2 [&>svg]:size-2.5",

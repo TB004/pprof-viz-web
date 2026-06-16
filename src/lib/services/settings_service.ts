@@ -1,13 +1,12 @@
 import { type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
-import { commands } from "$lib/bindings";
+import * as Ipc from "$lib/ipc";
 import {
 	type AppSettings,
 	CollectionType,
 	HttpVersion,
 	ThemeMode,
 } from "$lib/types";
-import { run } from "./invoke.js";
 
 const THEME_CACHE_KEY = "pprof-viz-settings";
 
@@ -52,7 +51,7 @@ async function ensureHydrated() {
 	if (hydrated) return;
 	hydrated = true;
 	try {
-		const loaded = await run(commands.getSettings());
+		const loaded = await Ipc.getSettings();
 		settingsStore.set(loaded as AppSettings);
 	} catch {
 		// Leave fallback in place — Rust may not be ready yet during very
@@ -72,7 +71,7 @@ if (browser) {
 export async function updateSettings(patch: Partial<AppSettings>) {
 	const current = getSettingsSnapshot();
 	const merged = { ...current, ...patch };
-	const updated = await run(commands.updateSettings(merged));
+	const updated = await Ipc.updateSettings(merged);
 	settingsStore.set(updated as AppSettings);
 }
 

@@ -3,6 +3,17 @@ import { CollectionType, HttpVersion } from "$lib/types";
 
 export type EditorMode = "profile" | "new-profile";
 
+export type ProfileSnapshot = {
+	name: string;
+	scheme: "http" | "https";
+	urlHost: string;
+	mode: CollectionType;
+	httpVersion: HttpVersion;
+	token: string;
+	intervalSeconds: number;
+	numberOfCycles: number;
+};
+
 export const dialogState = $state({
 	selectedProjectId: undefined as string | undefined,
 	selectedProfileId: undefined as string | undefined,
@@ -15,6 +26,7 @@ export const dialogState = $state({
 	profileToken: "",
 	profileIntervalSeconds: 1,
 	profileNumberOfCycles: 0,
+	originalProfile: null as ProfileSnapshot | null,
 	projectDialogOpen: false,
 	projectDialogMode: "create" as "create" | "rename",
 	projectDialogProjectId: undefined as string | undefined,

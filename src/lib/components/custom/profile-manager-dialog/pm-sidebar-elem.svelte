@@ -30,6 +30,7 @@ function startNewProfile(projectId: string) {
 	dialogState.selectedProjectId = projectId;
 	dialogState.selectedProfileId = undefined;
 	dialogState.editorMode = "new-profile";
+	dialogState.originalProfile = null;
 	clearProfileForm();
 }
 
@@ -85,6 +86,17 @@ async function handleProfileSelect(projectId: string, profileId: string) {
 	dialogState.profileToken = snapshot?.token ?? "";
 	dialogState.profileIntervalSeconds = snapshot?.intervalSeconds ?? 1;
 	dialogState.profileNumberOfCycles = snapshot?.numberOfCycles ?? 0;
+
+	dialogState.originalProfile = {
+		name: dialogState.profileName,
+		scheme: dialogState.profileScheme,
+		urlHost: dialogState.profileUrlHost,
+		mode: dialogState.profileMode,
+		httpVersion: dialogState.profileHttpVersion,
+		token: dialogState.profileToken,
+		intervalSeconds: dialogState.profileIntervalSeconds,
+		numberOfCycles: dialogState.profileNumberOfCycles,
+	};
 }
 </script>
 

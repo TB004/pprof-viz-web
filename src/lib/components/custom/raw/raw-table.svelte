@@ -1,5 +1,6 @@
 <script lang="ts">
 import { ChevronDownIcon, ChevronRightIcon } from "@lucide/svelte";
+import * as Card from "$lib/components/ui/card";
 import { ScrollArea } from "$lib/components/ui/scroll-area";
 import { CollectionService } from "$lib/services";
 import { CollectionStatus, type Frame } from "$lib/types";
@@ -164,88 +165,95 @@ function toggleCell(sample: number, colIdx: number) {
 }
 </script>
 
-<ScrollArea orientation="horizontal" class="rounded-md border border-border/60">
-	<table class="w-full border-collapse text-xs">
-		<thead class="sticky top-0 z-10 bg-muted/90 backdrop-blur-sm">
-			<tr class="border-b border-border/60">
-				<th
-					class="border-r border-border/40 px-3 py-2.5 text-center font-semibold text-muted-foreground whitespace-nowrap"
-				>
-					#
-				</th>
-				<th
-					class="border-r border-border/40 px-3 py-2.5 text-center font-semibold text-muted-foreground whitespace-nowrap"
-				>
-					Time
-				</th>
-				{#each columns as col, i (col.label)}
-					<th
-						class={`px-3 py-2.5 text-center font-semibold text-muted-foreground whitespace-nowrap${i < columns.length - 1 ? " border-r border-border/40" : ""}`}
-					>
-						{col.label}
-					</th>
-				{/each}
-			</tr>
-		</thead>
-		<tbody>
-			{#each pageRows as row (row.sample)}
-				<tr
-					class="border-b border-border/30 hover:bg-muted/20 align-top last:border-b-0"
-				>
-					<td
-						class="border-r border-border/30 px-3 py-2.5 text-center font-mono text-muted-foreground whitespace-nowrap"
-					>
-						{row.sample}
-					</td>
-					<td
-						class="border-r border-border/30 px-3 py-2.5 text-center font-mono text-muted-foreground whitespace-nowrap"
-					>
-						{fmtTimestamp(row.arrivedAt)}
-					</td>
-					{#each columns as col, colIdx (col.label)}
-						{@const json = col.format(row.frame)}
-						{@const isExpanded = expandedCells.has(
-                            `${row.sample}-${colIdx}`,
-                        )}
-						<td
-							class={`px-3 py-2.5 align-top text-center${colIdx < columns.length - 1 ? " border-r border-border/30" : ""}`}
-						>
-							{#if json === "—"}
-								<span class="font-mono text-muted-foreground/40">—</span>
-							{:else}
-								<div class="flex flex-col items-center gap-1.5">
-									<button
-										type="button"
-										class="flex cursor-pointer items-center gap-1 font-mono text-xs text-muted-foreground transition-colors hover:text-foreground"
-										onclick={() =>
-                                            toggleCell(row.sample, colIdx)}
-									>
-										{#if isExpanded}
-											<ChevronDownIcon class="size-3 shrink-0" />
+<Card.Root class="py-0">
+	<Card.Content class="p-0">
+		<div class="overflow-hidden rounded-b-xl">
+			<ScrollArea orientation="horizontal">
+				<table class="w-full text-sm">
+					<thead>
+						<tr class="border-b bg-muted/50">
+							<th
+								class="px-4 py-3 text-center font-medium text-muted-foreground whitespace-nowrap"
+							>
+								#
+							</th>
+							<th
+								class="px-4 py-3 text-center font-medium text-muted-foreground whitespace-nowrap"
+							>
+								Time
+							</th>
+							{#each columns as col (col.label)}
+								<th
+									class="px-4 py-3 text-center font-medium text-muted-foreground whitespace-nowrap"
+								>
+									{col.label}
+								</th>
+							{/each}
+						</tr>
+					</thead>
+					<tbody>
+						{#each pageRows as row (row.sample)}
+							<tr
+								class="border-b last:border-0 transition-colors hover:bg-muted/30 align-top"
+							>
+								<td
+									class="px-4 py-2.5 text-center font-mono text-muted-foreground whitespace-nowrap"
+								>
+									{row.sample}
+								</td>
+								<td
+									class="px-4 py-2.5 text-center font-mono text-muted-foreground whitespace-nowrap"
+								>
+									{fmtTimestamp(row.arrivedAt)}
+								</td>
+								{#each columns as col, colIdx (col.label)}
+									{@const json = col.format(row.frame)}
+									{@const isExpanded = expandedCells.has(
+                                        `${row.sample}-${colIdx}`,
+                                    )}
+									<td class="px-4 py-2.5 align-top text-center">
+										{#if json === "—"}
+											<span class="font-mono text-muted-foreground/40">—</span>
 										{:else}
-											<ChevronRightIcon class="size-3 shrink-0" />
-										{/if}
-										<span>expand</span>
-									</button>
+											<div class="flex flex-col items-center gap-1.5">
+												<button
+													type="button"
+													class="flex cursor-pointer items-center gap-1 font-mono text-xs text-muted-foreground transition-colors hover:text-foreground"
+													onclick={() =>
+                                                        toggleCell(
+                                                            row.sample,
+                                                            colIdx,
+                                                        )}
+												>
+													{#if isExpanded}
+														<ChevronDownIcon class="size-3 shrink-0" />
+													{:else}
+														<ChevronRightIcon class="size-3 shrink-0" />
+													{/if}
+													<span>expand</span>
+												</button>
 
-									{#if isExpanded}
-										<ScrollArea
-											orientation="horizontal"
-											class="max-w-72 rounded-md bg-muted/50"
-										>
-											<div class="p-2.5">
-												<pre
-													class="text-left text-[11px] font-mono leading-relaxed text-foreground/80"
-												>{json}</pre>
+												{#if isExpanded}
+													<ScrollArea
+														orientation="both"
+														class="h-64 max-w-72 rounded-md bg-muted/50"
+													>
+														<div class="p-2.5">
+															<pre
+																class="text-left text-[11px] font-mono leading-relaxed text-foreground/80"
+															>{json}</pre>
+														</div>
+													</ScrollArea>
+												{/if}
 											</div>
-										</ScrollArea>
-									{/if}
-								</div>
-							{/if}
-						</td>
-					{/each}
-				</tr>
-			{/each}
-		</tbody>
-	</table>
-</ScrollArea>
+										{/if}
+									</td>
+								{/each}
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</ScrollArea>
+		</div>
+	</Card.Content>
+</Card.Root>

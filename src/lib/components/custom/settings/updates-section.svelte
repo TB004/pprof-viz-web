@@ -7,11 +7,10 @@ import {
 	RefreshCwIcon,
 } from "@lucide/svelte";
 import { onMount } from "svelte";
-import type { UpdateStatus } from "$lib/bindings";
-import { commands } from "$lib/bindings";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-import { run } from "$lib/services/invoke.js";
+import type { UpdateStatus } from "$lib/ipc";
+import * as Ipc from "$lib/ipc";
 
 type UpdateState =
 	| { phase: "idle" }
@@ -28,7 +27,7 @@ onMount(() => void checkForUpdates());
 async function checkForUpdates() {
 	updateState = { phase: "checking" };
 	try {
-		const status = await run(commands.checkUpdate());
+		const status = await Ipc.checkUpdate();
 		if (status.available) {
 			updateState = { phase: "available", status };
 		} else {
@@ -44,12 +43,12 @@ async function checkForUpdates() {
 
 async function installUpdate(status: UpdateStatus) {
 	if (!status.assetUrl || !status.assetFilename) {
-		await run(commands.open(status.releaseUrl));
+		await Ipc.open(status.releaseUrl);
 		return;
 	}
 	updateState = { phase: "downloading" };
 	try {
-		await run(commands.installUpdate(status.assetUrl, status.assetFilename));
+		await Ipc.installUpdate(status.assetUrl, status.assetFilename);
 	} catch (e) {
 		updateState = { phase: "error", message: String(e) };
 	}
@@ -102,7 +101,7 @@ async function installUpdate(status: UpdateStatus) {
 						<button
 							type="button"
 							class="text-xs text-muted-foreground underline underline-offset-4 cursor-pointer"
-							onclick={() => commands.open(s.releaseUrl)}
+							onclick={() => Ipc.open(s.releaseUrl)}
 						>
 							View release notes
 						</button>

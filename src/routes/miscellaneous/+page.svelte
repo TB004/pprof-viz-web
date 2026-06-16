@@ -9,6 +9,7 @@ import {
 	Tooltip,
 } from "$lib/components/ui/chart";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+import { fmtSecs, fmtSecsAxis } from "$lib/format";
 import { CollectionService } from "$lib/services";
 
 const collectionState = CollectionService.collectionState;
@@ -72,22 +73,6 @@ function fmtDebugKey(key: string): string {
 		.split(" ")
 		.map((w, i) => (i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w))
 		.join(" ");
-}
-
-function fmtSecsAxis(s: number): string {
-	if (s === 0) return "0";
-	if (s < 0.0001) return `${(s * 1_000_000).toFixed(0)}µs`;
-	if (s < 0.1) return `${(s * 1_000).toFixed(1)}ms`;
-	if (s < 60) return `${s.toFixed(1)}s`;
-	if (s < 6000) return `${(s / 60).toFixed(1)}m`;
-	return `${(s / 3600).toFixed(1)}h`;
-}
-
-function fmtSecs(s: number): string {
-	if (s === 0) return "0s";
-	if (s < 0.001) return `${(s * 1_000_000).toFixed(0)}µs`;
-	if (s < 1) return `${(s * 1_000).toFixed(2)}ms`;
-	return `${s.toFixed(3)}s`;
 }
 
 // Returns "" for fractional ticks so duplicate labels don't appear when the

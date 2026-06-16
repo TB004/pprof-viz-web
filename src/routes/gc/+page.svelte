@@ -14,6 +14,7 @@ import {
 	Tooltip,
 } from "$lib/components/ui/chart";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+import { fmtBytes, fmtBytesAxis } from "$lib/format";
 import { CollectionService } from "$lib/services";
 
 const collectionState = CollectionService.collectionState;
@@ -78,22 +79,6 @@ const stats = $derived([
 		Icon: ActivityIcon,
 	},
 ]);
-
-function fmtBytes(b: number): string {
-	if (b === 0) return "0 B";
-	const units = ["B", "KB", "MB", "GB", "TB"];
-	const i = Math.floor(Math.log(b) / Math.log(1024));
-	return `${(b / 1024 ** i).toFixed(2)} ${units[i]}`;
-}
-
-function fmtBytesAxis(b: number): string {
-	if (b === 0) return "0";
-	if (b < 100) return `${b.toFixed(0)}B`;
-	if (b < 100 * 1024) return `${(b / 1024).toFixed(1)}KB`;
-	if (b < 100 * 1024 ** 2) return `${(b / 1024 ** 2).toFixed(1)}MB`;
-	if (b < 100 * 1024 ** 3) return `${(b / 1024 ** 3).toFixed(1)}GB`;
-	return `${(b / 1024 ** 4).toFixed(1)}TB`;
-}
 
 function fmtCompactAxis(n: number): string {
 	if (n < 1_000) return String(Math.round(n));

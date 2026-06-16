@@ -9,7 +9,6 @@ import {
 	PlugZapIcon,
 	Trash2Icon,
 } from "@lucide/svelte";
-import { commands } from "$lib/bindings";
 import {
 	PMDeleteDialog,
 	PMProjectDialog,
@@ -20,6 +19,7 @@ import * as Dialog from "$lib/components/ui/dialog/index.js";
 import Input from "$lib/components/ui/input/input.svelte";
 import * as ScrollArea from "$lib/components/ui/scroll-area/index.js";
 import * as Select from "$lib/components/ui/select/index.js";
+import * as Ipc from "$lib/ipc";
 import { ProfileService } from "$lib/services";
 import { CollectionType, HttpVersion } from "$lib/types";
 import { assembleUrl, clearProfileForm, dialogState } from "./state.svelte.ts";
@@ -200,12 +200,7 @@ async function testConnection() {
 	pingError = "";
 
 	try {
-		const result = await commands.agentPing(
-			url,
-			token || null,
-			dialogState.profileHttpVersion,
-		);
-		if (result.status === "error") throw new Error(result.error);
+		await Ipc.agentPing(url, token || null, dialogState.profileHttpVersion);
 		pingStatus = "success";
 	} catch (err) {
 		pingStatus = "error";

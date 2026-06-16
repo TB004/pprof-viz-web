@@ -1,6 +1,6 @@
 import { derived, type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
-import { commands } from "$lib/bindings";
+import * as Ipc from "$lib/ipc";
 import { ErrorService } from "$lib/services";
 import type {
 	CollectionType,
@@ -8,7 +8,6 @@ import type {
 	ProfileRow,
 	ProjectRow,
 } from "$lib/types";
-import { run } from "./invoke.js";
 
 export interface CollectionProfile {
 	value: string;
@@ -53,8 +52,8 @@ function reportInvokeError(action: string, e: unknown) {
 
 async function reload() {
 	const [projects, profiles] = await Promise.all([
-		run(commands.listProjects()),
-		run(commands.listProfiles()),
+		Ipc.listProjects(),
+		Ipc.listProfiles(),
 	]);
 
 	const profilesByProjectId = new Map<string, ProfileRow[]>();
@@ -114,7 +113,7 @@ export async function getProjectById(
 	projectId: string,
 ): Promise<ProjectRow | undefined> {
 	try {
-		const row = await run(commands.getProjectById(projectId));
+		const row = await Ipc.getProjectById(projectId);
 		return (row as ProjectRow | null) ?? undefined;
 	} catch (e) {
 		reportInvokeError("Failed to get project", e);
@@ -126,7 +125,7 @@ export async function getProfileById(
 	profileId: string,
 ): Promise<ProfileRow | undefined> {
 	try {
-		const row = await run(commands.getProfileById(profileId));
+		const row = await Ipc.getProfileById(profileId);
 		return (row as ProfileRow | null) ?? undefined;
 	} catch (e) {
 		reportInvokeError("Failed to get profile", e);
@@ -151,7 +150,7 @@ export async function createProject(name: string): Promise<string | undefined> {
 	if (!trimmed) return undefined;
 	let id: string;
 	try {
-		const project = await run(commands.createProject(trimmed));
+		const project = await Ipc.createProject(trimmed);
 		id = project.id;
 	} catch (e) {
 		reportInvokeError("Failed to create project", e);
@@ -169,7 +168,7 @@ export async function renameProject(projectId: string, name: string) {
 	const trimmed = name.trim();
 	if (!trimmed) return;
 	try {
-		await run(commands.renameProject(projectId, trimmed));
+		await Ipc.renameProject(projectId, trimmed);
 	} catch (e) {
 		reportInvokeError("Failed to rename project", e);
 		return;
@@ -183,7 +182,7 @@ export async function renameProject(projectId: string, name: string) {
 
 export async function deleteProject(projectId: string) {
 	try {
-		await run(commands.deleteProject(projectId));
+		await Ipc.deleteProject(projectId);
 	} catch (e) {
 		reportInvokeError("Failed to delete project", e);
 		return;
@@ -209,7 +208,7 @@ export async function createProfile(
 	}
 	let id: string;
 	try {
-		const created = await run(commands.createProfile(projectId, trimmed));
+		const created = await Ipc.createProfile(projectId, trimmed);
 		id = created.id;
 	} catch (e) {
 		reportInvokeError("Failed to create profile", e);
@@ -233,7 +232,7 @@ export async function updateProfile(profileId: string, input: ProfileInput) {
 		return;
 	}
 	try {
-		await run(commands.updateProfile(profileId, trimmed));
+		await Ipc.updateProfile(profileId, trimmed);
 	} catch (e) {
 		reportInvokeError("Failed to update profile", e);
 		return;
@@ -247,7 +246,7 @@ export async function updateProfile(profileId: string, input: ProfileInput) {
 
 export async function deleteProfile(profileId: string) {
 	try {
-		await run(commands.deleteProfile(profileId));
+		await Ipc.deleteProfile(profileId);
 	} catch (e) {
 		reportInvokeError("Failed to delete profile", e);
 		return;

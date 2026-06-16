@@ -1,7 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
-import { commands } from "$lib/bindings";
+import * as Ipc from "$lib/ipc";
 import { ErrorService, ProfileService } from "$lib/services";
 import {
 	type CollectionStateSnapshot,
@@ -13,7 +13,6 @@ import {
 	type Frame,
 	type MetadataResponse,
 } from "$lib/types";
-import { run } from "./invoke.js";
 
 export interface CollectionState {
 	status: CollectionStatus;
@@ -171,7 +170,7 @@ if (browser) {
 		if (!hydrated) {
 			hydrated = true;
 			try {
-				const snapshot = await run(commands.getCollectionSnapshot());
+				const snapshot = await Ipc.getCollectionSnapshot();
 				applySnapshot(snapshot as unknown as CollectionStateSnapshot);
 			} catch (e) {
 				hydrated = false;
@@ -217,7 +216,7 @@ export async function startCollection(): Promise<void> {
 	const state = getSnapshot();
 	if (!state.selectedProfile) return;
 	try {
-		await run(commands.startCollection(state.selectedProfile));
+		await Ipc.startCollection(state.selectedProfile);
 	} catch (e) {
 		await ErrorService.registerError(
 			e instanceof Error ? e.message : `Failed to start collection: ${e}`,
@@ -227,7 +226,7 @@ export async function startCollection(): Promise<void> {
 
 export async function stopCollection(): Promise<void> {
 	try {
-		await run(commands.stopCollection());
+		await Ipc.stopCollection();
 	} catch (e) {
 		await ErrorService.registerError(
 			e instanceof Error ? e.message : `Failed to stop collection: ${e}`,

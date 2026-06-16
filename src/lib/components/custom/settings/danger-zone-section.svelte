@@ -1,9 +1,8 @@
 <script lang="ts">
 import { TriangleAlertIcon } from "@lucide/svelte";
-import { commands } from "$lib/bindings";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
-import { run } from "$lib/services/invoke.js";
+import * as Ipc from "$lib/ipc";
 
 let dialogOpen = $state(false);
 let resetting = $state(false);
@@ -11,7 +10,7 @@ let resetting = $state(false);
 async function resetAllData() {
 	resetting = true;
 	try {
-		await run(commands.resetAllData());
+		await Ipc.resetAllData();
 		try {
 			localStorage.removeItem("pprof-viz-settings");
 		} catch {}

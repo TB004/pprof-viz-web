@@ -1,8 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
-import { commands } from "$lib/bindings";
-import { run } from "./invoke.js";
+import * as Ipc from "$lib/ipc";
 
 export interface AppError {
 	id: string;
@@ -22,7 +21,7 @@ export const errorState: Readable<AppError[]> = {
 
 async function refresh() {
 	try {
-		errorStore.set(await run(commands.getErrors()));
+		errorStore.set(await Ipc.getErrors());
 	} catch {
 		// ignore — store keeps its last known state
 	}
@@ -58,12 +57,12 @@ export function formatErrorTimestamp(timestamp: number | null): string {
 
 export async function registerError(message: string) {
 	// Rust pushes to ErrorLog and emits error://new, which triggers refresh().
-	await run(commands.registerError(message));
+	await Ipc.registerError(message);
 }
 
 export async function removeError(errorId: string) {
 	try {
-		await run(commands.removeError(errorId));
+		await Ipc.removeError(errorId);
 	} finally {
 		// remove_error emits no event, so re-fetch explicitly.
 		await refresh();
@@ -72,7 +71,7 @@ export async function removeError(errorId: string) {
 
 export async function clearErrors() {
 	try {
-		await run(commands.clearErrors());
+		await Ipc.clearErrors();
 	} finally {
 		await refresh();
 	}

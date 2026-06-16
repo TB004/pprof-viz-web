@@ -1,17 +1,17 @@
 <script lang="ts">
 import { getVersion } from "@tauri-apps/api/app";
 import { onMount } from "svelte";
-import { commands } from "$lib/bindings";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+import * as Ipc from "$lib/ipc";
 
 let version = $state(new Promise<string>(() => {}));
 let architecture = $state(new Promise<string>(() => {}));
 
 onMount(() => {
 	version = getVersion();
-	architecture = commands.getArch();
+	architecture = Ipc.getArch();
 });
 
 const licenseText = `MIT License
@@ -64,7 +64,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 					type="button"
 					class="text-sm font-medium text-primary underline-offset-4 hover:underline"
 					onclick={() =>
-                        commands.open("https://github.com/TB004/pprof-viz")}
+                        Ipc.open("https://github.com/TB004/pprof-viz")}
 				>
 					github.com/TB004/pprof-viz
 				</button>

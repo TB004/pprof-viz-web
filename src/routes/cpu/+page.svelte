@@ -1,7 +1,7 @@
 <script lang="ts">
 import { ActivityIcon, CpuIcon, TimerIcon, ZapIcon } from "@lucide/svelte";
 import { AreaChart, LineChart } from "layerchart";
-import type { Component } from "svelte";
+import { StatCard } from "$lib/components/custom/stat-card";
 import * as Card from "$lib/components/ui/card";
 import {
 	type ChartConfig,
@@ -154,7 +154,7 @@ const goroutineChartConfig = {
 		{:else}
 			<div class="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
 				{#each stats as { label, value, description, Icon } (label)}
-					{@render statCard(label, value, description, Icon)}
+					<StatCard {label} {value} {description} icon={Icon} />
 				{/each}
 			</div>
 
@@ -288,25 +288,3 @@ const goroutineChartConfig = {
 		{/if}
 	</div>
 </ScrollArea>
-
-{#snippet statCard(
-    label: string,
-    value: string,
-    description: string,
-    Icon: Component,
-)}
-	<Card.Root>
-		<Card.Content class="p-4">
-			<div class="flex items-center justify-between">
-				<span class="text-muted-foreground text-xs font-medium"> {label} </span>
-				<Icon class="text-muted-foreground size-3.5" />
-			</div>
-			<div class="mt-2">
-				<span class="font-mono text-xl font-semibold tabular-nums">
-					{value}
-				</span>
-			</div>
-			<p class="text-muted-foreground mt-1 text-xs">{description}</p>
-		</Card.Content>
-	</Card.Root>
-{/snippet}

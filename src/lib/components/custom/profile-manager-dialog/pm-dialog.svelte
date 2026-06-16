@@ -132,9 +132,36 @@ async function saveProfile() {
 	}
 
 	await ProfileService.updateProfile(dialogState.selectedProfileId, payload);
+
+	dialogState.originalProfile = {
+		name: dialogState.profileName,
+		scheme: dialogState.profileScheme,
+		urlHost: dialogState.profileUrlHost,
+		mode: dialogState.profileMode,
+		httpVersion: dialogState.profileHttpVersion,
+		token: dialogState.profileToken,
+		intervalSeconds: dialogState.profileIntervalSeconds,
+		numberOfCycles: dialogState.profileNumberOfCycles,
+	};
 }
 
 type PingStatus = "idle" | "pending" | "success" | "error";
+
+const hasChanges = $derived(
+	dialogState.editorMode === "new-profile" ||
+		!dialogState.originalProfile ||
+		dialogState.profileName !== dialogState.originalProfile.name ||
+		dialogState.profileScheme !== dialogState.originalProfile.scheme ||
+		dialogState.profileUrlHost !== dialogState.originalProfile.urlHost ||
+		dialogState.profileMode !== dialogState.originalProfile.mode ||
+		dialogState.profileHttpVersion !==
+			dialogState.originalProfile.httpVersion ||
+		dialogState.profileToken !== dialogState.originalProfile.token ||
+		dialogState.profileIntervalSeconds !==
+			dialogState.originalProfile.intervalSeconds ||
+		dialogState.profileNumberOfCycles !==
+			dialogState.originalProfile.numberOfCycles,
+);
 
 let showToken = $state(false);
 
@@ -440,7 +467,11 @@ async function testConnection() {
 												class="flex flex-wrap items-center justify-between gap-3"
 											>
 												<div class="flex flex-wrap gap-2">
-													<Button variant="default" onclick={saveProfile}>
+													<Button
+														variant="default"
+														onclick={saveProfile}
+														disabled={!hasChanges}
+													>
 														<CheckIcon class="size-4" />
 														<span
 															>{dialogState.editorMode ===

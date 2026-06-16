@@ -139,6 +139,7 @@ function toInput(input: ProfileInput): ProfileInput {
 		name: input.name.trim(),
 		url: input.url.trim(),
 		mode: input.mode,
+		httpVersion: input.httpVersion,
 		token: input.token?.trim() || null,
 		intervalSeconds: input.intervalSeconds ?? null,
 		numberOfCycles: input.numberOfCycles ?? null,

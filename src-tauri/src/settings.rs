@@ -22,6 +22,15 @@ pub enum CollectionType {
     Stream,
 }
 
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, sqlx::Type, specta::Type)]
+#[serde(rename_all = "lowercase")]
+#[sqlx(type_name = "TEXT", rename_all = "lowercase")]
+pub enum HttpVersion {
+    #[default]
+    Http2,
+    Http3,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
@@ -31,6 +40,7 @@ pub struct AppSettings {
     pub default_mode: CollectionType,
     pub default_interval_seconds: u32,
     pub default_number_of_cycles: u32,
+    pub default_http_version: HttpVersion,
 }
 
 impl Default for AppSettings {
@@ -42,6 +52,7 @@ impl Default for AppSettings {
             default_mode: CollectionType::Stream,
             default_interval_seconds: 1,
             default_number_of_cycles: 0,
+            default_http_version: HttpVersion::Http2,
         }
     }
 }

@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     name                TEXT NOT NULL,
     url                 TEXT NOT NULL,
     mode                TEXT NOT NULL CHECK (mode IN ('snapshot', 'stream')),
+    http_version        TEXT NOT NULL DEFAULT 'http2' CHECK (http_version IN ('http2', 'http3')),
     token               TEXT,
     interval_seconds    INTEGER,
     number_of_cycles    INTEGER,

@@ -1,7 +1,12 @@
 import { type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
 import { commands } from "$lib/bindings";
-import { type AppSettings, CollectionType, ThemeMode } from "$lib/types";
+import {
+	type AppSettings,
+	CollectionType,
+	HttpVersion,
+	ThemeMode,
+} from "$lib/types";
 import { run } from "./invoke.js";
 
 const THEME_CACHE_KEY = "pprof-viz-settings";
@@ -13,6 +18,7 @@ const fallbackSettings: AppSettings = {
 	defaultMode: CollectionType.Stream,
 	defaultIntervalSeconds: 1,
 	defaultNumberOfCycles: 0,
+	defaultHttpVersion: HttpVersion.Http2,
 };
 
 const settingsStore = writable<AppSettings>(fallbackSettings);

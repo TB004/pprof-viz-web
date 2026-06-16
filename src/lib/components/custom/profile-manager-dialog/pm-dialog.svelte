@@ -3,6 +3,8 @@ import {
 	CheckIcon,
 	CircleCheckIcon,
 	CircleXIcon,
+	EyeIcon,
+	EyeOffIcon,
 	LoaderCircleIcon,
 	PlugZapIcon,
 	Trash2Icon,
@@ -17,9 +19,10 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import Input from "$lib/components/ui/input/input.svelte";
 import * as ScrollArea from "$lib/components/ui/scroll-area/index.js";
+import * as Select from "$lib/components/ui/select/index.js";
 import { ProfileService } from "$lib/services";
-import { CollectionType } from "$lib/types";
-import { clearProfileForm, dialogState } from "./state.svelte.ts";
+import { CollectionType, HttpVersion } from "$lib/types";
+import { assembleUrl, clearProfileForm, dialogState } from "./state.svelte.ts";
 
 type Props = {
 	open?: boolean;
@@ -43,6 +46,27 @@ const modeOptions: Array<{
 		description: "Continuously follow runtime changes.",
 	},
 ];
+
+const schemeOptions = [
+	{ value: "http", label: "http://" },
+	{ value: "https", label: "https://" },
+] as const;
+
+const httpVersionOptions: Array<{
+	value: HttpVersion;
+	label: string;
+	requiresHttps: boolean;
+}> = [
+	{ value: HttpVersion.Http2, label: "HTTP/2", requiresHttps: false },
+	{ value: HttpVersion.Http3, label: "HTTP/3", requiresHttps: true },
+];
+
+// When HTTP/3 is selected, force the scheme to https.
+$effect(() => {
+	if (dialogState.profileHttpVersion === HttpVersion.Http3) {
+		dialogState.profileScheme = "https";
+	}
+});
 
 // Reset dialog state when opened
 $effect(() => {
@@ -82,8 +106,9 @@ async function saveProfile() {
 	const isStream = dialogState.profileMode === CollectionType.Stream;
 	const payload = {
 		name: dialogState.profileName,
-		url: dialogState.profileUrl,
+		url: assembleUrl(),
 		mode: dialogState.profileMode,
+		httpVersion: dialogState.profileHttpVersion,
 		token: dialogState.profileToken || null,
 		intervalSeconds: isStream ? dialogState.profileIntervalSeconds : null,
 		numberOfCycles: isStream ? dialogState.profileNumberOfCycles : null,
@@ -111,20 +136,25 @@ async function saveProfile() {
 
 type PingStatus = "idle" | "pending" | "success" | "error";
 
+let showToken = $state(false);
+
 let pingStatus = $state<PingStatus>("idle");
 let pingError = $state("");
 let pingResetTimer: ReturnType<typeof setTimeout> | undefined;
 
-// Reset the ping result whenever the URL changes so stale indicators don't persist.
+// Reset the ping result whenever the URL or version changes so stale indicators don't persist.
 $effect(() => {
-	const _url = dialogState.profileUrl;
+	const _host = dialogState.profileUrlHost;
+	const _scheme = dialogState.profileScheme;
+	const _version = dialogState.profileHttpVersion;
 	pingStatus = "idle";
 	pingError = "";
 });
 
 async function testConnection() {
-	const url = dialogState.profileUrl.trim();
-	if (!url) {
+	const url = assembleUrl();
+	const host = dialogState.profileUrlHost.trim();
+	if (!host) {
 		return;
 	}
 
@@ -143,7 +173,11 @@ async function testConnection() {
 	pingError = "";
 
 	try {
-		const result = await commands.agentPing(url, token || null);
+		const result = await commands.agentPing(
+			url,
+			token || null,
+			dialogState.profileHttpVersion,
+		);
 		if (result.status === "error") throw new Error(result.error);
 		pingStatus = "success";
 	} catch (err) {
@@ -212,18 +246,83 @@ async function testConnection() {
 											/>
 										</label>
 
-										<label class="block">
+										<div class="block">
 											<span
 												class="mb-3 block text-sm font-medium text-foreground"
 												>URL</span
 											>
-											<Input
-												bind:value={dialogState.profileUrl}
-												placeholder="http://localhost:9090"
-											/>
-										</label>
+											<div class="flex gap-2">
+												<Select.Root
+													type="single"
+													value={dialogState.profileScheme}
+													onValueChange={(v) => {
+                                                        if (v)
+                                                            dialogState.profileScheme =
+                                                                v as
+                                                                    | "http"
+                                                                    | "https";
+                                                    }}
+												>
+													<Select.Trigger class="w-25 shrink-0">
+														{schemeOptions.find(
+                                                            (o) =>
+                                                                o.value ===
+                                                                dialogState.profileScheme,
+                                                        )?.label ?? "http://"}
+													</Select.Trigger>
+													<Select.Content class="p-1.5">
+														{#each schemeOptions as opt (opt.value)}
+															<Select.Item
+																value={opt.value}
+																disabled={dialogState.profileHttpVersion ===
+                                                                    HttpVersion.Http3 &&
+                                                                    opt.value ===
+                                                                        "http"}
+															>
+																{opt.label}
+															</Select.Item>
+														{/each}
+													</Select.Content>
+												</Select.Root>
+												<Input
+													bind:value={dialogState.profileUrlHost}
+													placeholder="localhost:9090"
+													class="flex-1 min-w-0"
+												/>
+												<Select.Root
+													type="single"
+													value={dialogState.profileHttpVersion}
+													onValueChange={(v) => {
+                                                        if (v)
+                                                            dialogState.profileHttpVersion =
+                                                                v as HttpVersion;
+                                                    }}
+												>
+													<Select.Trigger class="w-25 shrink-0">
+														{httpVersionOptions.find(
+                                                            (o) =>
+                                                                o.value ===
+                                                                dialogState.profileHttpVersion,
+                                                        )?.label ?? "HTTP/2"}
+													</Select.Trigger>
+													<Select.Content class="p-1.5">
+														{#each httpVersionOptions as opt (opt.value)}
+															<Select.Item value={opt.value}>
+																{opt.label}
+																{#if opt.requiresHttps}
+																	<span
+																		class="ml-1 text-xs text-muted-foreground"
+																		>(https)</span
+																	>
+																{/if}
+															</Select.Item>
+														{/each}
+													</Select.Content>
+												</Select.Root>
+											</div>
+										</div>
 
-										<label class="block">
+										<div class="block">
 											<span
 												class="mb-3 block text-sm font-medium text-foreground"
 												>Auth token
@@ -231,12 +330,33 @@ async function testConnection() {
 													>(optional)</span
 												></span
 											>
-											<Input
-												bind:value={dialogState.profileToken}
-												placeholder="eyJ..."
-												type="password"
-											/>
-										</label>
+											<div class="flex gap-2">
+												<Input
+													bind:value={dialogState.profileToken}
+													placeholder="eyJ..."
+													type={showToken
+                                                        ? "text"
+                                                        : "password"}
+													class="flex-1"
+												/>
+												<Button
+													variant="outline"
+													size="icon"
+													onclick={() =>
+                                                        (showToken =
+                                                            !showToken)}
+													aria-label={showToken
+                                                        ? "Hide token"
+                                                        : "Show token"}
+												>
+													{#if showToken}
+														<EyeOffIcon class="size-4" />
+													{:else}
+														<EyeIcon class="size-4" />
+													{/if}
+												</Button>
+											</div>
+										</div>
 
 										<div>
 											<p class="mb-3 text-sm font-medium text-foreground">
@@ -333,7 +453,7 @@ async function testConnection() {
 														variant="outline"
 														disabled={pingStatus ===
                                                             "pending" ||
-                                                            !dialogState.profileUrl.trim()}
+                                                            !dialogState.profileUrlHost.trim()}
 														class={pingStatus ===
                                                         "success"
                                                             ? "border-green-500/40 bg-green-500/10 text-green-600 hover:bg-green-500/15 hover:text-green-600"

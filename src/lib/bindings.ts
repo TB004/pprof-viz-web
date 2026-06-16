@@ -21,6 +21,7 @@ export const commands = {
 	name: string,
 	url: string,
 	mode: CollectionType,
+	httpVersion: HttpVersion,
 	token: string | null,
 	intervalSeconds: number | null,
 	numberOfCycles: number | null,
@@ -41,7 +42,7 @@ export const commands = {
 	startCollection: (profileId: string) => typedError<null, string>(__TAURI_INVOKE("start_collection", { profileId })),
 	stopCollection: () => typedError<null, string>(__TAURI_INVOKE("stop_collection")),
 	getCollectionSnapshot: () => typedError<CollectionStateSnapshot, string>(__TAURI_INVOKE("get_collection_snapshot")),
-	agentPing: (url: string, token: string | null) => typedError<null, string>(__TAURI_INVOKE("agent_ping", { url, token })),
+	agentPing: (url: string, token: string | null, httpVersion: HttpVersion) => typedError<null, string>(__TAURI_INVOKE("agent_ping", { url, token, httpVersion })),
 	checkUpdate: () => typedError<UpdateStatus, string>(__TAURI_INVOKE("check_update")),
 	installUpdate: (url: string, filename: string) => typedError<null, string>(__TAURI_INVOKE("install_update", { url, filename })),
 	/**  Opens a URL or file path with the OS default handler. */
@@ -62,6 +63,7 @@ export type AppSettings = {
 	defaultMode: CollectionType,
 	defaultIntervalSeconds: number,
 	defaultNumberOfCycles: number,
+	defaultHttpVersion: HttpVersion,
 };
 
 export type CollectionStateSnapshot = {
@@ -82,10 +84,13 @@ export type CollectionType = "snapshot" | "stream";
 
 export type Frame = unknown;
 
+export type HttpVersion = "http2" | "http3";
+
 export type ProfileInput = {
 	name: string,
 	url: string,
 	mode: CollectionType,
+	httpVersion: HttpVersion,
 	token: string | null,
 	intervalSeconds: number | null,
 	numberOfCycles: number | null,
@@ -97,6 +102,7 @@ export type ProfileRow = {
 	name: string,
 	url: string,
 	mode: CollectionType,
+	httpVersion: HttpVersion,
 	token: string | null,
 	intervalSeconds: number | null,
 	numberOfCycles: number | null,

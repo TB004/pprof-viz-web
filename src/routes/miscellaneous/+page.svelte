@@ -291,7 +291,7 @@ const debugTotalChartConfig = {
 									{#snippet formatter({ value, name })}
 										<div class="flex w-full items-center gap-2">
 											<div
-												style="--color-bg: var(--color-mutexWait); --color-border: var(--color-mutexWait);"
+												style="--color-bg: var(--chart-2); --color-border: var(--chart-2);"
 												class="size-2.5 shrink-0 rounded-xs border-(--color-border) bg-(--color-bg)"
 											></div>
 											<div

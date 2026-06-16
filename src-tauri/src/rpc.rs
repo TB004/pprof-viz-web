@@ -63,7 +63,10 @@ impl Body for Http3Body {
 /// Creates a fresh QUIC connection per RPC call.
 #[derive(Clone)]
 pub struct Http3Transport {
-    endpoint: quinn::Endpoint,
+    /// IPv4 endpoint for targets that resolve to an IPv4 address.
+    endpoint_v4: quinn::Endpoint,
+    /// IPv6 endpoint for targets that resolve to an IPv6 address (e.g. [::1] for localhost).
+    endpoint_v6: Option<quinn::Endpoint>,
     /// "hostname:port" used for both DNS resolution and QUIC SNI.
     authority: Arc<str>,
     server_name: Arc<str>,
@@ -77,17 +80,37 @@ impl ClientTransport for Http3Transport {
         &self,
         request: Request<connectrpc::client::ClientBody>,
     ) -> BoxFuture<'static, Result<Response<Http3Body>, ConnectError>> {
-        let endpoint = self.endpoint.clone();
+        let endpoint_v4 = self.endpoint_v4.clone();
+        let endpoint_v6 = self.endpoint_v6.clone();
         let authority = Arc::clone(&self.authority);
         let server_name = Arc::clone(&self.server_name);
 
         Box::pin(async move {
-            // Async DNS resolution
-            let addr: SocketAddr = tokio::net::lookup_host(authority.as_ref())
+            // Async DNS resolution — prefer IPv4 because QUIC servers commonly bind
+            // to 0.0.0.0 (IPv4 only). On macOS, "localhost" resolves to [::1] first,
+            // which would cause a handshake timeout against an IPv4-only QUIC server.
+            let addrs: Vec<SocketAddr> = tokio::net::lookup_host(authority.as_ref())
                 .await
                 .map_err(|e| ConnectError::unavailable(format!("DNS resolution failed: {e}")))?
-                .next()
+                .collect();
+            let addr = addrs
+                .iter()
+                .find(|a| a.is_ipv4())
+                .or_else(|| addrs.first())
+                .copied()
                 .ok_or_else(|| ConnectError::unavailable("DNS returned no addresses"))?;
+
+            // Pick the endpoint whose address family matches the resolved address.
+            // A QUIC/UDP socket bound to 0.0.0.0 cannot connect to an IPv6 address.
+            let endpoint = if addr.is_ipv6() {
+                endpoint_v6.ok_or_else(|| {
+                    ConnectError::unavailable(
+                        "resolved to IPv6 but no IPv6 QUIC endpoint is available",
+                    )
+                })?
+            } else {
+                endpoint_v4
+            };
 
             // QUIC handshake
             let conn = endpoint
@@ -269,13 +292,23 @@ impl AgentClient {
                 let authority: Arc<str> = format!("{host}:{port}").into();
                 let server_name: Arc<str> = host.into();
 
-                let mut endpoint =
-                    quinn::Endpoint::client("0.0.0.0:0".parse().expect("valid loopback addr"))
-                        .map_err(|e| AgentRpcError::Rpc(format!("QUIC endpoint: {e}")))?;
-                endpoint.set_default_client_config(h3_quinn_client_config());
+                let mut endpoint_v4 =
+                    quinn::Endpoint::client("0.0.0.0:0".parse().expect("valid IPv4 addr"))
+                        .map_err(|e| AgentRpcError::Rpc(format!("QUIC endpoint (v4): {e}")))?;
+                endpoint_v4.set_default_client_config(h3_quinn_client_config());
+
+                // IPv6 endpoint is best-effort — some environments disable it.
+                let endpoint_v6 =
+                    quinn::Endpoint::client("[::]:0".parse().expect("valid IPv6 addr"))
+                        .ok()
+                        .map(|mut ep| {
+                            ep.set_default_client_config(h3_quinn_client_config());
+                            ep
+                        });
 
                 let transport = Http3Transport {
-                    endpoint,
+                    endpoint_v4,
+                    endpoint_v6,
                     authority,
                     server_name,
                 };

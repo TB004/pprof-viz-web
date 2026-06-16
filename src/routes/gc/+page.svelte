@@ -152,6 +152,7 @@ const cycleChartConfig = {
 							data={chartData}
 							x="sample"
 							yNice
+							padding={{ left: 35 }}
 							props={{ yAxis: { format: fmtBytesAxis } }}
 							series={[
 								{
@@ -187,6 +188,7 @@ const cycleChartConfig = {
 							data={chartData}
 							x="sample"
 							yNice
+							padding={{ left: 35 }}
 							props={{ yAxis: { format: fmtBytesAxis } }}
 							series={[
 								{
@@ -222,6 +224,7 @@ const cycleChartConfig = {
 							data={chartData}
 							x="sample"
 							yNice
+							padding={{ left: 35 }}
 							props={{ yAxis: { format: fmtCompactAxis } }}
 							series={[
 								{

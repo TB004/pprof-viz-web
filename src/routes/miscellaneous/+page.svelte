@@ -232,6 +232,7 @@ const debugTotalChartConfig = {
 							data={cgoChartData}
 							x="sample"
 							yNice
+							padding={{ left: 35 }}
 							props={{ yAxis: { format: fmtIntAxis } }}
 							series={[
                                 {
@@ -263,6 +264,7 @@ const debugTotalChartConfig = {
 							data={syncChartData}
 							x="sample"
 							yNice
+							padding={{ left: 35 }}
 							props={{ yAxis: { format: fmtSecsAxis } }}
 							series={[
                                 {
@@ -317,6 +319,7 @@ const debugTotalChartConfig = {
 							data={debugChartData}
 							x="sample"
 							yNice
+							padding={{ left: 35 }}
 							props={{ yAxis: { format: fmtIntAxis } }}
 							series={[
                                 {

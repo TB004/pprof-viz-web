@@ -171,6 +171,7 @@ const goroutineChartConfig = {
 							data={chartData}
 							x="sample"
 							yNice
+							padding={{ left: 35 }}
 							props={{ yAxis: { format: fmtSecsAxis } }}
 							series={[
                                 {
@@ -216,6 +217,7 @@ const goroutineChartConfig = {
 							data={chartData}
 							x="sample"
 							yNice
+							padding={{ left: 35 }}
 							props={{ yAxis: { format: fmtSecsAxis } }}
 							series={[
                                 {
@@ -259,6 +261,7 @@ const goroutineChartConfig = {
 							data={chartData}
 							x="sample"
 							yNice
+							padding={{ left: 35 }}
 							props={{ yAxis: { format: fmtCompactAxis } }}
 							series={[
                                 {

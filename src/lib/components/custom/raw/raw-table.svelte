@@ -3,7 +3,12 @@ import { ChevronDownIcon, ChevronRightIcon } from "@lucide/svelte";
 import * as Card from "$lib/components/ui/card";
 import { ScrollArea } from "$lib/components/ui/scroll-area";
 import { CollectionService } from "$lib/services";
-import { CollectionStatus, type Frame } from "$lib/types";
+import {
+	CollectionStatus,
+	type Frame,
+	type Histogram,
+	type MetadataResponse,
+} from "$lib/types";
 
 export type RowEntry = {
 	sample: number;
@@ -13,7 +18,9 @@ export type RowEntry = {
 
 type ColDef = {
 	label: string;
-	format: (frame: Frame) => string;
+	/** Frame field to render. For `gc`/`scheduler` this also names the
+	 * metadata category that holds the matching histogram bucket boundaries. */
+	field: keyof Frame;
 };
 
 let {
@@ -37,21 +44,38 @@ let expandedCells = $state(new Set<string>());
 
 // ── formatters ─────────────────────────────────────────────────────────────
 
-function buildJson(raw: Record<string, unknown> | undefined): string {
+// Bucket boundaries are streamed once in metadata (keyed `<field>Buckets`),
+// not in each frame, so frames carry counts-only histograms. Resolve the
+// boundaries from metadata here so the raw view shows the full distribution.
+function buildJson(
+	raw: Record<string, unknown> | undefined,
+	metaCategory: Record<string, number[] | undefined> | undefined,
+): string {
 	if (!raw) return "—";
 	const cleaned: Record<string, unknown> = {};
 	for (const [k, v] of Object.entries(raw)) {
 		if (v === undefined || v === null) continue;
 		if (typeof v === "object" && ("counts" in v || "buckets" in v)) {
-			const h = v as { counts?: unknown[]; buckets?: number[] };
-			cleaned[k] =
-				`<hist: ${h.counts?.length ?? 0} counts, ${h.buckets?.length ?? 0} buckets>`;
+			const h = v as Histogram;
+			const buckets = h.buckets?.length
+				? h.buckets
+				: metaCategory?.[`${k}Buckets`];
+			cleaned[k] = { counts: h.counts ?? [], buckets: buckets ?? [] };
 		} else {
 			cleaned[k] = v;
 		}
 	}
 	if (Object.keys(cleaned).length === 0) return "—";
 	return JSON.stringify(cleaned, null, 2);
+}
+
+// Render one frame field, pairing any histograms with their metadata buckets.
+function cellJson(frame: Frame, field: keyof Frame): string {
+	const raw = frame[field] as Record<string, unknown> | undefined;
+	const metaCategory = (metadata as Record<string, unknown> | undefined)?.[
+		field
+	] as Record<string, number[] | undefined> | undefined;
+	return buildJson(raw, metaCategory);
 }
 
 function fmtTimestamp(ms: number | undefined): string {
@@ -66,41 +90,23 @@ function fmtTimestamp(ms: number | undefined): string {
 // ── columns ────────────────────────────────────────────────────────────────
 
 const columns: ColDef[] = [
-	{
-		label: "CPUResponse",
-		format: (f) => buildJson(f.cpu as Record<string, unknown> | undefined),
-	},
-	{
-		label: "MemoryResponse",
-		format: (f) => buildJson(f.memory as Record<string, unknown> | undefined),
-	},
-	{
-		label: "GCResponse",
-		format: (f) => buildJson(f.gc as Record<string, unknown> | undefined),
-	},
-	{
-		label: "SchedulerResponse",
-		format: (f) =>
-			buildJson(f.scheduler as Record<string, unknown> | undefined),
-	},
-	{
-		label: "GoDebugResponse",
-		format: (f) => buildJson(f.goDebug as Record<string, unknown> | undefined),
-	},
-	{
-		label: "CgoResponse",
-		format: (f) => buildJson(f.cgo as Record<string, unknown> | undefined),
-	},
-	{
-		label: "SyncResponse",
-		format: (f) => buildJson(f.sync as Record<string, unknown> | undefined),
-	},
+	{ label: "CPUResponse", field: "cpu" },
+	{ label: "MemoryResponse", field: "memory" },
+	{ label: "GCResponse", field: "gc" },
+	{ label: "SchedulerResponse", field: "scheduler" },
+	{ label: "GoDebugResponse", field: "goDebug" },
+	{ label: "CgoResponse", field: "cgo" },
+	{ label: "SyncResponse", field: "sync" },
 ];
 
 // ── derived ────────────────────────────────────────────────────────────────
 
 const isRunning = $derived(
 	$collectionState.status === CollectionStatus.Running,
+);
+
+const metadata = $derived<MetadataResponse | undefined>(
+	$collectionState.metadata,
 );
 
 const allRows = $derived(
@@ -207,7 +213,7 @@ function toggleCell(sample: number, colIdx: number) {
 									{fmtTimestamp(row.arrivedAt)}
 								</td>
 								{#each columns as col, colIdx (col.label)}
-									{@const json = col.format(row.frame)}
+									{@const json = cellJson(row.frame, col.field)}
 									{@const isExpanded = expandedCells.has(
                                         `${row.sample}-${colIdx}`,
                                     )}

@@ -166,19 +166,90 @@ impl CollectionStore {
 // ---------- merge helpers (mirrors the TS mergeFrame) ----------
 
 fn merge_sub(prev: Option<Value>, next: Option<Value>) -> Option<Value> {
-    match (prev, next) {
-        (None, n) => n,
-        (Some(p), None) => Some(p),
-        (Some(Value::Object(mut pm)), Some(Value::Object(nm))) => {
-            for (k, v) in nm {
-                if !v.is_null() {
-                    pm.insert(k, v);
+    // No update for this group on this frame — carry the previous value forward.
+    let Some(next) = next else {
+        return prev;
+    };
+    let Value::Object(nm) = next else {
+        return Some(next);
+    };
+    let mut pm = match prev {
+        Some(Value::Object(m)) => m,
+        _ => Map::new(),
+    };
+    for (k, v) in nm {
+        if v.is_null() {
+            continue;
+        }
+        if is_histogram(&v) {
+            // Histograms stream as sparse deltas; fold them into a dense array
+            // instead of replacing the carried-forward distribution.
+            let prev_v = pm.remove(&k);
+            pm.insert(k, merge_histogram(prev_v, v));
+        } else {
+            pm.insert(k, v);
+        }
+    }
+    Some(Value::Object(pm))
+}
+
+/// True if a JSON value looks like a serialized `Histogram` (carries dense
+/// `counts` and/or sparse `updatedCounts`).
+fn is_histogram(v: &Value) -> bool {
+    matches!(
+        v,
+        Value::Object(m) if m.contains_key("counts") || m.contains_key("updatedCounts")
+    )
+}
+
+/// Fold a streamed histogram into a dense `counts` array.
+///
+/// Go runtime histograms are cumulative, so the agent streams only the buckets
+/// whose count changed (`updatedCounts`: bucket index -> new absolute count)
+/// rather than the full `counts` array on every frame. Accumulate each frame's
+/// dense snapshot and/or sparse update (latest value wins per bucket) so the
+/// merged frame always carries the complete distribution — independent of the
+/// rolling frame window.
+fn merge_histogram(prev: Option<Value>, next: Value) -> Value {
+    use std::collections::BTreeMap;
+
+    let mut counts: BTreeMap<usize, Value> = BTreeMap::new();
+    let mut buckets: Option<Value> = None;
+
+    for src in [prev, Some(next)].into_iter().flatten() {
+        let Value::Object(m) = src else {
+            continue;
+        };
+        if let Some(Value::Array(dense)) = m.get("counts") {
+            for (i, c) in dense.iter().enumerate() {
+                counts.insert(i, c.clone());
+            }
+        }
+        if let Some(Value::Object(updated)) = m.get("updatedCounts") {
+            for (k, v) in updated {
+                if let Ok(idx) = k.parse::<usize>() {
+                    counts.insert(idx, v.clone());
                 }
             }
-            Some(Value::Object(pm))
         }
-        (_, n) => n,
+        match m.get("buckets") {
+            Some(b) if !b.is_null() => buckets = Some(b.clone()),
+            _ => {}
+        }
     }
+
+    let len = counts.keys().next_back().map_or(0, |&i| i + 1);
+    let mut dense = vec![Value::from(0u64); len];
+    for (idx, v) in counts {
+        dense[idx] = v;
+    }
+
+    let mut out = Map::new();
+    out.insert("counts".to_string(), Value::Array(dense));
+    if let Some(b) = buckets {
+        out.insert("buckets".to_string(), b);
+    }
+    Value::Object(out)
 }
 
 fn merge_frame(prev: Value, next: Value) -> Value {
@@ -330,10 +401,13 @@ async fn run_session(
                 }
                 result = client.snapshot_all() => match result {
                     Ok(resp) => {
-                        if let Ok(value) = serde_json::to_value(&resp)
-                            && store.push_frame(&session_id, Frame(value.clone())).is_some()
-                        {
-                            let _ = app.emit(EVENT_FRAME, &value);
+                        if let Ok(value) = serde_json::to_value(&resp) {
+                            // Normalise histograms to dense `counts` for a
+                            // consistent shape across snapshot and stream modes.
+                            let value = merge_frame(Value::Null, value);
+                            if store.push_frame(&session_id, Frame(value.clone())).is_some() {
+                                let _ = app.emit(EVENT_FRAME, &value);
+                            }
                         }
                     }
                     Err(e) => errors::report(&app, format!("snapshot failed: {e}")),
@@ -377,10 +451,12 @@ async fn run_session(
                                         continue;
                                     }
                                 };
-                                let merged = match store.last_frame_value(&session_id) {
-                                    Some(prev) => merge_frame(prev, next),
-                                    None => next,
-                                };
+                                // Always merge — even the first frame — so its
+                                // histograms are normalised to dense `counts`.
+                                let prev = store
+                                    .last_frame_value(&session_id)
+                                    .unwrap_or(Value::Null);
+                                let merged = merge_frame(prev, next);
                                 if store.push_frame(&session_id, Frame(merged.clone())).is_none() {
                                     break;
                                 }
@@ -412,4 +488,51 @@ async fn run_session(
 fn finish(app: &AppHandle, store: &CollectionStore, session_id: &str) {
     store.mark_idle(session_id);
     emit_state(app, Some(store.snapshot()));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn counts(frame: &Value, group: &str, hist: &str) -> Vec<u64> {
+        frame[group][hist]["counts"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|v| v.as_u64().unwrap())
+            .collect()
+    }
+
+    #[test]
+    fn histogram_deltas_accumulate_into_dense_counts() {
+        // First frame: sparse updates only (no dense `counts`).
+        let f1 = json!({
+            "scheduler": { "latenciesSeconds": { "updatedCounts": { "1": 3, "3": 5 } } }
+        });
+        let merged1 = merge_frame(Value::Null, f1);
+        assert_eq!(
+            counts(&merged1, "scheduler", "latenciesSeconds"),
+            vec![0, 3, 0, 5]
+        );
+
+        // Second frame: bucket 3 changes, bucket 4 appears; bucket 1 untouched
+        // and must be carried forward.
+        let f2 = json!({
+            "scheduler": { "latenciesSeconds": { "updatedCounts": { "3": 9, "4": 2 } } }
+        });
+        let merged2 = merge_frame(merged1, f2);
+        assert_eq!(
+            counts(&merged2, "scheduler", "latenciesSeconds"),
+            vec![0, 3, 0, 9, 2]
+        );
+    }
+
+    #[test]
+    fn scalar_fields_still_replace() {
+        let f1 = json!({ "scheduler": { "liveGoroutines": 10 } });
+        let f2 = json!({ "scheduler": { "liveGoroutines": 25 } });
+        let merged = merge_frame(merge_frame(Value::Null, f1), f2);
+        assert_eq!(merged["scheduler"]["liveGoroutines"], json!(25));
+    }
 }

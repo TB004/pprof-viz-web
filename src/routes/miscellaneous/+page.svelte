@@ -2,6 +2,7 @@
 import { BracesIcon, LinkIcon, PackageIcon } from "@lucide/svelte";
 import { AreaChart, LineChart } from "layerchart";
 import type { Component } from "svelte";
+import { StatCard } from "$lib/components/custom/stat-card";
 import * as Card from "$lib/components/ui/card";
 import {
 	type ChartConfig,
@@ -9,6 +10,7 @@ import {
 	Tooltip,
 } from "$lib/components/ui/chart";
 import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+import { fmtSecs, fmtSecsAxis } from "$lib/format";
 import { CollectionService } from "$lib/services";
 
 const collectionState = CollectionService.collectionState;
@@ -72,22 +74,6 @@ function fmtDebugKey(key: string): string {
 		.split(" ")
 		.map((w, i) => (i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w))
 		.join(" ");
-}
-
-function fmtSecsAxis(s: number): string {
-	if (s === 0) return "0";
-	if (s < 0.0001) return `${(s * 1_000_000).toFixed(0)}µs`;
-	if (s < 0.1) return `${(s * 1_000).toFixed(1)}ms`;
-	if (s < 60) return `${s.toFixed(1)}s`;
-	if (s < 6000) return `${(s / 60).toFixed(1)}m`;
-	return `${(s / 3600).toFixed(1)}h`;
-}
-
-function fmtSecs(s: number): string {
-	if (s === 0) return "0s";
-	if (s < 0.001) return `${(s * 1_000_000).toFixed(0)}µs`;
-	if (s < 1) return `${(s * 1_000).toFixed(2)}ms`;
-	return `${s.toFixed(3)}s`;
 }
 
 // Returns "" for fractional ticks so duplicate labels don't appear when the
@@ -228,7 +214,7 @@ const debugTotalChartConfig = {
 			<!-- Summary cards -->
 			<div class="grid grid-cols-2 gap-4">
 				{#each summaryStats as { label, value, description, Icon } (label)}
-					{@render statCard(label, value, description, Icon)}
+					<StatCard {label} {value} {description} icon={Icon} />
 				{/each}
 			</div>
 
@@ -246,6 +232,7 @@ const debugTotalChartConfig = {
 							data={cgoChartData}
 							x="sample"
 							yNice
+							padding={{ left: 35 }}
 							props={{ yAxis: { format: fmtIntAxis } }}
 							series={[
                                 {
@@ -277,6 +264,7 @@ const debugTotalChartConfig = {
 							data={syncChartData}
 							x="sample"
 							yNice
+							padding={{ left: 35 }}
 							props={{ yAxis: { format: fmtSecsAxis } }}
 							series={[
                                 {
@@ -331,6 +319,7 @@ const debugTotalChartConfig = {
 							data={debugChartData}
 							x="sample"
 							yNice
+							padding={{ left: 35 }}
 							props={{ yAxis: { format: fmtIntAxis } }}
 							series={[
                                 {
@@ -425,25 +414,3 @@ const debugTotalChartConfig = {
 		{/if}
 	</div>
 </ScrollArea>
-
-{#snippet statCard(
-    label: string,
-    value: string,
-    description: string,
-    Icon: Component,
-)}
-	<Card.Root>
-		<Card.Content class="p-4">
-			<div class="flex items-center justify-between">
-				<span class="text-muted-foreground text-xs font-medium">{label}</span>
-				<Icon class="text-muted-foreground size-3.5" />
-			</div>
-			<div class="mt-2">
-				<span class="font-mono text-xl font-semibold tabular-nums">
-					{value}
-				</span>
-			</div>
-			<p class="text-muted-foreground mt-1 text-xs">{description}</p>
-		</Card.Content>
-	</Card.Root>
-{/snippet}

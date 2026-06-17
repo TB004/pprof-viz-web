@@ -55,7 +55,14 @@ const rows = $derived.by(() => {
 
 	const built = [];
 	for (let i = 0; i < n; i++) {
-		const row: Record<string, string | number> = { label: label(i) };
+		// `id` is the original bucket index (unique, ordinal) used as the x-axis
+		// key; `label` is the formatted upper bound shown to the user. They are
+		// kept separate because `format` can collapse distinct buckets to the
+		// same label string, which would otherwise merge bars into one band.
+		const row: Record<string, string | number> = {
+			id: String(i),
+			label: label(i),
+		};
 		let total = 0;
 		for (const s of series) {
 			const c = Number(s.counts?.[i] ?? 0);
@@ -76,6 +83,12 @@ const rows = $derived.by(() => {
 
 const hasDistribution = $derived(rows.length > 0);
 
+// Map the ordinal x key (`id`) back to its display label for the axis and
+// tooltip, since the bars are keyed by index, not the formatted bound.
+const labelMap: Record<string, string> = $derived(
+	Object.fromEntries(rows.map((r) => [String(r.id), String(r.label)])),
+);
+
 const config = $derived(
 	Object.fromEntries(
 		series.map((s) => [s.key, { label: s.label, color: s.color }]),
@@ -95,16 +108,18 @@ const chartSeries = $derived(
 	<ChartContainer {config} class={className}>
 		<BarChart
 			data={rows}
-			x="label"
+			x="id"
 			y={series[0].key}
 			yNice
 			bandPadding={0.2}
 			seriesLayout={grouped ? "group" : "overlap"}
 			series={chartSeries}
-			props={{ xAxis: { ticks: xTicks } }}
+			props={{
+                xAxis: { ticks: xTicks, format: (v) => labelMap[String(v)] ?? "" },
+            }}
 		>
 			{#snippet tooltip()}
-				<Tooltip labelFormatter={(d) => `≤ ${d}`} />
+				<Tooltip labelFormatter={(d) => `≤ ${labelMap[String(d)] ?? d}`} />
 			{/snippet}
 		</BarChart>
 	</ChartContainer>

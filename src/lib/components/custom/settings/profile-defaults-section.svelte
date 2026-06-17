@@ -92,7 +92,7 @@ function parseDefaultUrl(url: string): {
                                 parseDefaultUrl($settings.defaultUrl).scheme,
                         )?.label ?? "http://"}
 					</Select.Trigger>
-					<Select.Content>
+					<Select.Content class="p-1.5">
 						{#each schemeOptions as opt (opt.value)}
 							<Select.Item
 								value={opt.value}
@@ -138,7 +138,7 @@ function parseDefaultUrl(url: string): {
                             (o) => o.value === $settings.defaultHttpVersion,
                         )?.label ?? "HTTP/2"}
 					</Select.Trigger>
-					<Select.Content>
+					<Select.Content class="p-1.5">
 						{#each httpVersionOptions as opt (opt.value)}
 							<Select.Item value={opt.value}>
 								{opt.label}

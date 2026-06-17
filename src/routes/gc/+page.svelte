@@ -6,6 +6,7 @@ import {
 	ZapIcon,
 } from "@lucide/svelte";
 import { AreaChart, LineChart } from "layerchart";
+import { HistogramChart } from "$lib/components/custom/histogram-chart";
 import { StatCard } from "$lib/components/custom/stat-card";
 import * as Card from "$lib/components/ui/card";
 import {
@@ -18,6 +19,9 @@ import { fmtBytes, fmtBytesAxis } from "$lib/format";
 import { CollectionService } from "$lib/services";
 
 const collectionState = CollectionService.collectionState;
+
+const latestGc = $derived($collectionState.data?.at(-1)?.gc);
+const gcMeta = $derived($collectionState.metadata?.gc);
 
 const chartData = $derived(
 	($collectionState.data ?? []).map((frame, i) => ({
@@ -244,6 +248,36 @@ const cycleChartConfig = {
 							{/snippet}
 						</LineChart>
 					</ChartContainer>
+				</Card.Content>
+			</Card.Root>
+
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Allocations by Size</Card.Title>
+					<Card.Description>
+						Cumulative bytes allocated and freed, grouped by object size class
+					</Card.Description>
+				</Card.Header>
+				<Card.Content>
+					<HistogramChart
+						buckets={gcMeta?.bytesAllocsBySizeBuckets}
+						format={fmtBytesAxis}
+						grouped
+						series={[
+							{
+								key: "allocs",
+								counts: latestGc?.bytesAllocsBySize?.counts,
+								label: "Allocated",
+								color: "var(--chart-1)",
+							},
+							{
+								key: "frees",
+								counts: latestGc?.bytesFreesBySize?.counts,
+								label: "Freed",
+								color: "var(--chart-2)",
+							},
+						]}
+					/>
 				</Card.Content>
 			</Card.Root>
 		{/if}

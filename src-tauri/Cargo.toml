@@ -13,7 +13,7 @@ name = "app_lib"
 crate-type = ["rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2.6.2", features = [] }
+tauri-build = { version = "2.6.3", features = [] }
 connectrpc-build = "0.7.0"
 
 [dependencies]
@@ -51,7 +51,7 @@ thiserror = "2.0.18"
 ulid = { version = "1.2.1", features = ["serde"] }
 url = "2.5.8"
 tokio = { version = "1.52.3", features = ["sync", "rt", "macros", "time"] }
-tauri = { version = "2.11.2", features = [] }
+tauri = { version = "2.11.3", features = [] }
 semver = "1.0.28"
 specta = { version = "=2.0.0-rc.25", features = ["serde_json"] }
 specta-typescript = "0.0.12"

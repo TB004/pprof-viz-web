@@ -33,22 +33,6 @@ let { content, context, attach }: Props = $props();
 {#if typeof content === "string"}
 	{content}
 {:else if content instanceof Function}
-	<!-- It's unlikely that a CellContext will be passed to a Header -->
-	<!-- eslint-disable-next-line @typescript-eslint/no-explicit-any -->
-	<!-- It's unlikely that a CellContext will be passed to a Header -->
-	<!-- eslint-disable-next-line @typescript-eslint/no-explicit-any -->
-	<!-- It's unlikely that a CellContext will be passed to a Header -->
-	<!-- eslint-disable-next-line @typescript-eslint/no-explicit-any -->
-	<!-- It's unlikely that a CellContext will be passed to a Header -->
-	<!-- eslint-disable-next-line @typescript-eslint/no-explicit-any -->
-	<!-- It's unlikely that a CellContext will be passed to a Header -->
-	<!-- eslint-disable-next-line @typescript-eslint/no-explicit-any -->
-	<!-- It's unlikely that a CellContext will be passed to a Header -->
-	<!-- eslint-disable-next-line @typescript-eslint/no-explicit-any -->
-	<!-- It's unlikely that a CellContext will be passed to a Header -->
-	<!-- eslint-disable-next-line @typescript-eslint/no-explicit-any -->
-	<!-- It's unlikely that a CellContext will be passed to a Header -->
-	<!-- eslint-disable-next-line @typescript-eslint/no-explicit-any -->
 	{@const result = content(context as any)}
 	{#if result instanceof RenderComponentConfig}
 		{@const { component: Component, props } = result}

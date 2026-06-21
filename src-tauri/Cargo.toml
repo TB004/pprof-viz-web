@@ -25,7 +25,8 @@ sqlx = { version = "0.9.0", default-features = false, features = [
     "migrate",
 ] }
 reqwest = { version = "0.13.4", features = ["json"] }
-dotenvy = "0.15.7"
+fs4 = "1.1.0"
+zstd = "0.13.3"
 connectrpc = { version = "0.7.0", features = [
     "default",
     "client",

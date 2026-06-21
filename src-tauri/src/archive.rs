@@ -8,9 +8,7 @@ use sqlx::SqlitePool;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::watch;
 
-use crate::collection::{
-    self, CollectionSession, CollectionStatus, Frame, is_histogram, merge_frame,
-};
+use crate::collection::{self, CollectionSession, CollectionStatus, Frame};
 use crate::proto::proto::{AllResponse, CollectionMeta, MetadataResponse, StoredCollection};
 use crate::settings::CollectionType;
 use crate::state::AppState;
@@ -18,7 +16,7 @@ use crate::utils;
 
 /// Current on-disk `.ppvz` format version. Bump when the layout changes in a
 /// way that needs a migration on read.
-const FORMAT_VERSION: u32 = 2;
+const FORMAT_VERSION: u32 = 1;
 
 /// Emitted after a collection is loaded via a double-clicked file, so the
 /// frontend can navigate to a metric page (warm-start only — cold start relies
@@ -34,7 +32,6 @@ const ZSTD_LEVEL: i32 = 19;
 const ZSTD_MAGIC: [u8; 4] = [0x28, 0xB5, 0x2F, 0xFD];
 
 /// Decode a `.ppvz` file, transparently decompressing zstd-wrapped payloads
-/// (older test files written as raw protobuf still load).
 fn read_stored(path: &std::path::Path) -> Result<StoredCollection, String> {
     let raw = std::fs::read(path).map_err(|e| e.to_string())?;
     let bytes = if raw.starts_with(&ZSTD_MAGIC) {
@@ -81,10 +78,6 @@ pub struct DiskUsage {
 
 // ---------- helpers ----------
 
-fn pool(app: &AppHandle) -> SqlitePool {
-    app.state::<SqlitePool>().inner().clone()
-}
-
 /// Path to `<app_data_dir>/collections`, created on demand.
 fn collections_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let dir = app
@@ -96,16 +89,6 @@ fn collections_dir(app: &AppHandle) -> Result<PathBuf, String> {
     Ok(dir)
 }
 
-fn mode_to_str(mode: Option<CollectionType>) -> Option<String> {
-    mode.map(|m| {
-        match m {
-            CollectionType::Snapshot => "snapshot",
-            CollectionType::Stream => "stream",
-        }
-        .to_string()
-    })
-}
-
 fn mode_from_str(s: Option<&str>) -> CollectionType {
     match s {
         Some("snapshot") => CollectionType::Snapshot,
@@ -113,19 +96,11 @@ fn mode_from_str(s: Option<&str>) -> CollectionType {
     }
 }
 
-fn is_zero(v: &Value) -> bool {
-    match v {
-        Value::String(s) => s == "0",
-        Value::Number(n) => n.as_f64() == Some(0.0),
-        _ => false,
-    }
-}
-
 /// Drop histogram `buckets` arrays (kept once in metadata) while preserving the
 /// rest of a value. Used on the first frame, which stays dense.
 fn strip_buckets(v: &Value) -> Value {
     match v {
-        Value::Object(m) if is_histogram(v) => {
+        Value::Object(m) if collection::is_histogram(v) => {
             let mut out = Map::new();
             if let Some(c) = m.get("counts") {
                 out.insert("counts".into(), c.clone());
@@ -157,7 +132,11 @@ fn histogram_delta(prev: Option<&Value>, next: &Value) -> Option<Value> {
     for (i, nv) in next_counts.iter().enumerate() {
         let changed = match prev_counts.and_then(|p| p.get(i)) {
             Some(pv) => pv != nv,
-            None => !is_zero(nv),
+            None => !match nv {
+                Value::String(s) => s == "0",
+                Value::Number(n) => n.as_f64() == Some(0.0),
+                _ => false,
+            },
         };
         if changed {
             updated.insert(i.to_string(), nv.clone());
@@ -202,7 +181,7 @@ fn diff_frame(prev: &Value, next: &Value) -> Value {
         let mut group_out = Map::new();
         for (field, nv) in ng {
             let pv = pg.and_then(|m| m.get(field));
-            if is_histogram(nv) {
+            if collection::is_histogram(nv) {
                 if let Some(delta) = histogram_delta(pv, nv) {
                     group_out.insert(field.clone(), delta);
                 }
@@ -271,7 +250,7 @@ fn decode_stored(stored: StoredCollection) -> Result<DecodedCollection, String> 
     let mut prev = Value::Null;
     for af in &stored.frames {
         let v = serde_json::to_value(af).map_err(|e| e.to_string())?;
-        let merged = merge_frame(prev, v);
+        let merged = collection::merge_frame(prev, v);
         frames.push_back(Frame(merged.clone()));
         prev = merged;
     }
@@ -287,7 +266,7 @@ fn decode_stored(stored: StoredCollection) -> Result<DecodedCollection, String> 
 }
 
 /// Build an Idle, loaded `CollectionSession` from decoded frames and install it
-/// into the store (mirroring the replace/cancel logic in `start_collection`).
+/// into the store.
 fn install_loaded(
     app: &AppHandle,
     decoded: DecodedCollection,
@@ -353,7 +332,13 @@ pub async fn save_collection(
         let d = d.trim().to_string();
         if d.is_empty() { None } else { Some(d) }
     });
-    let mode_str = mode_to_str(snapshot.mode);
+    let mode_str = snapshot.mode.map(|m| {
+        match m {
+            CollectionType::Snapshot => "snapshot",
+            CollectionType::Stream => "stream",
+        }
+        .to_string()
+    });
 
     // Self-describing metadata embedded in the file for portability.
     let meta = CollectionMeta {
@@ -396,7 +381,7 @@ pub async fn save_collection(
         created_at,
     };
 
-    let pool = pool(&app);
+    let pool = app.state::<SqlitePool>().inner().clone();
     sqlx::query(
         "INSERT INTO collections (id, name, description, filename, size_bytes, duration_ms, \
          sample_count, profile_name, profile_url, mode, created_at) \
@@ -428,7 +413,7 @@ pub async fn save_collection(
 #[tauri::command]
 #[specta::specta]
 pub async fn list_collections(app: AppHandle) -> Result<Vec<CollectionRow>, String> {
-    let pool = pool(&app);
+    let pool = app.state::<SqlitePool>().inner().clone();
     sqlx::query_as::<_, CollectionRow>("SELECT * FROM collections ORDER BY created_at DESC")
         .fetch_all(&pool)
         .await
@@ -438,7 +423,7 @@ pub async fn list_collections(app: AppHandle) -> Result<Vec<CollectionRow>, Stri
 #[tauri::command]
 #[specta::specta]
 pub async fn delete_collection(app: AppHandle, id: String) -> Result<(), String> {
-    let pool = pool(&app);
+    let pool = app.state::<SqlitePool>().inner().clone();
     let filename: Option<(String,)> =
         sqlx::query_as("SELECT filename FROM collections WHERE id = ?")
             .bind(&id)
@@ -475,7 +460,7 @@ pub async fn update_collection(
         if d.is_empty() { None } else { Some(d) }
     });
 
-    let pool = pool(&app);
+    let pool = app.state::<SqlitePool>().inner().clone();
     sqlx::query("UPDATE collections SET name = ?, description = ? WHERE id = ?")
         .bind(&name)
         .bind(description.as_deref())
@@ -489,7 +474,7 @@ pub async fn update_collection(
 #[tauri::command]
 #[specta::specta]
 pub async fn load_collection(app: AppHandle, id: String) -> Result<(), String> {
-    let pool = pool(&app);
+    let pool = app.state::<SqlitePool>().inner().clone();
     let row = sqlx::query_as::<_, CollectionRow>("SELECT * FROM collections WHERE id = ?")
         .bind(&id)
         .fetch_optional(&pool)
@@ -520,12 +505,14 @@ pub async fn load_collection(app: AppHandle, id: String) -> Result<(), String> {
 pub async fn load_from_path(app: &AppHandle, path: &std::path::Path) -> Result<(), String> {
     let decoded = decode_stored(read_stored(path)?)?;
 
+    let pool = app.state::<SqlitePool>().inner().clone();
+
     // Prefer the archive row if this file lives in our collections folder.
     let db_row = match path.file_name().and_then(|n| n.to_str()) {
         Some(filename) => {
             sqlx::query_as::<_, CollectionRow>("SELECT * FROM collections WHERE filename = ?")
                 .bind(filename)
-                .fetch_optional(&pool(app))
+                .fetch_optional(&pool)
                 .await
                 .map_err(|e| e.to_string())?
         }
@@ -573,7 +560,7 @@ pub async fn load_from_path(app: &AppHandle, path: &std::path::Path) -> Result<(
 #[specta::specta]
 pub async fn disk_usage(app: AppHandle) -> Result<DiskUsage, String> {
     let dir = collections_dir(&app)?;
-    let pool = pool(&app);
+    let pool = app.state::<SqlitePool>().inner().clone();
     let collections_bytes: i64 =
         sqlx::query_scalar("SELECT COALESCE(SUM(size_bytes), 0) FROM collections")
             .fetch_one(&pool)
@@ -612,7 +599,7 @@ mod tests {
     #[test]
     fn delta_roundtrip_reconstructs_merged_frames() {
         // Build merged frames exactly as streaming would.
-        let f0 = merge_frame(
+        let f0 = collection::merge_frame(
             Value::Null,
             json!({
                 "scheduler": {
@@ -621,7 +608,7 @@ mod tests {
                 }
             }),
         );
-        let f1 = merge_frame(
+        let f1 = collection::merge_frame(
             f0.clone(),
             json!({
                 "scheduler": {

@@ -325,6 +325,30 @@ pub async fn reset_all_data(app: AppHandle) -> Result<(), String> {
     })
     .await?;
 
+    // Delete all stored collections (.ppvz files + DB rows)
+    let filenames: Vec<String> = with_pool(&app, |pool| async move {
+        sqlx::query_scalar("SELECT filename FROM collections")
+            .fetch_all(&pool)
+            .await
+            .map_err(|e| e.to_string())
+    })
+    .await?;
+
+    if let Ok(collections_dir) = app.path().app_data_dir().map(|d| d.join("collections")) {
+        for filename in &filenames {
+            let _ = std::fs::remove_file(collections_dir.join(filename));
+        }
+    }
+
+    with_pool(&app, |pool| async move {
+        sqlx::query("DELETE FROM collections")
+            .execute(&pool)
+            .await
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    })
+    .await?;
+
     // Reset settings to defaults
     app.state::<settings::SettingsState>()
         .set(settings::AppSettings::default())

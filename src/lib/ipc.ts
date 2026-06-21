@@ -47,6 +47,18 @@ export const startCollection = (profileId: string) =>
 export const stopCollection = () => run(commands.stopCollection());
 export const getCollectionSnapshot = () =>
 	run(commands.getCollectionSnapshot());
+export const saveCollection = (name: string, description: string | null) =>
+	run(commands.saveCollection(name, description));
+export const listCollections = () => run(commands.listCollections());
+export const deleteCollection = (id: string) =>
+	run(commands.deleteCollection(id));
+export const updateCollection = (
+	id: string,
+	name: string,
+	description: string | null,
+) => run(commands.updateCollection(id, name, description));
+export const loadCollection = (id: string) => run(commands.loadCollection(id));
+export const getDiskUsage = () => run(commands.diskUsage());
 export const agentPing = (
 	url: string,
 	token: string | null,

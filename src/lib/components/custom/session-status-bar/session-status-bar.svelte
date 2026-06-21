@@ -1,7 +1,13 @@
 <script lang="ts">
-import { CircleAlertIcon, LoaderCircle, PauseIcon } from "@lucide/svelte";
+import {
+	CircleAlertIcon,
+	LoaderCircle,
+	PauseIcon,
+	SaveIcon,
+} from "@lucide/svelte";
 import {
 	ErrorView,
+	SaveDialog,
 	StatusElement,
 } from "$lib/components/custom/session-status-bar";
 import { CollectionService, ErrorService } from "$lib/services";
@@ -9,9 +15,19 @@ import { CollectionStatus, CollectionType } from "$lib/types";
 import { cn } from "$lib/utils.js";
 
 let showErrors = $state(false);
+let saveOpen = $state(false);
 
 const collectionState = CollectionService.collectionState;
 const errorState = ErrorService.errorState;
+
+// Only offer to save freshly collected data — not a session loaded from disk,
+// and only once it has stopped (Idle) with samples in hand.
+const canSave = $derived(
+	$collectionState.status === CollectionStatus.Idle &&
+		$collectionState.collectedSamples > 0 &&
+		!$collectionState.loaded &&
+		!$collectionState.saved,
+);
 
 const modeLabel = $derived(
 	$collectionState.mode === CollectionType.Snapshot
@@ -85,9 +101,19 @@ const errorCount = $derived($errorState.length);
 
 		<button
 			type="button"
+			disabled={!canSave}
+			onclick={() => (saveOpen = true)}
+			class="ml-auto inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm transition-all hover:bg-muted/80 disabled:cursor-not-allowed disabled:opacity-50"
+		>
+			<SaveIcon class="size-3.5" />
+			<span>Save</span>
+		</button>
+
+		<button
+			type="button"
 			onclick={() => (showErrors = !showErrors)}
 			class={cn(
-                "ml-auto inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm transition-all",
+                "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium shadow-sm transition-all",
                 errorCount > 0
                     ? "border-red-500/20 bg-red-500/10 text-red-600 hover:bg-red-500/15"
                     : "border-border/60 bg-background/70 text-muted-foreground hover:bg-muted/80",
@@ -108,3 +134,5 @@ const errorCount = $derived($errorState.length);
 {#if showErrors}
 	<ErrorView bind:showErrors />
 {/if}
+
+<SaveDialog bind:open={saveOpen} />

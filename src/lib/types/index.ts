@@ -172,14 +172,19 @@ export interface CollectionStateSnapshot {
 	profileUrl: string | null;
 	mode: CollectionType | null;
 	startedAt: number | null;
+	endedAt: number | null;
+	loaded: boolean;
+	saved: boolean;
 	sampleCount: number | null;
 	frames: Frame[];
+	frameTimestamps: number[] | null;
 	metadata: MetadataResponse | null;
 }
 
 export const EVENT_FRAME = "collection://frame";
 export const EVENT_STATE = "collection://state";
 export const EVENT_METADATA = "collection://metadata";
+export const EVENT_OPENED = "archive://opened";
 
 // --- db.rs ---
 
@@ -188,6 +193,28 @@ export interface ProjectRow {
 	name: string;
 	createdAt: number;
 	updatedAt: number;
+}
+
+// --- archive.rs ---
+
+export interface CollectionRow {
+	id: string;
+	name: string;
+	description: string | null;
+	filename: string;
+	sizeBytes: number;
+	durationMs: number;
+	sampleCount: number;
+	profileName: string | null;
+	profileUrl: string | null;
+	mode: string | null;
+	createdAt: number;
+}
+
+export interface DiskUsage {
+	collectionsBytes: number;
+	freeBytes: number;
+	totalBytes: number;
 }
 
 export interface ProfileRow {

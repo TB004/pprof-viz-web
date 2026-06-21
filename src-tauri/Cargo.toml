@@ -37,7 +37,7 @@ buffa-types = { version = "0.7.1", features = ["json"] }
 h3 = "0.0.8"
 h3-quinn = "0.0.10"
 quinn = { version = "0.11.9", features = ["rustls-aws-lc-rs"] }
-bytes = "1.11.1"
+bytes = "1.12.0"
 http = "1.4.2"
 http-body = "1.0.1"
 http-body-util = "0.1.3"

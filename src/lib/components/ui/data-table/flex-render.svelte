@@ -33,7 +33,7 @@ let { content, context, attach }: Props = $props();
 {#if typeof content === "string"}
 	{content}
 {:else if content instanceof Function}
-	{@const result = content(context as any)}
+	{@const result = content(context as never)}
 	{#if result instanceof RenderComponentConfig}
 		{@const { component: Component, props } = result}
 		<Component {...props} {attach} />

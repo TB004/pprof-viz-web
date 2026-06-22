@@ -4,7 +4,7 @@ import * as Dialog from "$lib/components/ui/dialog";
 import { Input } from "$lib/components/ui/input";
 import { ArchiveService, CollectionService } from "$lib/services";
 
-let { open = $bindable(false) }: { open: boolean } = $props();
+let { open: dialogOpen = $bindable(false) }: { open: boolean } = $props();
 
 let saveName = $state("");
 let saveDescription = $state("");
@@ -21,14 +21,14 @@ async function confirmSave() {
 	);
 	saving = false;
 	if (ok) {
-		open = false;
+		dialogOpen = false;
 		saveName = "";
 		saveDescription = "";
 	}
 }
 </script>
 
-<Dialog.Root bind:open>
+<Dialog.Root bind:open={dialogOpen}>
 	<Dialog.Content class="sm:max-w-md">
 		<Dialog.Header>
 			<Dialog.Title>Save collection</Dialog.Title>
@@ -63,7 +63,9 @@ async function confirmSave() {
 		</div>
 
 		<div class="flex flex-wrap justify-end gap-2 px-6">
-			<Button variant="outline" onclick={() => (open = false)}>Cancel</Button>
+			<Button variant="outline" onclick={() => (dialogOpen = false)}
+				>Cancel</Button
+			>
 			<Button onclick={confirmSave} disabled={!saveName.trim() || saving}>
 				{saving ? "Saving…" : "Save"}
 			</Button>

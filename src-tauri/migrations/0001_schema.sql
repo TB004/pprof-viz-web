@@ -19,4 +19,19 @@ CREATE TABLE IF NOT EXISTS profiles (
     updated_at          INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS collections (
+    id            TEXT PRIMARY KEY,
+    name          TEXT NOT NULL,
+    description   TEXT,
+    filename      TEXT NOT NULL,
+    size_bytes    INTEGER NOT NULL,
+    duration_ms   INTEGER NOT NULL,
+    sample_count  INTEGER NOT NULL,
+    profile_name  TEXT,
+    profile_url   TEXT,
+    mode          TEXT CHECK (mode IS NULL OR mode IN ('snapshot', 'stream')),
+    created_at    INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_collections_created ON collections(created_at);
 CREATE INDEX IF NOT EXISTS idx_profiles_project ON profiles(project_id);

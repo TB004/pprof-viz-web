@@ -1,6 +1,7 @@
 import { listen } from "@tauri-apps/api/event";
 import { type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
+import { goto } from "$app/navigation";
 import * as Ipc from "$lib/ipc";
 import { ErrorService, ProfileService } from "$lib/services";
 import {
@@ -9,6 +10,7 @@ import {
 	type CollectionType,
 	EVENT_FRAME,
 	EVENT_METADATA,
+	EVENT_OPENED,
 	EVENT_STATE,
 	type Frame,
 	type MetadataResponse,
@@ -18,6 +20,10 @@ export interface CollectionState {
 	status: CollectionStatus;
 	collectedSamples: number;
 	elapsedSeconds: number;
+	/** True when the current data was loaded from disk, not collected live. */
+	loaded: boolean;
+	/** True once the current session has been saved to the archive. */
+	saved: boolean;
 	selectedProfile?: string;
 	selectedProfileLabel?: string;
 	url?: URL;
@@ -32,6 +38,8 @@ const defaultCollectionState: CollectionState = {
 	status: CollectionStatus.Idle,
 	collectedSamples: 0,
 	elapsedSeconds: 0,
+	loaded: false,
+	saved: false,
 };
 
 const collectionStateStore = writable<CollectionState>(defaultCollectionState);
@@ -102,15 +110,31 @@ function stopElapsedTimer() {
 function applySnapshot(snapshot: CollectionStateSnapshot) {
 	collectionStateStore.update((state) => {
 		const startedAt = snapshot.startedAt ?? undefined;
+		// A different startedAt means a different session — a fresh live run or a
+		// collection loaded from disk. Loaded collections carry no per-frame
+		// timestamps, so reuse of the previous session's would be misleading.
+		const sessionChanged = startedAt !== state.startedAt;
+		// Backend records per-frame arrival times; prefer them when present and
+		// aligned (covers loaded collections and survives a page reload).
+		const backendTimestamps =
+			snapshot.frameTimestamps &&
+			snapshot.frameTimestamps.length === snapshot.frames.length
+				? snapshot.frameTimestamps
+				: undefined;
 		const next: CollectionState = {
 			...state,
 			status: asStatus(snapshot.status),
+			loaded: snapshot.loaded,
+			saved: snapshot.saved,
 			collectedSamples: snapshot.sampleCount ?? 0,
 			data: snapshot.frames as Frame[],
-			// Preserve timestamps when frames aren't reset (e.g. collection stopped).
-			// Clear only when a new session starts (frames array becomes empty).
+			// Prefer backend timestamps; otherwise preserve live ones for the same
+			// session and clear when frames reset or the session changed.
 			dataTimestamps:
-				snapshot.frames.length === 0 ? undefined : state.dataTimestamps,
+				backendTimestamps ??
+				(snapshot.frames.length === 0 || sessionChanged
+					? undefined
+					: state.dataTimestamps),
 			metadata: (snapshot.metadata as MetadataResponse | null) ?? undefined,
 			startedAt,
 			mode: snapshot.mode ?? undefined,
@@ -120,8 +144,11 @@ function applySnapshot(snapshot: CollectionStateSnapshot) {
 			next.selectedProfile = snapshot.profileId;
 			next.selectedProfileLabel = snapshot.profileName ?? undefined;
 		}
+		// A stopped or loaded session has an endedAt — freeze elapsed at its
+		// actual duration instead of counting wall-clock since startedAt.
+		const endTime = snapshot.endedAt ?? Date.now();
 		next.elapsedSeconds = startedAt
-			? Math.max(0, Math.floor((Date.now() - startedAt) / 1000))
+			? Math.max(0, Math.floor((endTime - startedAt) / 1000))
 			: 0;
 		return next;
 	});
@@ -139,7 +166,7 @@ if (browser) {
 		try {
 			// Register listeners before fetching the initial snapshot so no
 			// events are missed between the two operations.
-			const [unlistenState, unlistenFrame, unlistenMetadata] =
+			const [unlistenState, unlistenFrame, unlistenMetadata, unlistenOpened] =
 				await Promise.all([
 					listen<CollectionStateSnapshot>(EVENT_STATE, (event) => {
 						applySnapshot(event.payload);
@@ -158,8 +185,18 @@ if (browser) {
 							metadata: event.payload,
 						}));
 					}),
+					// A double-clicked .ppvz file was loaded — jump to a metric page
+					// (warm start only; cold start lands on home with data hydrated).
+					listen(EVENT_OPENED, () => {
+						void goto("/cpu");
+					}),
 				]);
-			unlisteners.push(unlistenState, unlistenFrame, unlistenMetadata);
+			unlisteners.push(
+				unlistenState,
+				unlistenFrame,
+				unlistenMetadata,
+				unlistenOpened,
+			);
 		} catch (e) {
 			void ErrorService.registerError(
 				`Failed to register collection listeners: ${e}`,

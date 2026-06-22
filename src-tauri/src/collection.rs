@@ -19,7 +19,8 @@ pub const EVENT_FRAME: &str = "collection://frame";
 pub const EVENT_STATE: &str = "collection://state";
 pub const EVENT_METADATA: &str = "collection://metadata";
 
-const SUB_KEYS: &[&str] = &["scheduler", "goDebug", "gc", "memory", "cpu", "cgo", "sync"];
+pub(crate) const SUB_KEYS: &[&str] =
+    &["scheduler", "goDebug", "gc", "memory", "cpu", "cgo", "sync"];
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
 #[serde(rename_all = "lowercase")]
@@ -42,9 +43,15 @@ pub struct CollectionStateSnapshot {
     pub mode: Option<CollectionType>,
     #[specta(type = Option<f64>)]
     pub started_at: Option<i64>,
+    #[specta(type = Option<f64>)]
+    pub ended_at: Option<i64>,
+    pub loaded: bool,
+    pub saved: bool,
     #[specta(type = f64)]
     pub sample_count: usize,
     pub frames: Vec<Frame>,
+    #[specta(type = Vec<f64>)]
+    pub frame_timestamps: Vec<i64>,
     #[specta(type = Option<specta_typescript::Unknown>)]
     pub metadata: Option<Value>,
 }
@@ -58,7 +65,16 @@ pub struct CollectionSession {
     pub profile_url: String,
     pub mode: CollectionType,
     pub started_at: i64,
+    pub ended_at: Option<i64>,
+    /// True when the session was loaded from disk rather than collected live.
+    pub loaded: bool,
+    /// True once this exact session has been persisted to the archive — a
+    /// collection's data never changes, so it should only be saved once.
+    pub saved: bool,
     pub frames: VecDeque<Frame>,
+    /// Wall-clock arrival time (epoch millis) of each frame, kept in lockstep
+    /// with `frames` (same length, same eviction at the cap).
+    pub frame_times: VecDeque<i64>,
     pub metadata: Option<Value>,
     pub cancel_tx: watch::Sender<bool>,
 }
@@ -79,8 +95,12 @@ impl CollectionStore {
                 profile_url: Some(session.profile_url.clone()),
                 mode: Some(session.mode),
                 started_at: Some(session.started_at),
+                ended_at: session.ended_at,
+                loaded: session.loaded,
+                saved: session.saved,
                 sample_count: session.frames.len(),
                 frames: session.frames.iter().cloned().collect(),
+                frame_timestamps: session.frame_times.iter().copied().collect(),
                 metadata: session.metadata.clone(),
             },
             None => CollectionStateSnapshot {
@@ -90,8 +110,12 @@ impl CollectionStore {
                 profile_url: None,
                 mode: None,
                 started_at: None,
+                ended_at: None,
+                loaded: false,
+                saved: false,
                 sample_count: 0,
                 frames: Vec::new(),
+                frame_timestamps: Vec::new(),
                 metadata: None,
             },
         }
@@ -100,11 +124,19 @@ impl CollectionStore {
     /// Replace the session entirely (clearing any previous frames). Returns
     /// the previous session's cancel sender so the caller can stop the
     /// outgoing worker before the new one starts.
-    fn replace(&self, session: CollectionSession) -> Option<watch::Sender<bool>> {
+    pub(crate) fn replace(&self, session: CollectionSession) -> Option<watch::Sender<bool>> {
         let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         let prev = guard.take().map(|s| s.cancel_tx);
         *guard = Some(session);
         prev
+    }
+
+    /// Mark the current session as persisted to the archive.
+    pub(crate) fn mark_saved(&self) {
+        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(session) = guard.as_mut() {
+            session.saved = true;
+        }
     }
 
     fn current_cancel(&self) -> Option<watch::Sender<bool>> {
@@ -123,8 +155,10 @@ impl CollectionStore {
             return None;
         }
         session.frames.push_back(frame);
+        session.frame_times.push_back(utils::now_millis());
         while session.frames.len() > MAX_FRAMES {
             session.frames.pop_front();
+            session.frame_times.pop_front();
         }
         Some(session.frames.len())
     }
@@ -159,6 +193,9 @@ impl CollectionStore {
             && session.session_id == session_id
         {
             session.status = CollectionStatus::Idle;
+            if session.ended_at.is_none() {
+                session.ended_at = Some(utils::now_millis());
+            }
         }
     }
 }
@@ -195,7 +232,7 @@ fn merge_sub(prev: Option<Value>, next: Option<Value>) -> Option<Value> {
 
 /// True if a JSON value looks like a serialized `Histogram` (carries dense
 /// `counts` and/or sparse `updatedCounts`).
-fn is_histogram(v: &Value) -> bool {
+pub(crate) fn is_histogram(v: &Value) -> bool {
     matches!(
         v,
         Value::Object(m) if m.contains_key("counts") || m.contains_key("updatedCounts")
@@ -252,7 +289,7 @@ fn merge_histogram(prev: Option<Value>, next: Value) -> Value {
     Value::Object(out)
 }
 
-fn merge_frame(prev: Value, next: Value) -> Value {
+pub(crate) fn merge_frame(prev: Value, next: Value) -> Value {
     let mut prev_obj = match prev {
         Value::Object(m) => m,
         _ => Map::new(),
@@ -311,7 +348,11 @@ pub async fn start_collection(app: AppHandle, profile_id: String) -> Result<(), 
         profile_url: profile.url.clone(),
         mode: profile.mode,
         started_at: utils::now_millis(),
+        ended_at: None,
+        loaded: false,
+        saved: false,
         frames: VecDeque::new(),
+        frame_times: VecDeque::new(),
         metadata: None,
         cancel_tx,
     };
@@ -334,7 +375,7 @@ pub async fn start_collection(app: AppHandle, profile_id: String) -> Result<(), 
     Ok(())
 }
 
-fn emit_state(app: &AppHandle, snapshot: Option<CollectionStateSnapshot>) {
+pub(crate) fn emit_state(app: &AppHandle, snapshot: Option<CollectionStateSnapshot>) {
     let payload = snapshot.unwrap_or_else(|| CollectionStateSnapshot {
         status: CollectionStatus::Idle,
         profile_id: None,
@@ -342,8 +383,12 @@ fn emit_state(app: &AppHandle, snapshot: Option<CollectionStateSnapshot>) {
         profile_url: None,
         mode: None,
         started_at: None,
+        ended_at: None,
+        loaded: false,
+        saved: false,
         sample_count: 0,
         frames: Vec::new(),
+        frame_timestamps: Vec::new(),
         metadata: None,
     });
     let _ = app.emit(EVENT_STATE, &payload);

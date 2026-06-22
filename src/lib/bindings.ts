@@ -42,6 +42,12 @@ export const commands = {
 	startCollection: (profileId: string) => typedError<null, string>(__TAURI_INVOKE("start_collection", { profileId })),
 	stopCollection: () => typedError<null, string>(__TAURI_INVOKE("stop_collection")),
 	getCollectionSnapshot: () => typedError<CollectionStateSnapshot, string>(__TAURI_INVOKE("get_collection_snapshot")),
+	saveCollection: (name: string, description: string | null) => typedError<CollectionRow, string>(__TAURI_INVOKE("save_collection", { name, description })),
+	listCollections: () => typedError<CollectionRow[], string>(__TAURI_INVOKE("list_collections")),
+	deleteCollection: (id: string) => typedError<null, string>(__TAURI_INVOKE("delete_collection", { id })),
+	updateCollection: (id: string, name: string, description: string | null) => typedError<null, string>(__TAURI_INVOKE("update_collection", { id, name, description })),
+	loadCollection: (id: string) => typedError<null, string>(__TAURI_INVOKE("load_collection", { id })),
+	diskUsage: () => typedError<DiskUsage, string>(__TAURI_INVOKE("disk_usage")),
 	agentPing: (url: string, token: string | null, httpVersion: HttpVersion) => typedError<null, string>(__TAURI_INVOKE("agent_ping", { url, token, httpVersion })),
 	checkUpdate: () => typedError<UpdateStatus, string>(__TAURI_INVOKE("check_update")),
 	installUpdate: (url: string, filename: string) => typedError<null, string>(__TAURI_INVOKE("install_update", { url, filename })),
@@ -66,6 +72,20 @@ export type AppSettings = {
 	defaultHttpVersion: HttpVersion,
 };
 
+export type CollectionRow = {
+	id: string,
+	name: string,
+	description: string | null,
+	filename: string,
+	sizeBytes: number | null,
+	durationMs: number | null,
+	sampleCount: number | null,
+	profileName: string | null,
+	profileUrl: string | null,
+	mode: string | null,
+	createdAt: number | null,
+};
+
 export type CollectionStateSnapshot = {
 	status: CollectionStatus,
 	profileId: string | null,
@@ -73,14 +93,27 @@ export type CollectionStateSnapshot = {
 	profileUrl: string | null,
 	mode: CollectionType | null,
 	startedAt: number | null,
+	endedAt: number | null,
+	loaded: boolean,
+	saved: boolean,
 	sampleCount: number | null,
 	frames: Frame[],
+	frameTimestamps: (number | null)[],
 	metadata: unknown | null,
 };
 
 export type CollectionStatus = "idle" | "running";
 
 export type CollectionType = "snapshot" | "stream";
+
+export type DiskUsage = {
+	/**  Total bytes of all stored `.ppvz` files (from the metadata table). */
+	collectionsBytes: number | null,
+	/**  Free space on the volume that holds the collections folder. */
+	freeBytes: number | null,
+	/**  Total size of that volume. */
+	totalBytes: number | null,
+};
 
 export type Frame = unknown;
 

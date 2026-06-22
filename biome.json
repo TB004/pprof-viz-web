@@ -62,6 +62,27 @@
           },
           "complexity": {
             "noCommaOperator": "off"
+          },
+          "a11y": {
+            "noLabelWithoutControl": {
+              "level": "error",
+              "options": {
+                "inputComponents": ["Input"]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/lib/components/ui/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "useValidAriaValues": "off",
+            "useSemanticElements": "off",
+            "useValidAnchor": "off",
+            "noStaticElementInteractions": "off"
           }
         }
       }

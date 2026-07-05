@@ -3,12 +3,15 @@ mod collection;
 mod db;
 mod errors;
 mod opener;
-mod proto;
 mod rpc;
 mod settings;
 mod state;
 mod update;
 mod utils;
+
+mod proto {
+    connectrpc::include_generated!();
+}
 
 use tauri::Manager;
 

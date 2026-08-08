@@ -25,7 +25,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FLATPAK_DIR="$REPO_ROOT/packaging/flatpak"
-APP_ID="de.tb004.pprof_viz"
+APP_ID="de.tb004.pprof-viz"
 MANIFEST="$FLATPAK_DIR/$APP_ID.yml"
 BUILD_DIR="$REPO_ROOT/target/flatpak/build"
 REPO_DIR="$REPO_ROOT/target/flatpak/repo"

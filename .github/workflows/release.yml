@@ -106,7 +106,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: packaging/flatpak/.flatpak-builder
-          key: ${{ runner.os }}-${{ matrix.target }}-flatpak-builder-${{ hashFiles('packaging/flatpak/de.tb004.pprof_viz.yml') }}
+          key: ${{ runner.os }}-${{ matrix.target }}-flatpak-builder-${{ hashFiles('packaging/flatpak/de.tb004.pprof-viz.yml') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.target }}-flatpak-builder-
 
@@ -129,14 +129,14 @@ jobs:
             --install-deps-from=flathub \
             --repo=flatpak-repo \
             build-dir \
-            de.tb004.pprof_viz.yml
+            de.tb004.pprof-viz.yml
 
           flatpak build-bundle \
             --arch=${{ matrix.target }} \
             --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo \
             flatpak-repo \
             Pprof-Viz_${{ matrix.target }}.flatpak \
-            de.tb004.pprof_viz
+            de.tb004.pprof-viz
 
       - name: Upload flatpak to release
         env:

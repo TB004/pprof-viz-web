@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>de.tb004.pprof_viz</id>
+  <id>de.tb004.pprof-viz</id>
 
   <name>Pprof-Viz</name>
   <summary>Live visualizer for Go runtime metrics streamed via ConnectRPC</summary>
@@ -46,9 +46,9 @@
     </p>
   </description>
 
-  <launchable type="desktop-id">de.tb004.pprof_viz.desktop</launchable>
+  <launchable type="desktop-id">de.tb004.pprof-viz.desktop</launchable>
 
-  <icon type="stock">de.tb004.pprof_viz</icon>
+  <icon type="stock">de.tb004.pprof-viz</icon>
 
   <categories>
     <category>Development</category>

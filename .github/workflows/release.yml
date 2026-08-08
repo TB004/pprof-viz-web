@@ -21,10 +21,8 @@ jobs:
       matrix:
         include:
           - target: x86_64
-            deb_arch: amd64
             runs-on: ubuntu-latest
           - target: aarch64
-            deb_arch: arm64
             runs-on: ubuntu-24.04-arm
 
     steps:
@@ -102,48 +100,31 @@ jobs:
       - name: Setup Flatpak repo
         run: flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
+      - name: Install Flatpak runtimes
+        run: |
+          RUNTIME_VERSION=$(sed -n 's/^runtime-version:[[:space:]]*"\{0,1\}\([^"]*\)"\{0,1\}[[:space:]]*$/\1/p' \
+            packaging/flatpak/de.tb004.pprof-viz.yml)
+          flatpak install --user --noninteractive flathub \
+            "org.gnome.Platform/${{ matrix.target }}/${RUNTIME_VERSION}" \
+            "org.gnome.Sdk/${{ matrix.target }}/${RUNTIME_VERSION}"
+
       - name: Cache Flatpak builder
         uses: actions/cache@v6
         with:
-          path: packaging/flatpak/.flatpak-builder
+          path: target/flatpak/state
           key: ${{ runner.os }}-${{ matrix.target }}-flatpak-builder-${{ hashFiles('packaging/flatpak/de.tb004.pprof-viz.yml') }}
           restore-keys: |
             ${{ runner.os }}-${{ matrix.target }}-flatpak-builder-
 
-      - name: Build .deb package
-        run: cargo tauri build --ci --bundles deb
-
-      - name: Stage .deb for flatpak-builder
-        run: |
-          VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
-          cp "./src-tauri/target/release/bundle/deb/Pprof-Viz_${VERSION}_${{ matrix.deb_arch }}.deb" \
-             ./packaging/flatpak/pprof-viz.deb
-
       - name: Build flatpak bundle
-        working-directory: packaging/flatpak
-        run: |
-          flatpak-builder \
-            --arch=${{ matrix.target }} \
-            --force-clean \
-            --user \
-            --install-deps-from=flathub \
-            --repo=flatpak-repo \
-            build-dir \
-            de.tb004.pprof-viz.yml
-
-          flatpak build-bundle \
-            --arch=${{ matrix.target }} \
-            --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo \
-            flatpak-repo \
-            Pprof-Viz_${{ matrix.target }}.flatpak \
-            de.tb004.pprof-viz
+        run: ./scripts/build-flatpak.sh --arch ${{ matrix.target }} --bundle
 
       - name: Upload flatpak to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release upload "${{ github.ref_name }}" \
-            packaging/flatpak/Pprof-Viz_${{ matrix.target }}.flatpak \
+            target/flatpak/dist/de.tb004.pprof-viz-*-${{ matrix.target }}.flatpak \
             --clobber
 
   Release_macOS:

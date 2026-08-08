@@ -14,10 +14,6 @@
 #
 # Run:
 #   flatpak run de.tb004.pprof_viz
-#
-# Note on the application id: Flatpak forbids hyphens in the final segment, so
-# `pprof-viz` becomes `pprof_viz`. The Tauri bundle identifier
-# (`de.tb004.pprof-viz`) is unchanged; only the Flatpak app id differs.
 
 app-id: de.tb004.pprof_viz
 runtime: org.gnome.Platform
@@ -27,18 +23,12 @@ command: pprof-viz
 
 finish-args:
   # Display + GPU
-  - --share=ipc
-  - --socket=fallback-x11
   - --socket=wayland
   - --device=dri
   # GTK and WebKitGTK require session bus access (tao event loop, portals, a11y)
   - --socket=session-bus
   # Network access for the ConnectRPC endpoint
   - --share=network
-  # Persist Tauri's app data (settings, sqlite db) under XDG dirs
-  - --filesystem=xdg-config/pprof-viz:create
-  - --filesystem=xdg-data/pprof-viz:create
-  - --filesystem=xdg-cache/pprof-viz:create
 
 modules:
   - name: pprof-viz

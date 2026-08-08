@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # Copyright (C) 2026 Tizian Bahr
 # SPDX-License-Identifier: GPL-3.0-or-later
-
 #
 # Build Pprof-Viz as a Flatpak.
 #
@@ -50,8 +49,10 @@ info() {
 }
 
 usage() {
-    # Print the header comment block, minus the shebang.
-    sed -n '2,/^$/p' "${BASH_SOURCE[0]}" | sed 's/^#\{1,\} \{0,1\}//;s/^#$//'
+    # Print the header comment block, minus the shebang and license header.
+    sed -n '2,/^$/p' "${BASH_SOURCE[0]}" \
+        | grep -v -e '^# Copyright ' -e '^# SPDX-License-Identifier:' \
+        | sed 's/^#\{1,\} \{0,1\}//;s/^#$//'
 }
 
 while [[ $# -gt 0 ]]; do

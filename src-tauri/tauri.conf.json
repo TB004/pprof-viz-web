@@ -58,7 +58,7 @@
     "homepage": "https://github.com/TB004/pprof-viz",
     "copyright": "Copyright (c) 2026 Tizian Bahr",
     "category": "DeveloperTool",
-    "license": "MIT",
+    "license": "GPL-3.0-or-later",
     "licenseFile": "../LICENSE",
     "shortDescription": "Live visualizer for Go runtime metrics streamed via ConnectRPC",
     "longDescription": "Pprof-Viz is a desktop visualizer for the Go runtime/metrics stream. It connects to a ConnectRPC endpoint, samples CPU, GC, scheduler, and memory metrics in real time, and renders them as live charts.",

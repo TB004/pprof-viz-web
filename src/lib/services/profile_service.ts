@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Tizian Bahr
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import { derived, type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
 import * as Ipc from "$lib/ipc";

@@ -1,3 +1,8 @@
+<!--
+  Copyright (C) 2026 Tizian Bahr
+  SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 <script lang="ts">
 import { BracesIcon, LinkIcon, PackageIcon } from "@lucide/svelte";
 import { AreaChart, LineChart } from "layerchart";

@@ -1,6 +1,6 @@
 # <img src="src-tauri/icons/icon.png" alt="pprof-viz logo" height="50" style="vertical-align:middle"> Pprof-Viz
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 **A modern, real-time desktop dashboard for visualizing Go runtime telemetry.**
 
@@ -80,4 +80,4 @@ xattr -dr com.apple.quarantine /Applications/Pprof-Viz.app
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.

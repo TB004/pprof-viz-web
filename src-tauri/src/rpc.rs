@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Tizian Bahr
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 use std::net::SocketAddr;
 use std::pin::Pin;
 use std::sync::{Arc, OnceLock};

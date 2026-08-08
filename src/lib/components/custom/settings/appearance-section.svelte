@@ -1,3 +1,8 @@
+<!--
+  Copyright (C) 2026 Tizian Bahr
+  SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 <script lang="ts">
 import { CheckIcon, MonitorIcon, MoonIcon, SunIcon } from "@lucide/svelte";
 import * as Card from "$lib/components/ui/card/index.js";

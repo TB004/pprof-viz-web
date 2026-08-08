@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Tizian Bahr
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 use std::process::Command;
 
 /// Opens a URL or file path with the OS default handler.

@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Tizian Bahr
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};

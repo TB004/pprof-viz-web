@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Tizian Bahr
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import { MediaQuery } from "svelte/reactivity";
 
 const DEFAULT_MOBILE_BREAKPOINT = 768;

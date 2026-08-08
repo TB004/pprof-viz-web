@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Tizian Bahr
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import { type Readable, writable } from "svelte/store";
 import * as Ipc from "$lib/ipc";
 import { ErrorService } from "$lib/services";

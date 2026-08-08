@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Tizian Bahr
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import PMDeleteDialog from "./pm-delete-dialog.svelte";
 import PMDialog from "./pm-dialog.svelte";
 import PMProjectDialog from "./pm-project-dialog.svelte";

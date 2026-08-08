@@ -1,3 +1,8 @@
+<!--
+  Copyright (C) 2026 Tizian Bahr
+  SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 <script lang="ts">
 import { FolderPlusIcon } from "@lucide/svelte";
 import { Button } from "$lib/components/ui/button/index.js";

@@ -5,8 +5,8 @@
   <name>Pprof-Viz</name>
   <summary>Live visualizer for Go runtime metrics streamed via ConnectRPC</summary>
 
-  <metadata_license>MIT</metadata_license>
-  <project_license>MIT</project_license>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
 
   <url type="homepage">https://github.com/TB004/pprof-viz</url>
 

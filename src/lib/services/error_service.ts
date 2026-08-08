@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Tizian Bahr
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import { listen } from "@tauri-apps/api/event";
 import { type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";

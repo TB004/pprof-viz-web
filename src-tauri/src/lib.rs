@@ -1,14 +1,20 @@
+// Copyright (C) 2026 Tizian Bahr
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 mod archive;
 mod collection;
 mod db;
 mod errors;
 mod opener;
-mod proto;
 mod rpc;
 mod settings;
 mod state;
 mod update;
 mod utils;
+
+mod proto {
+    connectrpc::include_generated!();
+}
 
 use tauri::Manager;
 
@@ -52,14 +58,6 @@ fn make_builder() -> tauri_specta::Builder<tauri::Wry> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Fixes drastic linux performance issues
-    #[cfg(target_os = "linux")]
-    unsafe {
-        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
-        // Only if you see compositing issues on Wayland:
-        // std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
-    }
-
     let builder = make_builder();
 
     #[cfg(debug_assertions)]

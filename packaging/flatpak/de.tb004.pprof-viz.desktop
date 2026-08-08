@@ -2,7 +2,7 @@
 Type=Application
 Name=Pprof-Viz
 Comment=Live visualizer for Go runtime metrics streamed via ConnectRPC
-Icon=de.tb004.pprof_viz
+Icon=de.tb004.pprof-viz
 Exec=pprof-viz %U
 Categories=Development;Debugger;
 Terminal=false

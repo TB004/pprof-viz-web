@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>de.tb004.pprof_viz</id>
+  <id>de.tb004.pprof-viz</id>
 
   <name>Pprof-Viz</name>
   <summary>Live visualizer for Go runtime metrics streamed via ConnectRPC</summary>
 
-  <metadata_license>MIT</metadata_license>
-  <project_license>MIT</project_license>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
 
   <url type="homepage">https://github.com/TB004/pprof-viz</url>
 
@@ -46,14 +46,18 @@
     </p>
   </description>
 
-  <launchable type="desktop-id">de.tb004.pprof_viz.desktop</launchable>
+  <launchable type="desktop-id">de.tb004.pprof-viz.desktop</launchable>
 
-  <icon type="stock">de.tb004.pprof_viz</icon>
+  <icon type="stock">de.tb004.pprof-viz</icon>
 
   <categories>
     <category>Development</category>
     <category>Debugger</category>
   </categories>
+
+  <requires>
+    <display_length compare="ge">large</display_length>
+  </requires>
 
   <provides>
     <binary>pprof-viz</binary>

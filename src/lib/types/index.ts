@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Tizian Bahr
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Hand-written DTOs that mirror the Rust side (`src-tauri/src/`).
 //
 // Keep in sync with the corresponding `#[derive(Serialize, Deserialize)]`

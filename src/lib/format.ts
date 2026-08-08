@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Tizian Bahr
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Shared formatting helpers for metric pages.
 
 export function fmtBytes(b: number): string {

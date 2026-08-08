@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Tizian Bahr
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 use std::collections::VecDeque;
 use std::sync::Mutex;
 
@@ -339,7 +342,7 @@ pub async fn start_collection(app: AppHandle, profile_id: String) -> Result<(), 
         .map_err(|e| e.to_string())?;
 
     let (cancel_tx, cancel_rx) = watch::channel(false);
-    let session_id = ulid::Ulid::new().to_string();
+    let session_id = ulid::Ulid::generate().to_string();
     let session = CollectionSession {
         session_id: session_id.clone(),
         status: CollectionStatus::Running,

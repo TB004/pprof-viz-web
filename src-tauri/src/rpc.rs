@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Tizian Bahr
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 use std::net::SocketAddr;
 use std::pin::Pin;
 use std::sync::{Arc, OnceLock};
@@ -7,9 +10,9 @@ use std::time::Duration;
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
 use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
 
-use buffa::view::OwnedView;
 use bytes::Bytes;
 use connectrpc::ConnectError;
+use connectrpc::StreamMessage;
 use connectrpc::client::{
     BoxFuture, CallOptions, ClientConfig, ClientTransport, HttpClient, ServerStream,
 };
@@ -20,7 +23,9 @@ use http_body::Frame;
 use tokio::sync::mpsc;
 
 use crate::proto::proto::__buffa::view::AllResponseView;
-use crate::proto::proto::{AgentServiceClient, AllResponse, MetadataResponse, StreamConfigRequest};
+use crate::proto::proto::{
+    AllResponse, CollectorServiceClient, MetadataResponse, StreamConfigRequest,
+};
 use crate::settings::HttpVersion;
 
 const PING_TIMEOUT: Duration = Duration::from_secs(10);
@@ -208,9 +213,7 @@ pub enum AgentStream {
 }
 
 impl AgentStream {
-    pub async fn message(
-        &mut self,
-    ) -> Result<Option<OwnedView<AllResponseView<'static>>>, ConnectError> {
+    pub async fn message(&mut self) -> Result<Option<StreamMessage<AllResponse>>, ConnectError> {
         match self {
             Self::H2(s) => s.message().await,
             Self::H3(s) => s.message().await,
@@ -235,10 +238,10 @@ macro_rules! dispatch {
 
 pub enum AgentClient {
     H2 {
-        inner: AgentServiceClient<HttpClient>,
+        inner: CollectorServiceClient<HttpClient>,
     },
     H3 {
-        inner: AgentServiceClient<Http3Transport>,
+        inner: CollectorServiceClient<Http3Transport>,
     },
 }
 
@@ -276,7 +279,7 @@ impl AgentClient {
                     config = config.with_default_header(AUTHORIZATION, value);
                 }
                 Ok(Self::H2 {
-                    inner: AgentServiceClient::new(transport, config),
+                    inner: CollectorServiceClient::new(transport, config),
                 })
             }
 
@@ -317,7 +320,7 @@ impl AgentClient {
                     config = config.with_default_header(AUTHORIZATION, value);
                 }
                 Ok(Self::H3 {
-                    inner: AgentServiceClient::new(transport, config),
+                    inner: CollectorServiceClient::new(transport, config),
                 })
             }
         }

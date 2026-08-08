@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Tizian Bahr
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 use std::collections::VecDeque;
 use std::sync::Mutex;
 
@@ -27,7 +30,7 @@ pub struct ErrorLog {
 impl ErrorLog {
     pub fn push(&self, message: String) -> AppError {
         let entry = AppError {
-            id: ulid::Ulid::new().to_string(),
+            id: ulid::Ulid::generate().to_string(),
             message,
             timestamp: utils::now_millis(),
         };

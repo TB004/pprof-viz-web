@@ -1,0 +1,54 @@
+# Flatpak manifest for Pprof-Viz.
+#
+# Build locally (preferred — handles the .deb build, arch and staging):
+#   ./scripts/build-flatpak.sh --install
+#   ./scripts/build-flatpak.sh --arch aarch64 --bundle
+#
+# Or by hand:
+#   1. Build the .deb first:        cargo tauri build --bundles deb
+#   2. Copy the .deb next to this file as `pprof-viz.deb` (the source below
+#      expects that exact name); it is produced under
+#      `src-tauri/target/<triple>/release/bundle/deb/`.
+#   3. flatpak-builder --force-clean --user --install build-flatpak \
+#        packaging/flatpak/de.tb004.pprof-viz.yml
+#
+# Run:
+#   flatpak run de.tb004.pprof-viz
+
+app-id: de.tb004.pprof-viz
+runtime: org.gnome.Platform
+runtime-version: "50"
+sdk: org.gnome.Sdk
+command: pprof-viz
+
+finish-args:
+  # Display + GPU
+  - --socket=wayland
+  - --device=dri
+  # Network access for the ConnectRPC endpoint
+  - --share=network
+
+modules:
+  - name: pprof-viz
+    buildsystem: simple
+    build-commands:
+      - ar x pprof-viz.deb
+      - tar -xf data.tar.*
+      - install -Dm755 usr/bin/Pprof-Viz /app/bin/pprof-viz
+      - for size in 32x32 128x128 256x256 512x512; do
+          src="usr/share/icons/hicolor/$size/apps/Pprof-Viz.png";
+          if [ -f "$src" ]; then
+            install -Dm644 "$src" "/app/share/icons/hicolor/$size/apps/de.tb004.pprof-viz.png";
+          fi;
+        done
+      - install -Dm644 de.tb004.pprof-viz.desktop
+        /app/share/applications/de.tb004.pprof-viz.desktop
+      - install -Dm644 de.tb004.pprof-viz.metainfo.xml
+        /app/share/metainfo/de.tb004.pprof-viz.metainfo.xml
+    sources:
+      - type: file
+        path: pprof-viz.deb
+      - type: file
+        path: de.tb004.pprof-viz.desktop
+      - type: file
+        path: de.tb004.pprof-viz.metainfo.xml

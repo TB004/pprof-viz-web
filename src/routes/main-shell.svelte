@@ -1,3 +1,8 @@
+<!--
+  Copyright (C) 2026 Tizian Bahr
+  SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 <script lang="ts">
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { Snippet } from "svelte";

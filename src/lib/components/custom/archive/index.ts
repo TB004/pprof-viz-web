@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Tizian Bahr
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 import ChartCard from "./chart-card.svelte";
 import CollectionTable from "./collection-table.svelte";
 import DeleteDialog from "./delete-dialog.svelte";

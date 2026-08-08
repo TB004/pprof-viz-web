@@ -1,3 +1,8 @@
+<!--
+  Copyright (C) 2026 Tizian Bahr
+  SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 <script lang="ts">
 import { DownloadIcon, PencilIcon, Trash2Icon } from "@lucide/svelte";
 import { type ColumnDef, getCoreRowModel } from "@tanstack/table-core";

@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Tizian Bahr
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
@@ -38,23 +41,13 @@ fn http_client() -> Result<reqwest::Client, String> {
         .map_err(|e| e.to_string())
 }
 
-/// Adds `Authorization: Bearer <token>` if `GITHUB_TOKEN` is set in the
-/// environment. Required only for private repos during development; the
-/// production repo is public and needs no auth.
-fn with_auth(req: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
-    if let Ok(token) = std::env::var("GITHUB_TOKEN") {
-        req.bearer_auth(token)
-    } else {
-        req
-    }
-}
-
 #[tauri::command]
 #[specta::specta]
 pub async fn check_update(app: AppHandle) -> Result<UpdateStatus, String> {
     let current_version = app.package_info().version.to_string();
 
-    let resp = with_auth(http_client()?.get(RELEASES_LATEST_API))
+    let resp = http_client()?
+        .get(RELEASES_LATEST_API)
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -117,7 +110,8 @@ pub async fn check_update(app: AppHandle) -> Result<UpdateStatus, String> {
 #[specta::specta]
 pub async fn install_update(app: AppHandle, url: String, filename: String) -> Result<(), String> {
     // GitHub responds with a redirect to the actual CDN URL; reqwest follows it.
-    let bytes = with_auth(http_client()?.get(&url))
+    let bytes = http_client()?
+        .get(&url)
         .header(reqwest::header::ACCEPT, "application/octet-stream")
         .send()
         .await

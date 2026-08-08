@@ -278,7 +278,7 @@ fn install_loaded(
 ) {
     let (cancel_tx, _cancel_rx) = watch::channel(false);
     let session = CollectionSession {
-        session_id: ulid::Ulid::new().to_string(),
+        session_id: ulid::Ulid::generate().to_string(),
         status: CollectionStatus::Idle,
         // Empty profile id so the frontend treats the source as unselected
         // (the originating profile may no longer exist).
@@ -363,7 +363,7 @@ pub async fn save_collection(
     let bytes =
         zstd::encode_all(&proto[..], ZSTD_LEVEL).map_err(|e| format!("zstd compress: {e}"))?;
 
-    let id = ulid::Ulid::new().to_string();
+    let id = ulid::Ulid::generate().to_string();
     let filename = format!("{id}.ppvz");
     let path = collections_dir(&app)?.join(&filename);
     std::fs::write(&path, &bytes).map_err(|e| e.to_string())?;
@@ -678,7 +678,7 @@ mod tests {
         let dir = std::env::temp_dir();
 
         // Legacy raw protobuf.
-        let raw_path = dir.join(format!("ppvz_raw_{}.ppvz", ulid::Ulid::new()));
+        let raw_path = dir.join(format!("ppvz_raw_{}.ppvz", ulid::Ulid::generate()));
         std::fs::write(&raw_path, &proto).unwrap();
         assert_eq!(read_stored(&raw_path).unwrap().frames.len(), 2);
         std::fs::remove_file(&raw_path).ok();
@@ -686,7 +686,7 @@ mod tests {
         // zstd-compressed.
         let comp = zstd::encode_all(&proto[..], ZSTD_LEVEL).unwrap();
         assert!(comp.starts_with(&ZSTD_MAGIC));
-        let z_path = dir.join(format!("ppvz_z_{}.ppvz", ulid::Ulid::new()));
+        let z_path = dir.join(format!("ppvz_z_{}.ppvz", ulid::Ulid::generate()));
         std::fs::write(&z_path, &comp).unwrap();
         assert_eq!(read_stored(&z_path).unwrap().frames.len(), 2);
         std::fs::remove_file(&z_path).ok();

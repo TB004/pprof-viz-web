@@ -27,7 +27,7 @@ pub struct ErrorLog {
 impl ErrorLog {
     pub fn push(&self, message: String) -> AppError {
         let entry = AppError {
-            id: ulid::Ulid::new().to_string(),
+            id: ulid::Ulid::generate().to_string(),
             message,
             timestamp: utils::now_millis(),
         };

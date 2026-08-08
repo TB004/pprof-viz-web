@@ -7,9 +7,9 @@ use std::time::Duration;
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
 use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
 
-use buffa::view::OwnedView;
 use bytes::Bytes;
 use connectrpc::ConnectError;
+use connectrpc::StreamMessage;
 use connectrpc::client::{
     BoxFuture, CallOptions, ClientConfig, ClientTransport, HttpClient, ServerStream,
 };
@@ -20,7 +20,9 @@ use http_body::Frame;
 use tokio::sync::mpsc;
 
 use crate::proto::proto::__buffa::view::AllResponseView;
-use crate::proto::proto::{CollectorServiceClient, AllResponse, MetadataResponse, StreamConfigRequest};
+use crate::proto::proto::{
+    AllResponse, CollectorServiceClient, MetadataResponse, StreamConfigRequest,
+};
 use crate::settings::HttpVersion;
 
 const PING_TIMEOUT: Duration = Duration::from_secs(10);
@@ -208,9 +210,7 @@ pub enum AgentStream {
 }
 
 impl AgentStream {
-    pub async fn message(
-        &mut self,
-    ) -> Result<Option<OwnedView<AllResponseView<'static>>>, ConnectError> {
+    pub async fn message(&mut self) -> Result<Option<StreamMessage<AllResponse>>, ConnectError> {
         match self {
             Self::H2(s) => s.message().await,
             Self::H3(s) => s.message().await,

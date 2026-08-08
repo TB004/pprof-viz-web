@@ -144,7 +144,7 @@ pub async fn create_project(app: AppHandle, name: String) -> Result<ProjectRow, 
     }
     let now = utils::now_millis();
     let row = ProjectRow {
-        id: ulid::Ulid::new().to_string(),
+        id: ulid::Ulid::generate().to_string(),
         name: trimmed,
         created_at: now,
         updated_at: now,
@@ -220,7 +220,7 @@ pub async fn create_profile(
     });
     let now = utils::now_millis();
     let row = ProfileRow {
-        id: ulid::Ulid::new().to_string(),
+        id: ulid::Ulid::generate().to_string(),
         project_id,
         name: trimmed_name,
         url: trimmed_url,

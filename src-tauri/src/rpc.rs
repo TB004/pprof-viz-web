@@ -20,7 +20,7 @@ use http_body::Frame;
 use tokio::sync::mpsc;
 
 use crate::proto::proto::__buffa::view::AllResponseView;
-use crate::proto::proto::{AgentServiceClient, AllResponse, MetadataResponse, StreamConfigRequest};
+use crate::proto::proto::{CollectorServiceClient, AllResponse, MetadataResponse, StreamConfigRequest};
 use crate::settings::HttpVersion;
 
 const PING_TIMEOUT: Duration = Duration::from_secs(10);
@@ -235,10 +235,10 @@ macro_rules! dispatch {
 
 pub enum AgentClient {
     H2 {
-        inner: AgentServiceClient<HttpClient>,
+        inner: CollectorServiceClient<HttpClient>,
     },
     H3 {
-        inner: AgentServiceClient<Http3Transport>,
+        inner: CollectorServiceClient<Http3Transport>,
     },
 }
 
@@ -276,7 +276,7 @@ impl AgentClient {
                     config = config.with_default_header(AUTHORIZATION, value);
                 }
                 Ok(Self::H2 {
-                    inner: AgentServiceClient::new(transport, config),
+                    inner: CollectorServiceClient::new(transport, config),
                 })
             }
 
@@ -317,7 +317,7 @@ impl AgentClient {
                     config = config.with_default_header(AUTHORIZATION, value);
                 }
                 Ok(Self::H3 {
-                    inner: AgentServiceClient::new(transport, config),
+                    inner: CollectorServiceClient::new(transport, config),
                 })
             }
         }

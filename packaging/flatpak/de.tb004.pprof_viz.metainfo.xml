@@ -55,6 +55,10 @@
     <category>Debugger</category>
   </categories>
 
+  <requires>
+    <display_length compare="ge">large</display_length>
+  </requires>
+
   <provides>
     <binary>pprof-viz</binary>
   </provides>

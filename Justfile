@@ -15,6 +15,11 @@ dev:
 build:
     - cargo tauri build
 
+# Build the Linux Flatpak (builds the .deb first)
+[group('Build')]
+flatpak *ARGS:
+    - ./scripts/build-flatpak.sh {{ ARGS }}
+
 # Regenerate macOS/Windows/Linux app icons
 [group('Build')]
 icons:

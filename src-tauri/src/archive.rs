@@ -52,16 +52,16 @@ pub struct CollectionRow {
     pub name: String,
     pub description: Option<String>,
     pub filename: String,
-    #[specta(type = f64)]
+    #[specta(type = utils::TsNumber)]
     pub size_bytes: i64,
-    #[specta(type = f64)]
+    #[specta(type = utils::TsNumber)]
     pub duration_ms: i64,
-    #[specta(type = f64)]
+    #[specta(type = utils::TsNumber)]
     pub sample_count: i64,
     pub profile_name: Option<String>,
     pub profile_url: Option<String>,
     pub mode: Option<String>,
-    #[specta(type = f64)]
+    #[specta(type = utils::TsNumber)]
     pub created_at: i64,
 }
 
@@ -69,13 +69,13 @@ pub struct CollectionRow {
 #[serde(rename_all = "camelCase")]
 pub struct DiskUsage {
     /// Total bytes of all stored `.ppvz` files (from the metadata table).
-    #[specta(type = f64)]
+    #[specta(type = utils::TsNumber)]
     pub collections_bytes: i64,
     /// Free space on the volume that holds the collections folder.
-    #[specta(type = f64)]
+    #[specta(type = utils::TsNumber)]
     pub free_bytes: u64,
     /// Total size of that volume.
-    #[specta(type = f64)]
+    #[specta(type = utils::TsNumber)]
     pub total_bytes: u64,
 }
 

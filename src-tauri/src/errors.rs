@@ -18,7 +18,7 @@ pub const EVENT_NEW_ERROR: &str = "error://new";
 pub struct AppError {
     pub id: String,
     pub message: String,
-    #[specta(type = f64)]
+    #[specta(type = utils::TsNumber)]
     pub timestamp: i64,
 }
 

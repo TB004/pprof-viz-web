@@ -8,6 +8,7 @@ import {
 	type ProfileInput,
 	type UpdateStatus,
 } from "$lib/bindings";
+import type { CollectionStateSnapshot } from "$lib/types";
 
 export type { UpdateStatus };
 
@@ -49,7 +50,7 @@ export const startCollection = (profileId: string) =>
 	run(commands.startCollection(profileId));
 export const stopCollection = () => run(commands.stopCollection());
 export const getCollectionSnapshot = () =>
-	run(commands.getCollectionSnapshot());
+	run(commands.getCollectionSnapshot()) as Promise<CollectionStateSnapshot>;
 export const saveCollection = (name: string, description: string | null) =>
 	run(commands.saveCollection(name, description));
 export const listCollections = () => run(commands.listCollections());

@@ -33,8 +33,8 @@ export async function refresh(): Promise<void> {
 		]);
 
 		archiveStateStore.set({
-			collections: collections as CollectionRow[],
-			diskUsage: diskUsage as DiskUsage,
+			collections,
+			diskUsage,
 			loading: false,
 		});
 	} catch (e) {

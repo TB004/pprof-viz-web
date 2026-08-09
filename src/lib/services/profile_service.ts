@@ -62,12 +62,12 @@ async function reload() {
 	const profilesByProjectId = new Map<string, ProfileRow[]>();
 	for (const row of profiles) {
 		const list = profilesByProjectId.get(row.projectId);
-		if (list) list.push(row as ProfileRow);
-		else profilesByProjectId.set(row.projectId, [row as ProfileRow]);
+		if (list) list.push(row);
+		else profilesByProjectId.set(row.projectId, [row]);
 	}
 
 	const catalog = projects.map((project) => ({
-		...(project as ProjectRow),
+		...project,
 		profiles: profilesByProjectId.get(project.id) ?? [],
 	}));
 
@@ -117,7 +117,7 @@ export async function getProjectById(
 ): Promise<ProjectRow | undefined> {
 	try {
 		const row = await Ipc.getProjectById(projectId);
-		return (row as ProjectRow | null) ?? undefined;
+		return row ?? undefined;
 	} catch (e) {
 		reportInvokeError("Failed to get project", e);
 		return undefined;
@@ -129,7 +129,7 @@ export async function getProfileById(
 ): Promise<ProfileRow | undefined> {
 	try {
 		const row = await Ipc.getProfileById(profileId);
-		return (row as ProfileRow | null) ?? undefined;
+		return row ?? undefined;
 	} catch (e) {
 		reportInvokeError("Failed to get profile", e);
 		return undefined;

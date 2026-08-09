@@ -13,9 +13,9 @@ use crate::utils;
 pub struct ProjectRow {
     pub id: String,
     pub name: String,
-    #[specta(type = f64)]
+    #[specta(type = utils::TsNumber)]
     pub created_at: i64,
-    #[specta(type = f64)]
+    #[specta(type = utils::TsNumber)]
     pub updated_at: i64,
 }
 
@@ -31,9 +31,9 @@ pub struct ProfileRow {
     pub token: Option<String>,
     pub interval_seconds: Option<i16>,
     pub number_of_cycles: Option<i16>,
-    #[specta(type = f64)]
+    #[specta(type = utils::TsNumber)]
     pub created_at: i64,
-    #[specta(type = f64)]
+    #[specta(type = utils::TsNumber)]
     pub updated_at: i64,
 }
 

@@ -142,7 +142,7 @@ function applySnapshot(snapshot: CollectionStateSnapshot) {
 			loaded: snapshot.loaded,
 			saved: snapshot.saved,
 			collectedSamples: snapshot.sampleCount ?? 0,
-			data: snapshot.frames as Frame[],
+			data: snapshot.frames,
 			// Prefer backend timestamps; otherwise preserve live ones for the same
 			// session and clear when frames reset or the session changed.
 			dataTimestamps:
@@ -150,7 +150,7 @@ function applySnapshot(snapshot: CollectionStateSnapshot) {
 				(snapshot.frames.length === 0 || sessionChanged
 					? undefined
 					: state.dataTimestamps),
-			metadata: (snapshot.metadata as MetadataResponse | null) ?? undefined,
+			metadata: snapshot.metadata ?? undefined,
 			startedAt,
 			mode: snapshot.mode ?? undefined,
 			url: asUrl(snapshot.profileUrl),
@@ -229,7 +229,7 @@ if (browser) {
 			hydrated = true;
 			try {
 				const snapshot = await Ipc.getCollectionSnapshot();
-				applySnapshot(snapshot as unknown as CollectionStateSnapshot);
+				applySnapshot(snapshot);
 			} catch (e) {
 				hydrated = false;
 				void ErrorService.registerError(

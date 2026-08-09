@@ -55,7 +55,7 @@ async function ensureHydrated() {
 	hydrated = true;
 	try {
 		const loaded = await Ipc.getSettings();
-		settingsStore.set(loaded as AppSettings);
+		settingsStore.set(loaded);
 	} catch {
 		// Leave fallback in place — Rust may not be ready yet during very
 		// early boot. We'll re-hydrate next time updateSettings is called.
@@ -75,7 +75,7 @@ export async function updateSettings(patch: Partial<AppSettings>) {
 	const current = getSettingsSnapshot();
 	const merged = { ...current, ...patch };
 	const updated = await Ipc.updateSettings(merged);
-	settingsStore.set(updated as AppSettings);
+	settingsStore.set(updated);
 }
 
 export function getSettingsSnapshot(): AppSettings {

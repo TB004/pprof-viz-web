@@ -44,16 +44,16 @@ pub struct CollectionStateSnapshot {
     pub profile_name: Option<String>,
     pub profile_url: Option<String>,
     pub mode: Option<CollectionType>,
-    #[specta(type = Option<f64>)]
+    #[specta(type = Option<utils::TsNumber>)]
     pub started_at: Option<i64>,
-    #[specta(type = Option<f64>)]
+    #[specta(type = Option<utils::TsNumber>)]
     pub ended_at: Option<i64>,
     pub loaded: bool,
     pub saved: bool,
-    #[specta(type = f64)]
+    #[specta(type = utils::TsNumber)]
     pub sample_count: usize,
     pub frames: Vec<Frame>,
-    #[specta(type = Vec<f64>)]
+    #[specta(type = Vec<utils::TsNumber>)]
     pub frame_timestamps: Vec<i64>,
     #[specta(type = Option<specta_typescript::Unknown>)]
     pub metadata: Option<Value>,

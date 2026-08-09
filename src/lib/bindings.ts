@@ -12,8 +12,8 @@ export const commands = {
 	getProjectById: (id: string) => typedError<{
 	id: string,
 	name: string,
-	createdAt: number | null,
-	updatedAt: number | null,
+	createdAt: number,
+	updatedAt: number,
 } | null, string>(__TAURI_INVOKE("get_project_by_id", { id })),
 	getProfileById: (id: string) => typedError<{
 	id: string,
@@ -25,8 +25,8 @@ export const commands = {
 	token: string | null,
 	intervalSeconds: number | null,
 	numberOfCycles: number | null,
-	createdAt: number | null,
-	updatedAt: number | null,
+	createdAt: number,
+	updatedAt: number,
 } | null, string>(__TAURI_INVOKE("get_profile_by_id", { id })),
 	createProject: (name: string) => typedError<ProjectRow, string>(__TAURI_INVOKE("create_project", { name })),
 	renameProject: (id: string, name: string) => typedError<null, string>(__TAURI_INVOKE("rename_project", { id, name })),
@@ -62,7 +62,7 @@ export const MAX_FRAMES = 500 as const;
 export type AppError = {
 	id: string,
 	message: string,
-	timestamp: number | null,
+	timestamp: number,
 };
 
 export type AppSettings = {
@@ -80,13 +80,13 @@ export type CollectionRow = {
 	name: string,
 	description: string | null,
 	filename: string,
-	sizeBytes: number | null,
-	durationMs: number | null,
-	sampleCount: number | null,
+	sizeBytes: number,
+	durationMs: number,
+	sampleCount: number,
 	profileName: string | null,
 	profileUrl: string | null,
 	mode: string | null,
-	createdAt: number | null,
+	createdAt: number,
 };
 
 export type CollectionStateSnapshot = {
@@ -99,9 +99,9 @@ export type CollectionStateSnapshot = {
 	endedAt: number | null,
 	loaded: boolean,
 	saved: boolean,
-	sampleCount: number | null,
+	sampleCount: number,
 	frames: Frame[],
-	frameTimestamps: (number | null)[],
+	frameTimestamps: number[],
 	metadata: unknown | null,
 };
 
@@ -111,11 +111,11 @@ export type CollectionType = "snapshot" | "stream";
 
 export type DiskUsage = {
 	/**  Total bytes of all stored `.ppvz` files (from the metadata table). */
-	collectionsBytes: number | null,
+	collectionsBytes: number,
 	/**  Free space on the volume that holds the collections folder. */
-	freeBytes: number | null,
+	freeBytes: number,
 	/**  Total size of that volume. */
-	totalBytes: number | null,
+	totalBytes: number,
 };
 
 export type Frame = unknown;
@@ -142,15 +142,15 @@ export type ProfileRow = {
 	token: string | null,
 	intervalSeconds: number | null,
 	numberOfCycles: number | null,
-	createdAt: number | null,
-	updatedAt: number | null,
+	createdAt: number,
+	updatedAt: number,
 };
 
 export type ProjectRow = {
 	id: string,
 	name: string,
-	createdAt: number | null,
-	updatedAt: number | null,
+	createdAt: number,
+	updatedAt: number,
 };
 
 export type ThemeMode = "light" | "dark" | "system";

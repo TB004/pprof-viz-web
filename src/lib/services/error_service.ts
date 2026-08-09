@@ -5,12 +5,9 @@ import { listen } from "@tauri-apps/api/event";
 import { type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
 import * as Ipc from "$lib/ipc";
+import type { AppError } from "$lib/types";
 
-export interface AppError {
-	id: string;
-	message: string;
-	timestamp: number | null;
-}
+export type { AppError };
 
 const EVENT_NEW_ERROR = "error://new";
 

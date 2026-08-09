@@ -96,13 +96,6 @@ const latest = $derived(frames.at(-1));
 
 const totalCgoCalls = $derived(Number(latest?.cgo?.cgoCalls ?? 0));
 
-const totalDebugEvents = $derived(
-	GO_DEBUG_KEYS.reduce(
-		(sum, key) => sum + Number(latest?.goDebug?.[key] ?? 0),
-		0,
-	),
-);
-
 const cgoChartData = $derived(
 	frames.map((frame, i) => ({
 		sample: i + 1,
@@ -117,45 +110,43 @@ const syncChartData = $derived(
 	})),
 );
 
-const debugChartData = $derived(
-	frames.map((frame, i) => ({
-		sample: i + 1,
-		total: GO_DEBUG_KEYS.reduce(
-			(sum, key) => sum + Number(frame.goDebug?.[key] ?? 0),
-			0,
-		),
-	})),
-);
+// Everything the GODEBUG chart and table need, from a single walk over the
+// frame buffer.
+const debugSummary = $derived.by(() => {
+	const totals: { sample: number; total: number }[] = [];
+	const counts = new Array<number>(GO_DEBUG_KEYS.length).fill(0);
+	const lastActive = new Array<number>(GO_DEBUG_KEYS.length).fill(-1);
 
-const debugTableRows = $derived(
-	GO_DEBUG_KEYS.map((key) => {
-		const count = Number(latest?.goDebug?.[key] ?? 0);
-
-		let lastActive = -1;
-		for (let i = frames.length - 1; i >= 1; i--) {
-			const curr = Number(frames[i].goDebug?.[key] ?? 0);
-			const prev = Number(frames[i - 1].goDebug?.[key] ?? 0);
-			if (curr > prev) {
-				lastActive = i + 1;
-				break;
+	frames.forEach((frame, sampleIndex) => {
+		const events = frame.goDebug;
+		let total = 0;
+		GO_DEBUG_KEYS.forEach((key, k) => {
+			const value = Number(events?.[key] ?? 0);
+			// A counter that is already non-zero in the very first sample rose
+			// before collection started, so attribute it to sample 1.
+			if (sampleIndex === 0 ? value > 0 : value > counts[k]) {
+				lastActive[k] = sampleIndex + 1;
 			}
-		}
-		if (lastActive === -1 && count > 0) lastActive = 1;
+			counts[k] = value;
+			total += value;
+		});
+		totals.push({ sample: sampleIndex + 1, total });
+	});
 
-		const activeInLast =
-			frames.length >= 2 &&
-			Number(frames.at(-1)?.goDebug?.[key] ?? 0) >
-				Number(frames.at(-2)?.goDebug?.[key] ?? 0);
+	const rows = GO_DEBUG_KEYS.map((key, k) => ({
+		key,
+		label: fmtDebugKey(key),
+		count: counts[k],
+		lastActive: lastActive[k],
+		// Active in the newest sample — needs two samples to be a comparison.
+		activeInLast: frames.length >= 2 && lastActive[k] === frames.length,
+	})).sort((a, b) => b.count - a.count);
 
-		return {
-			key,
-			label: fmtDebugKey(key),
-			count,
-			lastActive,
-			activeInLast,
-		};
-	}).sort((a, b) => b.count - a.count),
-);
+	return { totals, rows, latestTotal: totals.at(-1)?.total ?? 0 };
+});
+
+const debugChartData = $derived(debugSummary.totals);
+const debugTableRows = $derived(debugSummary.rows);
 
 const summaryStats = $derived([
 	{
@@ -166,7 +157,7 @@ const summaryStats = $derived([
 	},
 	{
 		label: "Total Debug Events",
-		value: totalDebugEvents.toLocaleString(),
+		value: debugSummary.latestTotal.toLocaleString(),
 		description: "Sum of all GODEBUG event counters",
 		Icon: BracesIcon as Component,
 	},

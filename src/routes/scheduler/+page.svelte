@@ -12,16 +12,14 @@ import {
 	LayersIcon,
 	PlayIcon,
 } from "@lucide/svelte";
-import { PieChart } from "layerchart";
-import { HistogramChart, MetricChart } from "$lib/components/custom/charts";
+import {
+	CompositionChart,
+	HistogramChart,
+	MetricChart,
+} from "$lib/components/custom/charts";
 import { EmptyState, PageShell } from "$lib/components/custom/page";
 import { StatGrid } from "$lib/components/custom/stat-card";
 import * as Card from "$lib/components/ui/card";
-import {
-	type ChartConfig,
-	ChartContainer,
-	Tooltip,
-} from "$lib/components/ui/chart";
 import { fmtSecsAxis } from "$lib/format";
 import { CollectionService } from "$lib/services";
 
@@ -105,13 +103,6 @@ const stats = $derived([
 	},
 ]);
 
-const compositionChartConfig = {
-	running: { label: "Running", color: "var(--chart-1)" },
-	runnable: { label: "Runnable", color: "var(--chart-2)" },
-	waiting: { label: "Waiting", color: "var(--chart-3)" },
-	notInGo: { label: "Not in Go", color: "var(--chart-4)" },
-} satisfies ChartConfig;
-
 // Histograms pair per-frame counts with bucket boundaries from metadata
 // (boundaries are sent once, counts stream with each frame).
 const schedMeta = $derived(metadata?.scheduler);
@@ -129,44 +120,11 @@ const schedMeta = $derived(metadata?.scheduler);
 		<StatGrid {stats} />
 
 		<div class="grid gap-6 lg:grid-cols-[2fr_3fr]">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Goroutine States</Card.Title>
-					<Card.Description>
-						How goroutines are distributed right now
-					</Card.Description>
-				</Card.Header>
-				<Card.Content>
-					<ChartContainer
-						config={compositionChartConfig}
-						class="mx-auto h-64 w-full"
-					>
-						<PieChart
-							data={composition}
-							key="key"
-							value="value"
-							label="label"
-							innerRadius={0.6}
-							outerRadius={0.78}
-							cRange={[
-								"var(--chart-1)",
-								"var(--chart-2)",
-								"var(--chart-3)",
-								"var(--chart-4)",
-							]}
-							c="key"
-							labels={{
-								value: (d) => d.label,
-								class: "fill-foreground text-xs font-medium",
-							}}
-						>
-							{#snippet tooltip()}
-								<Tooltip hideLabel nameKey="label" />
-							{/snippet}
-						</PieChart>
-					</ChartContainer>
-				</Card.Content>
-			</Card.Root>
+			<CompositionChart
+				title="Goroutine States"
+				description="How goroutines are distributed right now"
+				slices={composition}
+			/>
 
 			<MetricChart
 				title="Goroutines & Threads"

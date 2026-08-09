@@ -12,16 +12,10 @@ import {
 	RecycleIcon,
 	WrenchIcon,
 } from "@lucide/svelte";
-import { PieChart } from "layerchart";
-import { MetricChart } from "$lib/components/custom/charts";
+import { CompositionChart, MetricChart } from "$lib/components/custom/charts";
 import { EmptyState, PageShell } from "$lib/components/custom/page";
 import { StatGrid } from "$lib/components/custom/stat-card";
 import * as Card from "$lib/components/ui/card";
-import {
-	type ChartConfig,
-	ChartContainer,
-	Tooltip,
-} from "$lib/components/ui/chart";
 import { fmtBytes, fmtBytesAxis } from "$lib/format";
 import { CollectionService } from "$lib/services";
 
@@ -125,14 +119,6 @@ const stats = $derived([
 		Icon: WrenchIcon,
 	},
 ]);
-
-const compositionChartConfig = {
-	heapObject: { label: "Heap In-Use", color: "var(--chart-1)" },
-	heapIdle: { label: "Heap Idle", color: "var(--chart-2)" },
-	heapReleased: { label: "Released to OS", color: "var(--chart-3)" },
-	stacks: { label: "Stacks", color: "var(--chart-4)" },
-	offHeap: { label: "Off-Heap", color: "var(--chart-5)" },
-} satisfies ChartConfig;
 </script>
 
 <PageShell
@@ -147,45 +133,11 @@ const compositionChartConfig = {
 		<StatGrid {stats} />
 
 		<div class="grid gap-6 lg:grid-cols-[2fr_3fr]">
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Memory Composition</Card.Title>
-					<Card.Description>
-						Where memory currently lives in the latest sample
-					</Card.Description>
-				</Card.Header>
-				<Card.Content>
-					<ChartContainer
-						config={compositionChartConfig}
-						class="mx-auto h-64 w-full"
-					>
-						<PieChart
-							data={composition}
-							key="key"
-							value="value"
-							label="label"
-							innerRadius={0.6}
-							outerRadius={0.78}
-							cRange={[
-								"var(--chart-1)",
-								"var(--chart-2)",
-								"var(--chart-3)",
-								"var(--chart-4)",
-								"var(--chart-5)",
-							]}
-							c="key"
-							labels={{
-								value: (d) => d.label,
-								class: "fill-foreground text-xs font-medium",
-							}}
-						>
-							{#snippet tooltip()}
-								<Tooltip hideLabel nameKey="label" />
-							{/snippet}
-						</PieChart>
-					</ChartContainer>
-				</Card.Content>
-			</Card.Root>
+			<CompositionChart
+				title="Memory Composition"
+				description="Where memory currently lives in the latest sample"
+				slices={composition}
+			/>
 
 			<MetricChart
 				title="Heap Breakdown"

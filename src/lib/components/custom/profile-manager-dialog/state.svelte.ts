@@ -13,6 +13,7 @@ export type ProfileSnapshot = {
 	mode: CollectionType;
 	httpVersion: HttpVersion;
 	token: string;
+	allowInsecureTls: boolean;
 	intervalSeconds: number;
 	numberOfCycles: number;
 };
@@ -27,6 +28,7 @@ export const dialogState = $state({
 	profileMode: CollectionType.Stream as CollectionType,
 	profileHttpVersion: HttpVersion.Http2 as HttpVersion,
 	profileToken: "",
+	profileAllowInsecureTls: false,
 	profileIntervalSeconds: 1,
 	profileNumberOfCycles: 0,
 	originalProfile: null as ProfileSnapshot | null,
@@ -56,6 +58,7 @@ export function clearProfileForm() {
 	dialogState.profileHttpVersion =
 		settings.defaultHttpVersion ?? HttpVersion.Http2;
 	dialogState.profileToken = "";
+	dialogState.profileAllowInsecureTls = false;
 	dialogState.profileIntervalSeconds = settings.defaultIntervalSeconds;
 	dialogState.profileNumberOfCycles = settings.defaultNumberOfCycles;
 }

@@ -115,6 +115,7 @@ async function saveProfile() {
 		mode: dialogState.profileMode,
 		httpVersion: dialogState.profileHttpVersion,
 		token: dialogState.profileToken || null,
+		allowInsecureTls: dialogState.profileAllowInsecureTls,
 		intervalSeconds: isStream ? dialogState.profileIntervalSeconds : null,
 		numberOfCycles: isStream ? dialogState.profileNumberOfCycles : null,
 	};
@@ -145,6 +146,7 @@ async function saveProfile() {
 		mode: dialogState.profileMode,
 		httpVersion: dialogState.profileHttpVersion,
 		token: dialogState.profileToken,
+		allowInsecureTls: dialogState.profileAllowInsecureTls,
 		intervalSeconds: dialogState.profileIntervalSeconds,
 		numberOfCycles: dialogState.profileNumberOfCycles,
 	};
@@ -162,6 +164,8 @@ const hasChanges = $derived(
 		dialogState.profileHttpVersion !==
 			dialogState.originalProfile.httpVersion ||
 		dialogState.profileToken !== dialogState.originalProfile.token ||
+		dialogState.profileAllowInsecureTls !==
+			dialogState.originalProfile.allowInsecureTls ||
 		dialogState.profileIntervalSeconds !==
 			dialogState.originalProfile.intervalSeconds ||
 		dialogState.profileNumberOfCycles !==
@@ -179,6 +183,7 @@ $effect(() => {
 	const _host = dialogState.profileUrlHost;
 	const _scheme = dialogState.profileScheme;
 	const _version = dialogState.profileHttpVersion;
+	const _insecure = dialogState.profileAllowInsecureTls;
 	pingStatus = "idle";
 	pingError = "";
 });
@@ -209,7 +214,7 @@ async function testConnection() {
 			url,
 			token || null,
 			dialogState.profileHttpVersion,
-			false,
+			dialogState.profileAllowInsecureTls,
 		);
 		pingStatus = "success";
 	} catch (err) {
@@ -389,6 +394,41 @@ async function testConnection() {
 												</Button>
 											</div>
 										</div>
+
+										{#if dialogState.profileScheme === "https"}
+											<label
+												class="flex w-full cursor-pointer items-start gap-3 rounded-2xl border border-border/70 bg-muted/25 p-4 text-left transition-colors hover:border-primary/30"
+											>
+												<input
+													type="checkbox"
+													class="peer sr-only"
+													bind:checked={dialogState.profileAllowInsecureTls}
+												>
+												<div
+													class={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border peer-focus-visible:ring-2 peer-focus-visible:ring-ring ${dialogState.profileAllowInsecureTls ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background"}`}
+												>
+													{#if dialogState.profileAllowInsecureTls}
+														<CheckIcon class="size-3.5" />
+													{/if}
+												</div>
+												<div>
+													<span
+														class="block text-sm font-medium text-foreground"
+													>
+														Allow invalid certificates
+													</span>
+													<span
+														class="mt-1 block text-sm text-muted-foreground"
+													>
+														Connect even if the agent's TLS certificate cannot
+														be verified. For a development agent with a
+														self-signed certificate — the auth token is sent to
+														whatever answers, so leave this off for anything
+														reachable over a network.
+													</span>
+												</div>
+											</label>
+										{/if}
 
 										<div>
 											<p class="mb-3 text-sm font-medium text-foreground">

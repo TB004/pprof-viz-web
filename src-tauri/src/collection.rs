@@ -342,7 +342,7 @@ pub async fn start_collection(app: AppHandle, profile_id: String) -> Result<(), 
         &profile.url,
         profile.token.as_deref(),
         profile.http_version,
-        false,
+        profile.allow_insecure_tls,
     )
     .map_err(|e| e.to_string())?;
 

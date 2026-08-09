@@ -89,6 +89,7 @@ async function handleProfileSelect(projectId: string, profileId: string) {
 	dialogState.profileMode = snapshot?.mode ?? CollectionType.Stream;
 	dialogState.profileHttpVersion = snapshot?.httpVersion ?? HttpVersion.Http2;
 	dialogState.profileToken = snapshot?.token ?? "";
+	dialogState.profileAllowInsecureTls = snapshot?.allowInsecureTls ?? false;
 	dialogState.profileIntervalSeconds = snapshot?.intervalSeconds ?? 1;
 	dialogState.profileNumberOfCycles = snapshot?.numberOfCycles ?? 0;
 
@@ -99,6 +100,7 @@ async function handleProfileSelect(projectId: string, profileId: string) {
 		mode: dialogState.profileMode,
 		httpVersion: dialogState.profileHttpVersion,
 		token: dialogState.profileToken,
+		allowInsecureTls: dialogState.profileAllowInsecureTls,
 		intervalSeconds: dialogState.profileIntervalSeconds,
 		numberOfCycles: dialogState.profileNumberOfCycles,
 	};

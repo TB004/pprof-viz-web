@@ -29,6 +29,7 @@ pub struct ProfileRow {
     pub mode: settings::CollectionType,
     pub http_version: settings::HttpVersion,
     pub token: Option<String>,
+    pub allow_insecure_tls: bool,
     pub interval_seconds: Option<i16>,
     pub number_of_cycles: Option<i16>,
     #[specta(type = utils::TsNumber)]
@@ -47,6 +48,7 @@ pub struct ProfileDescriptor {
     pub mode: settings::CollectionType,
     pub http_version: settings::HttpVersion,
     pub token: Option<String>,
+    pub allow_insecure_tls: bool,
     pub interval_seconds: Option<i16>,
     pub number_of_cycles: Option<i16>,
 }
@@ -59,6 +61,7 @@ pub struct ProfileInput {
     pub mode: settings::CollectionType,
     pub http_version: settings::HttpVersion,
     pub token: Option<String>,
+    pub allow_insecure_tls: bool,
     pub interval_seconds: Option<i16>,
     pub number_of_cycles: Option<i16>,
 }
@@ -230,6 +233,7 @@ pub async fn create_profile(
         mode: input.mode,
         http_version: input.http_version,
         token,
+        allow_insecure_tls: input.allow_insecure_tls,
         interval_seconds: input.interval_seconds,
         number_of_cycles: input.number_of_cycles,
         created_at: now,
@@ -239,8 +243,8 @@ pub async fn create_profile(
     with_pool(&app, |pool| async move {
         sqlx::query(
             "INSERT INTO profiles (id, project_id, name, url, mode, http_version, token, \
-                 interval_seconds, number_of_cycles, created_at, updated_at) \
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                 allow_insecure_tls, interval_seconds, number_of_cycles, created_at, updated_at) \
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         )
         .bind(&row.id)
         .bind(&row.project_id)
@@ -249,6 +253,7 @@ pub async fn create_profile(
         .bind(row.mode)
         .bind(row.http_version)
         .bind(row.token.as_deref())
+        .bind(row.allow_insecure_tls)
         .bind(row.interval_seconds)
         .bind(row.number_of_cycles)
         .bind(row.created_at)
@@ -282,13 +287,15 @@ pub async fn update_profile(app: AppHandle, id: String, input: ProfileInput) -> 
     with_pool(&app, move |pool| async move {
         sqlx::query(
             "UPDATE profiles SET name = ?, url = ?, mode = ?, http_version = ?, token = ?, \
-             interval_seconds = ?, number_of_cycles = ?, updated_at = ? WHERE id = ?",
+             allow_insecure_tls = ?, interval_seconds = ?, number_of_cycles = ?, \
+             updated_at = ? WHERE id = ?",
         )
         .bind(&trimmed_name)
         .bind(&trimmed_url)
         .bind(input.mode)
         .bind(input.http_version)
         .bind(token.as_deref())
+        .bind(input.allow_insecure_tls)
         .bind(input.interval_seconds)
         .bind(input.number_of_cycles)
         .bind(now)

@@ -143,6 +143,7 @@ function toInput(input: ProfileInput): ProfileInput {
 		mode: input.mode,
 		httpVersion: input.httpVersion,
 		token: input.token?.trim() || null,
+		allowInsecureTls: input.allowInsecureTls,
 		intervalSeconds: input.intervalSeconds ?? null,
 		numberOfCycles: input.numberOfCycles ?? null,
 	};

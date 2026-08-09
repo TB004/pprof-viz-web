@@ -23,6 +23,7 @@ export const commands = {
 	mode: CollectionType,
 	httpVersion: HttpVersion,
 	token: string | null,
+	allowInsecureTls: boolean,
 	intervalSeconds: number | null,
 	numberOfCycles: number | null,
 	createdAt: number,
@@ -128,6 +129,7 @@ export type ProfileInput = {
 	mode: CollectionType,
 	httpVersion: HttpVersion,
 	token: string | null,
+	allowInsecureTls: boolean,
 	intervalSeconds: number | null,
 	numberOfCycles: number | null,
 };
@@ -140,6 +142,7 @@ export type ProfileRow = {
 	mode: CollectionType,
 	httpVersion: HttpVersion,
 	token: string | null,
+	allowInsecureTls: boolean,
 	intervalSeconds: number | null,
 	numberOfCycles: number | null,
 	createdAt: number,

@@ -165,7 +165,8 @@ export type UpdateStatus = {
 	releaseUrl: string,
 	/**
 	 *  `https://api.github.com/repos/.../releases/assets/{id}`.
-	 *  `None` when no update is available or no matching asset was found.
+	 *  `None` when no update is available, no matching asset was found, or the
+	 *  platform cannot install one itself (Linux — see `check_update`).
 	 */
 	assetUrl: string | null,
 	/**

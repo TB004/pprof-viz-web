@@ -9,12 +9,11 @@ use serde_json::{Map, Value};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::watch;
 
+use crate::AppState;
 use crate::db::{self, ProfileRow};
 use crate::errors;
 use crate::rpc::AgentClient;
 use crate::settings::CollectionType;
-use crate::state::AppState;
-use crate::utils;
 
 pub const MAX_FRAMES: usize = 500;
 
@@ -44,16 +43,16 @@ pub struct CollectionStateSnapshot {
     pub profile_name: Option<String>,
     pub profile_url: Option<String>,
     pub mode: Option<CollectionType>,
-    #[specta(type = Option<utils::TsNumber>)]
+    #[specta(type = Option<crate::TsNumber>)]
     pub started_at: Option<i64>,
-    #[specta(type = Option<utils::TsNumber>)]
+    #[specta(type = Option<crate::TsNumber>)]
     pub ended_at: Option<i64>,
     pub loaded: bool,
     pub saved: bool,
-    #[specta(type = utils::TsNumber)]
+    #[specta(type = crate::TsNumber)]
     pub sample_count: usize,
     pub frames: Vec<Frame>,
-    #[specta(type = Vec<utils::TsNumber>)]
+    #[specta(type = Vec<crate::TsNumber>)]
     pub frame_timestamps: Vec<i64>,
     #[specta(type = Option<specta_typescript::Unknown>)]
     pub metadata: Option<Value>,
@@ -158,7 +157,7 @@ impl CollectionStore {
             return None;
         }
         session.frames.push_back(frame);
-        session.frame_times.push_back(utils::now_millis());
+        session.frame_times.push_back(crate::now_millis());
         while session.frames.len() > MAX_FRAMES {
             session.frames.pop_front();
             session.frame_times.pop_front();
@@ -197,7 +196,7 @@ impl CollectionStore {
         {
             session.status = CollectionStatus::Idle;
             if session.ended_at.is_none() {
-                session.ended_at = Some(utils::now_millis());
+                session.ended_at = Some(crate::now_millis());
             }
         }
     }
@@ -355,7 +354,7 @@ pub async fn start_collection(app: AppHandle, profile_id: String) -> Result<(), 
         profile_name: profile.name.clone(),
         profile_url: profile.url.clone(),
         mode: profile.mode,
-        started_at: utils::now_millis(),
+        started_at: crate::now_millis(),
         ended_at: None,
         loaded: false,
         saved: false,

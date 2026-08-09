@@ -10,12 +10,11 @@ use serde_json::{Map, Value};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::watch;
 
+use crate::AppState;
 use crate::collection::{self, CollectionSession, CollectionStatus, Frame};
 use crate::db;
 use crate::proto::proto::{AllResponse, CollectionMeta, MetadataResponse, StoredCollection};
 use crate::settings::CollectionType;
-use crate::state::AppState;
-use crate::utils;
 
 /// Current on-disk `.ppvz` format version. Bump when the layout changes in a
 /// way that needs a migration on read.
@@ -52,16 +51,16 @@ pub struct CollectionRow {
     pub name: String,
     pub description: Option<String>,
     pub filename: String,
-    #[specta(type = utils::TsNumber)]
+    #[specta(type = crate::TsNumber)]
     pub size_bytes: i64,
-    #[specta(type = utils::TsNumber)]
+    #[specta(type = crate::TsNumber)]
     pub duration_ms: i64,
-    #[specta(type = utils::TsNumber)]
+    #[specta(type = crate::TsNumber)]
     pub sample_count: i64,
     pub profile_name: Option<String>,
     pub profile_url: Option<String>,
     pub mode: Option<String>,
-    #[specta(type = utils::TsNumber)]
+    #[specta(type = crate::TsNumber)]
     pub created_at: i64,
 }
 
@@ -69,13 +68,13 @@ pub struct CollectionRow {
 #[serde(rename_all = "camelCase")]
 pub struct DiskUsage {
     /// Total bytes of all stored `.ppvz` files (from the metadata table).
-    #[specta(type = utils::TsNumber)]
+    #[specta(type = crate::TsNumber)]
     pub collections_bytes: i64,
     /// Free space on the volume that holds the collections folder.
-    #[specta(type = utils::TsNumber)]
+    #[specta(type = crate::TsNumber)]
     pub free_bytes: u64,
     /// Total size of that volume.
-    #[specta(type = utils::TsNumber)]
+    #[specta(type = crate::TsNumber)]
     pub total_bytes: u64,
 }
 
@@ -327,9 +326,9 @@ pub async fn save_collection(
     let started_at = snapshot
         .started_at
         .ok_or_else(|| "collection has no start time".to_string())?;
-    let duration_ms = (snapshot.ended_at.unwrap_or_else(utils::now_millis) - started_at).max(0);
+    let duration_ms = (snapshot.ended_at.unwrap_or_else(crate::now_millis) - started_at).max(0);
     let sample_count = snapshot.frames.len() as i64;
-    let created_at = utils::now_millis();
+    let created_at = crate::now_millis();
 
     let description = description.and_then(|d| {
         let d = d.trim().to_string();
@@ -539,7 +538,7 @@ pub async fn load_from_path(app: &AppHandle, path: &std::path::Path) -> Result<(
                 if m.created_at != 0 {
                     m.created_at
                 } else {
-                    utils::now_millis()
+                    crate::now_millis()
                 },
                 m.duration_ms,
             )

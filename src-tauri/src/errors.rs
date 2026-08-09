@@ -7,8 +7,7 @@ use std::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::state::AppState;
-use crate::utils;
+use crate::AppState;
 
 const MAX_ERRORS: usize = 200;
 pub const EVENT_NEW_ERROR: &str = "error://new";
@@ -18,7 +17,7 @@ pub const EVENT_NEW_ERROR: &str = "error://new";
 pub struct AppError {
     pub id: String,
     pub message: String,
-    #[specta(type = utils::TsNumber)]
+    #[specta(type = crate::TsNumber)]
     pub timestamp: i64,
 }
 
@@ -32,7 +31,7 @@ impl ErrorLog {
         let entry = AppError {
             id: ulid::Ulid::generate().to_string(),
             message,
-            timestamp: utils::now_millis(),
+            timestamp: crate::now_millis(),
         };
         let mut entries = self.entries.lock().unwrap_or_else(|e| e.into_inner());
         entries.push_front(entry.clone());

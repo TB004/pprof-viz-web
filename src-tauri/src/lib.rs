@@ -8,17 +8,37 @@ mod errors;
 mod opener;
 mod rpc;
 mod settings;
-mod state;
 mod update;
-mod utils;
 
 mod proto {
     connectrpc::include_generated!();
 }
 
+use std::sync::Arc;
+
 use tauri::Manager;
 
-use crate::state::AppState;
+use crate::collection::CollectionStore;
+use crate::errors::ErrorLog;
+
+/// Process-wide state that is not persisted: the in-memory error log and the
+/// active collection session.
+#[derive(Debug, Default)]
+pub struct AppState {
+    pub errors: Arc<ErrorLog>,
+    pub collection: Arc<CollectionStore>,
+}
+
+/// TypeScript type for an integer that crosses the IPC boundary as a JSON
+/// number: epoch millis, byte counts, sample counts.
+pub type TsNumber = specta_typescript::Number;
+
+pub fn now_millis() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
+}
 
 fn make_builder() -> tauri_specta::Builder<tauri::Wry> {
     tauri_specta::Builder::new()

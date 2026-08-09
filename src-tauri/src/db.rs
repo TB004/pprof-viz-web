@@ -6,16 +6,15 @@ use sqlx::SqlitePool;
 use tauri::{AppHandle, Manager};
 
 use crate::settings;
-use crate::utils;
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectRow {
     pub id: String,
     pub name: String,
-    #[specta(type = utils::TsNumber)]
+    #[specta(type = crate::TsNumber)]
     pub created_at: i64,
-    #[specta(type = utils::TsNumber)]
+    #[specta(type = crate::TsNumber)]
     pub updated_at: i64,
 }
 
@@ -32,9 +31,9 @@ pub struct ProfileRow {
     pub allow_insecure_tls: bool,
     pub interval_seconds: Option<i16>,
     pub number_of_cycles: Option<i16>,
-    #[specta(type = utils::TsNumber)]
+    #[specta(type = crate::TsNumber)]
     pub created_at: i64,
-    #[specta(type = utils::TsNumber)]
+    #[specta(type = crate::TsNumber)]
     pub updated_at: i64,
 }
 
@@ -113,7 +112,7 @@ pub async fn create_project(app: AppHandle, name: String) -> Result<ProjectRow, 
     if trimmed.is_empty() {
         return Err("project name must not be empty".into());
     }
-    let now = utils::now_millis();
+    let now = crate::now_millis();
     let row = ProjectRow {
         id: ulid::Ulid::generate().to_string(),
         name: trimmed,
@@ -142,7 +141,7 @@ pub async fn rename_project(app: AppHandle, id: String, name: String) -> Result<
 
     sqlx::query("UPDATE projects SET name = ?, updated_at = ? WHERE id = ?")
         .bind(trimmed)
-        .bind(utils::now_millis())
+        .bind(crate::now_millis())
         .bind(id)
         .execute(&pool(&app))
         .await
@@ -180,7 +179,7 @@ pub async fn create_profile(
         let t = t.trim().to_string();
         if t.is_empty() { None } else { Some(t) }
     });
-    let now = utils::now_millis();
+    let now = crate::now_millis();
     let row = ProfileRow {
         id: ulid::Ulid::generate().to_string(),
         project_id,
@@ -249,7 +248,7 @@ pub async fn update_profile(app: AppHandle, id: String, input: ProfileInput) -> 
     .bind(input.allow_insecure_tls)
     .bind(input.interval_seconds)
     .bind(input.number_of_cycles)
-    .bind(utils::now_millis())
+    .bind(crate::now_millis())
     .bind(&id)
     .execute(&pool(&app))
     .await

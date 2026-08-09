@@ -5,6 +5,7 @@ import { listen } from "@tauri-apps/api/event";
 import { type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
 import { goto } from "$app/navigation";
+import { MAX_FRAMES } from "$lib/bindings";
 import * as Ipc from "$lib/ipc";
 import { ErrorService, ProfileService } from "$lib/services";
 import {
@@ -72,6 +73,17 @@ function getSnapshot(): CollectionState {
 
 function asStatus(raw: CollectionStateSnapshot["status"]): CollectionStatus {
 	return raw === "running" ? CollectionStatus.Running : CollectionStatus.Idle;
+}
+
+/**
+ * Drop the oldest entries in place so at most `MAX_FRAMES` remain, mirroring
+ * the eviction Rust performs on its own buffer.
+ */
+function evictOldest<T>(entries: T[]): T[] {
+	if (entries.length > MAX_FRAMES) {
+		entries.splice(0, entries.length - MAX_FRAMES);
+	}
+	return entries;
 }
 
 function asUrl(raw: string | null | undefined): URL | undefined {
@@ -175,12 +187,18 @@ if (browser) {
 						applySnapshot(event.payload);
 					}),
 					listen<Frame>(EVENT_FRAME, (event) => {
-						collectionStateStore.update((state) => ({
-							...state,
-							data: [...(state.data ?? []), event.payload],
-							dataTimestamps: [...(state.dataTimestamps ?? []), Date.now()],
-							collectedSamples: (state.data?.length ?? 0) + 1,
-						}));
+						collectionStateStore.update((state) => {
+							const data = evictOldest([...(state.data ?? []), event.payload]);
+							return {
+								...state,
+								data,
+								dataTimestamps: evictOldest([
+									...(state.dataTimestamps ?? []),
+									Date.now(),
+								]),
+								collectedSamples: data.length,
+							};
+						});
 					}),
 					listen<MetadataResponse>(EVENT_METADATA, (event) => {
 						collectionStateStore.update((state) => ({

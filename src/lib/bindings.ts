@@ -55,6 +55,9 @@ export const commands = {
 	open: (target: string) => typedError<null, string>(__TAURI_INVOKE("open", { target })),
 };
 
+/* Constants */
+export const MAX_FRAMES = 500 as const;
+
 /* Types */
 export type AppError = {
 	id: string,

@@ -66,79 +66,60 @@ pub struct ProfileInput {
     pub number_of_cycles: Option<i16>,
 }
 
-async fn with_pool<F, Fut, T>(app: &AppHandle, f: F) -> Result<T, String>
-where
-    F: FnOnce(SqlitePool) -> Fut,
-    Fut: std::future::Future<Output = Result<T, String>>,
-{
-    let pool = app.state::<SqlitePool>().inner().clone();
-    f(pool).await
+/// The shared SQLite pool. Cloning is cheap — the pool is an `Arc` internally —
+/// and it detaches the borrow from `app`, so callers can hold it across awaits.
+pub(crate) fn pool(app: &AppHandle) -> SqlitePool {
+    app.state::<SqlitePool>().inner().clone()
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn list_projects(app: AppHandle) -> Result<Vec<ProjectRow>, String> {
-    with_pool(&app, |pool| async move {
-        sqlx::query_as::<_, ProjectRow>("SELECT * FROM projects ORDER BY created_at ASC")
-            .fetch_all(&pool)
-            .await
-            .map_err(|e| e.to_string())
-    })
-    .await
+    sqlx::query_as::<_, ProjectRow>("SELECT * FROM projects ORDER BY created_at ASC")
+        .fetch_all(&pool(&app))
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn list_profiles(app: AppHandle) -> Result<Vec<ProfileRow>, String> {
-    with_pool(&app, |pool| async move {
-        sqlx::query_as::<_, ProfileRow>("SELECT * FROM profiles ORDER BY created_at ASC")
-            .fetch_all(&pool)
-            .await
-            .map_err(|e| e.to_string())
-    })
-    .await
+    sqlx::query_as::<_, ProfileRow>("SELECT * FROM profiles ORDER BY created_at ASC")
+        .fetch_all(&pool(&app))
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn get_project_by_id(app: AppHandle, id: String) -> Result<Option<ProjectRow>, String> {
-    with_pool(&app, |pool| async move {
-        sqlx::query_as::<_, ProjectRow>("SELECT * FROM projects WHERE id = ?")
-            .bind(&id)
-            .fetch_optional(&pool)
-            .await
-            .map_err(|e| e.to_string())
-    })
-    .await
+    sqlx::query_as::<_, ProjectRow>("SELECT * FROM projects WHERE id = ?")
+        .bind(&id)
+        .fetch_optional(&pool(&app))
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn get_profile_by_id(app: AppHandle, id: String) -> Result<Option<ProfileRow>, String> {
-    with_pool(&app, |pool| async move {
-        sqlx::query_as::<_, ProfileRow>("SELECT * FROM profiles WHERE id = ?")
-            .bind(&id)
-            .fetch_optional(&pool)
-            .await
-            .map_err(|e| e.to_string())
-    })
-    .await
+    sqlx::query_as::<_, ProfileRow>("SELECT * FROM profiles WHERE id = ?")
+        .bind(&id)
+        .fetch_optional(&pool(&app))
+        .await
+        .map_err(|e| e.to_string())
 }
 
 /// Load a single profile by id, returning a [`ProfileDescriptor`] suitable
 /// for the collection worker. Not exposed as a Tauri command — internal
 /// to the Rust side (the collection module calls it during start_collection).
 pub async fn load_profile(app: &AppHandle, profile_id: &str) -> Result<ProfileDescriptor, String> {
-    let id = profile_id.to_string();
-    with_pool(app, |pool| async move {
-        sqlx::query_as::<_, ProfileDescriptor>("SELECT * FROM profiles WHERE id = ?")
-            .bind(&id)
-            .fetch_optional(&pool)
-            .await
-            .map_err(|e| e.to_string())?
-            .ok_or_else(|| format!("profile '{id}' not found"))
-    })
-    .await
+    sqlx::query_as::<_, ProfileDescriptor>("SELECT * FROM profiles WHERE id = ?")
+        .bind(profile_id)
+        .fetch_optional(&pool(app))
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("profile '{profile_id}' not found"))
 }
 
 #[tauri::command]
@@ -156,18 +137,15 @@ pub async fn create_project(app: AppHandle, name: String) -> Result<ProjectRow, 
         updated_at: now,
     };
 
-    with_pool(&app, |pool| async move {
-        sqlx::query("INSERT INTO projects (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
-            .bind(&row.id)
-            .bind(&row.name)
-            .bind(row.created_at)
-            .bind(row.updated_at)
-            .execute(&pool)
-            .await
-            .map_err(|e| e.to_string())?;
-        Ok(row)
-    })
-    .await
+    sqlx::query("INSERT INTO projects (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
+        .bind(&row.id)
+        .bind(&row.name)
+        .bind(row.created_at)
+        .bind(row.updated_at)
+        .execute(&pool(&app))
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(row)
 }
 
 #[tauri::command]
@@ -178,31 +156,25 @@ pub async fn rename_project(app: AppHandle, id: String, name: String) -> Result<
         return Err("project name must not be empty".into());
     }
 
-    with_pool(&app, |pool| async move {
-        sqlx::query("UPDATE projects SET name = ?, updated_at = ? WHERE id = ?")
-            .bind(trimmed)
-            .bind(utils::now_millis())
-            .bind(id)
-            .execute(&pool)
-            .await
-            .map_err(|e| e.to_string())?;
-        Ok(())
-    })
-    .await
+    sqlx::query("UPDATE projects SET name = ?, updated_at = ? WHERE id = ?")
+        .bind(trimmed)
+        .bind(utils::now_millis())
+        .bind(id)
+        .execute(&pool(&app))
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn delete_project(app: AppHandle, id: String) -> Result<(), String> {
-    with_pool(&app, |pool| async move {
-        sqlx::query("DELETE FROM projects WHERE id = ?")
-            .bind(id)
-            .execute(&pool)
-            .await
-            .map_err(|e| e.to_string())?;
-        Ok(())
-    })
-    .await
+    sqlx::query("DELETE FROM projects WHERE id = ?")
+        .bind(id)
+        .execute(&pool(&app))
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -240,31 +212,28 @@ pub async fn create_profile(
         updated_at: now,
     };
 
-    with_pool(&app, |pool| async move {
-        sqlx::query(
-            "INSERT INTO profiles (id, project_id, name, url, mode, http_version, token, \
-                 allow_insecure_tls, interval_seconds, number_of_cycles, created_at, updated_at) \
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        )
-        .bind(&row.id)
-        .bind(&row.project_id)
-        .bind(&row.name)
-        .bind(&row.url)
-        .bind(row.mode)
-        .bind(row.http_version)
-        .bind(row.token.as_deref())
-        .bind(row.allow_insecure_tls)
-        .bind(row.interval_seconds)
-        .bind(row.number_of_cycles)
-        .bind(row.created_at)
-        .bind(row.updated_at)
-        .execute(&pool)
-        .await
-        .map_err(|e| e.to_string())?;
-
-        Ok(row)
-    })
+    sqlx::query(
+        "INSERT INTO profiles (id, project_id, name, url, mode, http_version, token, \
+             allow_insecure_tls, interval_seconds, number_of_cycles, created_at, updated_at) \
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    )
+    .bind(&row.id)
+    .bind(&row.project_id)
+    .bind(&row.name)
+    .bind(&row.url)
+    .bind(row.mode)
+    .bind(row.http_version)
+    .bind(row.token.as_deref())
+    .bind(row.allow_insecure_tls)
+    .bind(row.interval_seconds)
+    .bind(row.number_of_cycles)
+    .bind(row.created_at)
+    .bind(row.updated_at)
+    .execute(&pool(&app))
     .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(row)
 }
 
 #[tauri::command]
@@ -282,67 +251,55 @@ pub async fn update_profile(app: AppHandle, id: String, input: ProfileInput) -> 
         let t = t.trim().to_string();
         if t.is_empty() { None } else { Some(t) }
     });
-    let now = utils::now_millis();
 
-    with_pool(&app, move |pool| async move {
-        sqlx::query(
-            "UPDATE profiles SET name = ?, url = ?, mode = ?, http_version = ?, token = ?, \
-             allow_insecure_tls = ?, interval_seconds = ?, number_of_cycles = ?, \
-             updated_at = ? WHERE id = ?",
-        )
-        .bind(&trimmed_name)
-        .bind(&trimmed_url)
-        .bind(input.mode)
-        .bind(input.http_version)
-        .bind(token.as_deref())
-        .bind(input.allow_insecure_tls)
-        .bind(input.interval_seconds)
-        .bind(input.number_of_cycles)
-        .bind(now)
-        .bind(&id)
-        .execute(&pool)
-        .await
-        .map_err(|e| e.to_string())?;
-        Ok(())
-    })
+    sqlx::query(
+        "UPDATE profiles SET name = ?, url = ?, mode = ?, http_version = ?, token = ?, \
+         allow_insecure_tls = ?, interval_seconds = ?, number_of_cycles = ?, \
+         updated_at = ? WHERE id = ?",
+    )
+    .bind(&trimmed_name)
+    .bind(&trimmed_url)
+    .bind(input.mode)
+    .bind(input.http_version)
+    .bind(token.as_deref())
+    .bind(input.allow_insecure_tls)
+    .bind(input.interval_seconds)
+    .bind(input.number_of_cycles)
+    .bind(utils::now_millis())
+    .bind(&id)
+    .execute(&pool(&app))
     .await
+    .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn delete_profile(app: AppHandle, id: String) -> Result<(), String> {
-    with_pool(&app, |pool| async move {
-        sqlx::query("DELETE FROM profiles WHERE id = ?")
-            .bind(id)
-            .execute(&pool)
-            .await
-            .map_err(|e| e.to_string())?;
-        Ok(())
-    })
-    .await
+    sqlx::query("DELETE FROM profiles WHERE id = ?")
+        .bind(id)
+        .execute(&pool(&app))
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn reset_all_data(app: AppHandle) -> Result<(), String> {
+    let pool = pool(&app);
+
     // Clear all DB rows (profiles cascade from projects)
-    with_pool(&app, |pool| async move {
-        sqlx::query("DELETE FROM projects")
-            .execute(&pool)
-            .await
-            .map_err(|e| e.to_string())?;
-        Ok(())
-    })
-    .await?;
+    sqlx::query("DELETE FROM projects")
+        .execute(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
     // Delete all stored collections (.ppvz files + DB rows)
-    let filenames: Vec<String> = with_pool(&app, |pool| async move {
-        sqlx::query_scalar("SELECT filename FROM collections")
-            .fetch_all(&pool)
-            .await
-            .map_err(|e| e.to_string())
-    })
-    .await?;
+    let filenames: Vec<String> = sqlx::query_scalar("SELECT filename FROM collections")
+        .fetch_all(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
     if let Ok(collections_dir) = app.path().app_data_dir().map(|d| d.join("collections")) {
         for filename in &filenames {
@@ -350,14 +307,10 @@ pub async fn reset_all_data(app: AppHandle) -> Result<(), String> {
         }
     }
 
-    with_pool(&app, |pool| async move {
-        sqlx::query("DELETE FROM collections")
-            .execute(&pool)
-            .await
-            .map_err(|e| e.to_string())?;
-        Ok(())
-    })
-    .await?;
+    sqlx::query("DELETE FROM collections")
+        .execute(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
     // Reset settings to defaults
     app.state::<settings::SettingsState>()

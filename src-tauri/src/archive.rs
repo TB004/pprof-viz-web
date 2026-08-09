@@ -7,11 +7,11 @@ use std::path::PathBuf;
 use buffa::Message;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use sqlx::SqlitePool;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::watch;
 
 use crate::collection::{self, CollectionSession, CollectionStatus, Frame};
+use crate::db;
 use crate::proto::proto::{AllResponse, CollectionMeta, MetadataResponse, StoredCollection};
 use crate::settings::CollectionType;
 use crate::state::AppState;
@@ -384,7 +384,7 @@ pub async fn save_collection(
         created_at,
     };
 
-    let pool = app.state::<SqlitePool>().inner().clone();
+    let pool = db::pool(&app);
     sqlx::query(
         "INSERT INTO collections (id, name, description, filename, size_bytes, duration_ms, \
          sample_count, profile_name, profile_url, mode, created_at) \
@@ -416,7 +416,7 @@ pub async fn save_collection(
 #[tauri::command]
 #[specta::specta]
 pub async fn list_collections(app: AppHandle) -> Result<Vec<CollectionRow>, String> {
-    let pool = app.state::<SqlitePool>().inner().clone();
+    let pool = db::pool(&app);
     sqlx::query_as::<_, CollectionRow>("SELECT * FROM collections ORDER BY created_at DESC")
         .fetch_all(&pool)
         .await
@@ -426,7 +426,7 @@ pub async fn list_collections(app: AppHandle) -> Result<Vec<CollectionRow>, Stri
 #[tauri::command]
 #[specta::specta]
 pub async fn delete_collection(app: AppHandle, id: String) -> Result<(), String> {
-    let pool = app.state::<SqlitePool>().inner().clone();
+    let pool = db::pool(&app);
     let filename: Option<(String,)> =
         sqlx::query_as("SELECT filename FROM collections WHERE id = ?")
             .bind(&id)
@@ -463,7 +463,7 @@ pub async fn update_collection(
         if d.is_empty() { None } else { Some(d) }
     });
 
-    let pool = app.state::<SqlitePool>().inner().clone();
+    let pool = db::pool(&app);
     sqlx::query("UPDATE collections SET name = ?, description = ? WHERE id = ?")
         .bind(&name)
         .bind(description.as_deref())
@@ -477,7 +477,7 @@ pub async fn update_collection(
 #[tauri::command]
 #[specta::specta]
 pub async fn load_collection(app: AppHandle, id: String) -> Result<(), String> {
-    let pool = app.state::<SqlitePool>().inner().clone();
+    let pool = db::pool(&app);
     let row = sqlx::query_as::<_, CollectionRow>("SELECT * FROM collections WHERE id = ?")
         .bind(&id)
         .fetch_optional(&pool)
@@ -508,7 +508,7 @@ pub async fn load_collection(app: AppHandle, id: String) -> Result<(), String> {
 pub async fn load_from_path(app: &AppHandle, path: &std::path::Path) -> Result<(), String> {
     let decoded = decode_stored(read_stored(path)?)?;
 
-    let pool = app.state::<SqlitePool>().inner().clone();
+    let pool = db::pool(app);
 
     // Prefer the archive row if this file lives in our collections folder.
     let db_row = match path.file_name().and_then(|n| n.to_str()) {
@@ -563,7 +563,7 @@ pub async fn load_from_path(app: &AppHandle, path: &std::path::Path) -> Result<(
 #[specta::specta]
 pub async fn disk_usage(app: AppHandle) -> Result<DiskUsage, String> {
     let dir = collections_dir(&app)?;
-    let pool = app.state::<SqlitePool>().inner().clone();
+    let pool = db::pool(&app);
     let collections_bytes: i64 =
         sqlx::query_scalar("SELECT COALESCE(SUM(size_bytes), 0) FROM collections")
             .fetch_one(&pool)

@@ -9,7 +9,7 @@ use serde_json::{Map, Value};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::watch;
 
-use crate::db::{self, ProfileDescriptor};
+use crate::db::{self, ProfileRow};
 use crate::errors;
 use crate::rpc::AgentClient;
 use crate::settings::CollectionType;
@@ -405,7 +405,7 @@ pub(crate) fn emit_state(app: &AppHandle, snapshot: Option<CollectionStateSnapsh
 async fn run_session(
     app: AppHandle,
     client: AgentClient,
-    profile: ProfileDescriptor,
+    profile: ProfileRow,
     session_id: String,
     mut cancel_rx: watch::Receiver<bool>,
 ) {

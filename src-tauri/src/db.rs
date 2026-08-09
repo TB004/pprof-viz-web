@@ -38,21 +38,6 @@ pub struct ProfileRow {
     pub updated_at: i64,
 }
 
-/// Lightweight view of a profile used by the collection worker. Drops the
-/// timestamps and project_id that the streaming code doesn't need.
-#[derive(Debug, Clone, sqlx::FromRow)]
-pub struct ProfileDescriptor {
-    pub id: String,
-    pub name: String,
-    pub url: String,
-    pub mode: settings::CollectionType,
-    pub http_version: settings::HttpVersion,
-    pub token: Option<String>,
-    pub allow_insecure_tls: bool,
-    pub interval_seconds: Option<i16>,
-    pub number_of_cycles: Option<i16>,
-}
-
 #[derive(Debug, Clone, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileInput {
@@ -110,11 +95,10 @@ pub async fn get_profile_by_id(app: AppHandle, id: String) -> Result<Option<Prof
         .map_err(|e| e.to_string())
 }
 
-/// Load a single profile by id, returning a [`ProfileDescriptor`] suitable
-/// for the collection worker. Not exposed as a Tauri command — internal
-/// to the Rust side (the collection module calls it during start_collection).
-pub async fn load_profile(app: &AppHandle, profile_id: &str) -> Result<ProfileDescriptor, String> {
-    sqlx::query_as::<_, ProfileDescriptor>("SELECT * FROM profiles WHERE id = ?")
+/// Load a single profile by id. Not exposed as a Tauri command — internal to
+/// the Rust side (the collection module calls it during start_collection).
+pub async fn load_profile(app: &AppHandle, profile_id: &str) -> Result<ProfileRow, String> {
+    sqlx::query_as::<_, ProfileRow>("SELECT * FROM profiles WHERE id = ?")
         .bind(profile_id)
         .fetch_optional(&pool(app))
         .await

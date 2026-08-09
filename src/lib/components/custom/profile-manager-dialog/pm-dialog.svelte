@@ -205,7 +205,12 @@ async function testConnection() {
 	pingError = "";
 
 	try {
-		await Ipc.agentPing(url, token || null, dialogState.profileHttpVersion);
+		await Ipc.agentPing(
+			url,
+			token || null,
+			dialogState.profileHttpVersion,
+			false,
+		);
 		pingStatus = "success";
 	} catch (err) {
 		pingStatus = "error";

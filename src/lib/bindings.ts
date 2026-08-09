@@ -48,7 +48,7 @@ export const commands = {
 	updateCollection: (id: string, name: string, description: string | null) => typedError<null, string>(__TAURI_INVOKE("update_collection", { id, name, description })),
 	loadCollection: (id: string) => typedError<null, string>(__TAURI_INVOKE("load_collection", { id })),
 	diskUsage: () => typedError<DiskUsage, string>(__TAURI_INVOKE("disk_usage")),
-	agentPing: (url: string, token: string | null, httpVersion: HttpVersion) => typedError<null, string>(__TAURI_INVOKE("agent_ping", { url, token, httpVersion })),
+	agentPing: (url: string, token: string | null, httpVersion: HttpVersion, allowInsecureTls: boolean) => typedError<null, string>(__TAURI_INVOKE("agent_ping", { url, token, httpVersion, allowInsecureTls })),
 	checkUpdate: () => typedError<UpdateStatus, string>(__TAURI_INVOKE("check_update")),
 	installUpdate: (url: string, filename: string) => typedError<null, string>(__TAURI_INVOKE("install_update", { url, filename })),
 	/**  Opens a URL or file path with the OS default handler. */

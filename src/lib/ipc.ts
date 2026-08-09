@@ -67,7 +67,8 @@ export const agentPing = (
 	url: string,
 	token: string | null,
 	httpVersion: HttpVersion,
-) => run(commands.agentPing(url, token, httpVersion));
+	allowInsecureTls: boolean,
+) => run(commands.agentPing(url, token, httpVersion, allowInsecureTls));
 export const checkUpdate = () => run(commands.checkUpdate());
 export const installUpdate = (url: string, filename: string) =>
 	run(commands.installUpdate(url, filename));

@@ -27,6 +27,7 @@ dependencies = [
  "quinn",
  "reqwest",
  "rustls",
+ "rustls-platform-verifier",
  "semver",
  "serde",
  "serde_json",

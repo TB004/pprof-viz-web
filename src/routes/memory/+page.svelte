@@ -13,14 +13,14 @@ import {
 	WrenchIcon,
 } from "@lucide/svelte";
 import { AreaChart, LineChart, PieChart } from "layerchart";
-import { StatCard } from "$lib/components/custom/stat-card";
+import { EmptyState, PageShell } from "$lib/components/custom/page";
+import { StatGrid } from "$lib/components/custom/stat-card";
 import * as Card from "$lib/components/ui/card";
 import {
 	type ChartConfig,
 	ChartContainer,
 	Tooltip,
 } from "$lib/components/ui/chart";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import { fmtBytes, fmtBytesAxis } from "$lib/format";
 import { CollectionService } from "$lib/services";
 
@@ -153,100 +153,75 @@ const structuresChartConfig = {
 } satisfies ChartConfig;
 </script>
 
-<ScrollArea class="h-full mr-2">
-	<div class="flex min-h-full flex-col gap-6 p-6">
-		<div>
-			<h1 class="text-2xl font-semibold">Memory</h1>
-			<p class="text-muted-foreground text-sm">
-				Heap composition, idle memory, and runtime structure footprint
-			</p>
-		</div>
+<PageShell
+	title="Memory"
+	description="Heap composition, idle memory, and runtime structure footprint"
+>
+	{#if !hasData}
+		<EmptyState icon={MemoryStickIcon}>
+			Select a profile and start collecting to see memory metrics.
+		</EmptyState>
+	{:else}
+		<StatGrid {stats} />
 
-		{#if !hasData}
-			<div class="flex flex-1 items-center justify-center">
-				<Card.Root class="w-fit border-dashed">
-					<Card.Content
-						class="flex flex-col items-center gap-3 px-16 py-12 text-center"
+		<div class="grid gap-6 lg:grid-cols-[2fr_3fr]">
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Memory Composition</Card.Title>
+					<Card.Description>
+						Where memory currently lives in the latest sample
+					</Card.Description>
+				</Card.Header>
+				<Card.Content>
+					<ChartContainer
+						config={compositionChartConfig}
+						class="mx-auto h-64 w-full"
 					>
-						<div
-							class="bg-muted flex h-12 w-12 items-center justify-center rounded-full"
-						>
-							<MemoryStickIcon class="text-muted-foreground size-6" />
-						</div>
-						<div>
-							<p class="font-medium">No data yet</p>
-							<p class="text-muted-foreground text-sm">
-								Select a profile and start collecting to see memory metrics.
-							</p>
-						</div>
-					</Card.Content>
-				</Card.Root>
-			</div>
-		{:else}
-			<div class="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
-				{#each stats as { label, value, description, Icon } (label)}
-					<StatCard {label} {value} {description} icon={Icon} />
-				{/each}
-			</div>
-
-			<div class="grid gap-6 lg:grid-cols-[2fr_3fr]">
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Memory Composition</Card.Title>
-						<Card.Description>
-							Where memory currently lives in the latest sample
-						</Card.Description>
-					</Card.Header>
-					<Card.Content>
-						<ChartContainer
-							config={compositionChartConfig}
-							class="mx-auto h-64 w-full"
-						>
-							<PieChart
-								data={composition}
-								key="key"
-								value="value"
-								label="label"
-								innerRadius={0.6}
-								outerRadius={0.78}
-								cRange={[
+						<PieChart
+							data={composition}
+							key="key"
+							value="value"
+							label="label"
+							innerRadius={0.6}
+							outerRadius={0.78}
+							cRange={[
                                     "var(--chart-1)",
                                     "var(--chart-2)",
                                     "var(--chart-3)",
                                     "var(--chart-4)",
                                     "var(--chart-5)",
                                 ]}
-								c="key"
-								labels={{
+							c="key"
+							labels={{
                                     value: (d) => d.label,
                                     class: "fill-foreground text-xs font-medium",
                                 }}
-							>
-								{#snippet tooltip()}
-									<Tooltip hideLabel nameKey="label" />
-								{/snippet}
-							</PieChart>
-						</ChartContainer>
-					</Card.Content>
-				</Card.Root>
+						>
+							{#snippet tooltip()}
+								<Tooltip hideLabel nameKey="label" />
+							{/snippet}
+						</PieChart>
+					</ChartContainer>
+				</Card.Content>
+			</Card.Root>
 
-				<Card.Root>
-					<Card.Header>
-						<Card.Title>Heap Breakdown</Card.Title>
-						<Card.Description>
-							In-use, unused, free, and released heap over time
-						</Card.Description>
-					</Card.Header>
-					<Card.Content>
-						<ChartContainer config={heapChartConfig} class="aspect-auto h-64">
-							<AreaChart
-								data={chartData}
-								x="sample"
-								yNice
-								seriesLayout="stack"
-								padding={{ left: 35 }}
-								props={{ yAxis: { format: fmtBytesAxis } }}
-								series={[
+			<Card.Root>
+				<Card.Header>
+					<Card.Title>Heap Breakdown</Card.Title>
+					<Card.Description>
+						In-use, unused, free, and released heap over time
+					</Card.Description>
+				</Card.Header>
+				<Card.Content>
+					<ChartContainer config={heapChartConfig} class="aspect-auto h-64">
+						<AreaChart
+							data={chartData}
+							x="sample"
+							yNice
+							seriesLayout="stack"
+							padding={{ left: 35 }}
+							props={{ yAxis: { format: fmtBytesAxis } }}
+							series={[
                                     {
                                         key: "heapObject",
                                         label: "In-Use",
@@ -268,32 +243,32 @@ const structuresChartConfig = {
                                         color: "var(--color-heapReleased)",
                                     },
                                 ]}
-							>
-								{#snippet tooltip()}
-									<Tooltip labelFormatter={(d) => `Sample ${d}`} />
-								{/snippet}
-							</AreaChart>
-						</ChartContainer>
-					</Card.Content>
-				</Card.Root>
-			</div>
+						>
+							{#snippet tooltip()}
+								<Tooltip labelFormatter={(d) => `Sample ${d}`} />
+							{/snippet}
+						</AreaChart>
+					</ChartContainer>
+				</Card.Content>
+			</Card.Root>
+		</div>
 
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Total Footprint</Card.Title>
-					<Card.Description>
-						Total mapped memory and live heap over time
-					</Card.Description>
-				</Card.Header>
-				<Card.Content>
-					<ChartContainer config={totalChartConfig} class="aspect-auto h-52">
-						<AreaChart
-							data={chartData}
-							x="sample"
-							yNice
-							padding={{ left: 35 }}
-							props={{ yAxis: { format: fmtBytesAxis } }}
-							series={[
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Total Footprint</Card.Title>
+				<Card.Description>
+					Total mapped memory and live heap over time
+				</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<ChartContainer config={totalChartConfig} class="aspect-auto h-52">
+					<AreaChart
+						data={chartData}
+						x="sample"
+						yNice
+						padding={{ left: 35 }}
+						props={{ yAxis: { format: fmtBytesAxis } }}
+						series={[
                                 {
                                     key: "total",
                                     label: "Total",
@@ -305,34 +280,31 @@ const structuresChartConfig = {
                                     color: "var(--color-heapObject)",
                                 },
                             ]}
-						>
-							{#snippet tooltip()}
-								<Tooltip labelFormatter={(d) => `Sample ${d}`} />
-							{/snippet}
-						</AreaChart>
-					</ChartContainer>
-				</Card.Content>
-			</Card.Root>
-
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Runtime Structures</Card.Title>
-					<Card.Description>
-						Stacks, span/cache allocators, and metadata over time
-					</Card.Description>
-				</Card.Header>
-				<Card.Content>
-					<ChartContainer
-						config={structuresChartConfig}
-						class="aspect-auto h-52"
 					>
-						<LineChart
-							data={chartData}
-							x="sample"
-							yNice
-							padding={{ left: 35 }}
-							props={{ yAxis: { format: fmtBytesAxis } }}
-							series={[
+						{#snippet tooltip()}
+							<Tooltip labelFormatter={(d) => `Sample ${d}`} />
+						{/snippet}
+					</AreaChart>
+				</ChartContainer>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Runtime Structures</Card.Title>
+				<Card.Description>
+					Stacks, span/cache allocators, and metadata over time
+				</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<ChartContainer config={structuresChartConfig} class="aspect-auto h-52">
+					<LineChart
+						data={chartData}
+						x="sample"
+						yNice
+						padding={{ left: 35 }}
+						props={{ yAxis: { format: fmtBytesAxis } }}
+						series={[
                                 {
                                     key: "stacks",
                                     label: "Stacks",
@@ -354,14 +326,13 @@ const structuresChartConfig = {
                                     color: "var(--color-metadata)",
                                 },
                             ]}
-						>
-							{#snippet tooltip()}
-								<Tooltip labelFormatter={(d) => `Sample ${d}`} />
-							{/snippet}
-						</LineChart>
-					</ChartContainer>
-				</Card.Content>
-			</Card.Root>
-		{/if}
-	</div>
-</ScrollArea>
+					>
+						{#snippet tooltip()}
+							<Tooltip labelFormatter={(d) => `Sample ${d}`} />
+						{/snippet}
+					</LineChart>
+				</ChartContainer>
+			</Card.Content>
+		</Card.Root>
+	{/if}
+</PageShell>

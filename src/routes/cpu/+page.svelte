@@ -6,14 +6,14 @@
 <script lang="ts">
 import { ActivityIcon, CpuIcon, TimerIcon, ZapIcon } from "@lucide/svelte";
 import { AreaChart, LineChart } from "layerchart";
-import { StatCard } from "$lib/components/custom/stat-card";
+import { EmptyState, PageShell } from "$lib/components/custom/page";
+import { StatGrid } from "$lib/components/custom/stat-card";
 import * as Card from "$lib/components/ui/card";
 import {
 	type ChartConfig,
 	ChartContainer,
 	Tooltip,
 } from "$lib/components/ui/chart";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 import { fmtSecs, fmtSecsAxis } from "$lib/format";
 import { CollectionService } from "$lib/services";
 
@@ -127,58 +127,33 @@ const goroutineChartConfig = {
 } satisfies ChartConfig;
 </script>
 
-<ScrollArea class="h-full mr-2">
-	<div class="flex min-h-full flex-col gap-6 p-6">
-		<div>
-			<h1 class="text-2xl font-semibold">CPU</h1>
-			<p class="text-muted-foreground text-sm">
-				CPU time breakdown and goroutine scheduling activity
-			</p>
-		</div>
+<PageShell
+	title="CPU"
+	description="CPU time breakdown and goroutine scheduling activity"
+>
+	{#if !hasData}
+		<EmptyState icon={CpuIcon}>
+			Select a profile and start collecting to see CPU metrics.
+		</EmptyState>
+	{:else}
+		<StatGrid {stats} />
 
-		{#if !hasData}
-			<div class="flex flex-1 items-center justify-center">
-				<Card.Root class="w-fit border-dashed">
-					<Card.Content
-						class="flex flex-col items-center gap-3 px-16 py-12 text-center"
-					>
-						<div
-							class="bg-muted flex h-12 w-12 items-center justify-center rounded-full"
-						>
-							<CpuIcon class="text-muted-foreground size-6" />
-						</div>
-						<div>
-							<p class="font-medium">No data yet</p>
-							<p class="text-muted-foreground text-sm">
-								Select a profile and start collecting to see CPU metrics.
-							</p>
-						</div>
-					</Card.Content>
-				</Card.Root>
-			</div>
-		{:else}
-			<div class="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
-				{#each stats as { label, value, description, Icon } (label)}
-					<StatCard {label} {value} {description} icon={Icon} />
-				{/each}
-			</div>
-
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>CPU Time Distribution</Card.Title>
-					<Card.Description>
-						User, idle, GC, and scavenge CPU seconds per sample
-					</Card.Description>
-				</Card.Header>
-				<Card.Content>
-					<ChartContainer config={cpuChartConfig} class="aspect-auto h-52">
-						<AreaChart
-							data={chartData}
-							x="sample"
-							yNice
-							padding={{ left: 35 }}
-							props={{ yAxis: { format: fmtSecsAxis } }}
-							series={[
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>CPU Time Distribution</Card.Title>
+				<Card.Description>
+					User, idle, GC, and scavenge CPU seconds per sample
+				</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<ChartContainer config={cpuChartConfig} class="aspect-auto h-52">
+					<AreaChart
+						data={chartData}
+						x="sample"
+						yNice
+						padding={{ left: 35 }}
+						props={{ yAxis: { format: fmtSecsAxis } }}
+						series={[
                                 {
                                     key: "user",
                                     label: "User",
@@ -200,31 +175,31 @@ const goroutineChartConfig = {
                                     color: "var(--color-scavengeTotal)",
                                 },
                             ]}
-						>
-							{#snippet tooltip()}
-								<Tooltip labelFormatter={(d) => `Sample ${d}`} />
-							{/snippet}
-						</AreaChart>
-					</ChartContainer>
-				</Card.Content>
-			</Card.Root>
+					>
+						{#snippet tooltip()}
+							<Tooltip labelFormatter={(d) => `Sample ${d}`} />
+						{/snippet}
+					</AreaChart>
+				</ChartContainer>
+			</Card.Content>
+		</Card.Root>
 
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>GC CPU Breakdown</Card.Title>
-					<Card.Description>
-						CPU seconds consumed by each GC phase per sample
-					</Card.Description>
-				</Card.Header>
-				<Card.Content>
-					<ChartContainer config={gcChartConfig} class="aspect-auto h-52">
-						<AreaChart
-							data={chartData}
-							x="sample"
-							yNice
-							padding={{ left: 35 }}
-							props={{ yAxis: { format: fmtSecsAxis } }}
-							series={[
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>GC CPU Breakdown</Card.Title>
+				<Card.Description>
+					CPU seconds consumed by each GC phase per sample
+				</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<ChartContainer config={gcChartConfig} class="aspect-auto h-52">
+					<AreaChart
+						data={chartData}
+						x="sample"
+						yNice
+						padding={{ left: 35 }}
+						props={{ yAxis: { format: fmtSecsAxis } }}
+						series={[
                                 {
                                     key: "gcAssist",
                                     label: "GC Assist",
@@ -241,34 +216,31 @@ const goroutineChartConfig = {
                                     color: "var(--color-gcPause)",
                                 },
                             ]}
-						>
-							{#snippet tooltip()}
-								<Tooltip labelFormatter={(d) => `Sample ${d}`} />
-							{/snippet}
-						</AreaChart>
-					</ChartContainer>
-				</Card.Content>
-			</Card.Root>
-
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Goroutine Activity</Card.Title>
-					<Card.Description>
-						Running, runnable, and waiting goroutines over time
-					</Card.Description>
-				</Card.Header>
-				<Card.Content>
-					<ChartContainer
-						config={goroutineChartConfig}
-						class="aspect-auto h-52"
 					>
-						<LineChart
-							data={chartData}
-							x="sample"
-							yNice
-							padding={{ left: 35 }}
-							props={{ yAxis: { format: fmtCompactAxis } }}
-							series={[
+						{#snippet tooltip()}
+							<Tooltip labelFormatter={(d) => `Sample ${d}`} />
+						{/snippet}
+					</AreaChart>
+				</ChartContainer>
+			</Card.Content>
+		</Card.Root>
+
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Goroutine Activity</Card.Title>
+				<Card.Description>
+					Running, runnable, and waiting goroutines over time
+				</Card.Description>
+			</Card.Header>
+			<Card.Content>
+				<ChartContainer config={goroutineChartConfig} class="aspect-auto h-52">
+					<LineChart
+						data={chartData}
+						x="sample"
+						yNice
+						padding={{ left: 35 }}
+						props={{ yAxis: { format: fmtCompactAxis } }}
+						series={[
                                 {
                                     key: "goroutinesRunning",
                                     label: "Running",
@@ -285,14 +257,13 @@ const goroutineChartConfig = {
                                     color: "var(--color-goroutinesWaiting)",
                                 },
                             ]}
-						>
-							{#snippet tooltip()}
-								<Tooltip labelFormatter={(d) => `Sample ${d}`} />
-							{/snippet}
-						</LineChart>
-					</ChartContainer>
-				</Card.Content>
-			</Card.Root>
-		{/if}
-	</div>
-</ScrollArea>
+					>
+						{#snippet tooltip()}
+							<Tooltip labelFormatter={(d) => `Sample ${d}`} />
+						{/snippet}
+					</LineChart>
+				</ChartContainer>
+			</Card.Content>
+		</Card.Root>
+	{/if}
+</PageShell>

@@ -12,8 +12,8 @@ import {
 	LayersIcon,
 	PlayIcon,
 } from "@lucide/svelte";
-import { LineChart, PieChart } from "layerchart";
-import { HistogramChart } from "$lib/components/custom/histogram-chart";
+import { PieChart } from "layerchart";
+import { HistogramChart, MetricChart } from "$lib/components/custom/charts";
 import { EmptyState, PageShell } from "$lib/components/custom/page";
 import { StatGrid } from "$lib/components/custom/stat-card";
 import * as Card from "$lib/components/ui/card";
@@ -112,13 +112,6 @@ const compositionChartConfig = {
 	notInGo: { label: "Not in Go", color: "var(--chart-4)" },
 } satisfies ChartConfig;
 
-const goroutineChartConfig = {
-	running: { label: "Running", color: "var(--chart-1)" },
-	runnable: { label: "Runnable", color: "var(--chart-2)" },
-	waiting: { label: "Waiting", color: "var(--chart-3)" },
-	threads: { label: "OS Threads", color: "var(--chart-4)" },
-} satisfies ChartConfig;
-
 // Histograms pair per-frame counts with bucket boundaries from metadata
 // (boundaries are sent once, counts stream with each frame).
 const schedMeta = $derived(metadata?.scheduler);
@@ -156,16 +149,16 @@ const schedMeta = $derived(metadata?.scheduler);
 							innerRadius={0.6}
 							outerRadius={0.78}
 							cRange={[
-                                    "var(--chart-1)",
-                                    "var(--chart-2)",
-                                    "var(--chart-3)",
-                                    "var(--chart-4)",
-                                ]}
+								"var(--chart-1)",
+								"var(--chart-2)",
+								"var(--chart-3)",
+								"var(--chart-4)",
+							]}
 							c="key"
 							labels={{
-                                    value: (d) => d.label,
-                                    class: "fill-foreground text-xs font-medium",
-                                }}
+								value: (d) => d.label,
+								class: "fill-foreground text-xs font-medium",
+							}}
 						>
 							{#snippet tooltip()}
 								<Tooltip hideLabel nameKey="label" />
@@ -175,53 +168,19 @@ const schedMeta = $derived(metadata?.scheduler);
 				</Card.Content>
 			</Card.Root>
 
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Goroutines & Threads</Card.Title>
-					<Card.Description>
-						Running, runnable, waiting goroutines and OS threads over time
-					</Card.Description>
-				</Card.Header>
-				<Card.Content>
-					<ChartContainer
-						config={goroutineChartConfig}
-						class="aspect-auto h-64"
-					>
-						<LineChart
-							data={chartData}
-							x="sample"
-							yNice
-							padding={{ left: 35 }}
-							series={[
-                                    {
-                                        key: "running",
-                                        label: "Running",
-                                        color: "var(--color-running)",
-                                    },
-                                    {
-                                        key: "runnable",
-                                        label: "Runnable",
-                                        color: "var(--color-runnable)",
-                                    },
-                                    {
-                                        key: "waiting",
-                                        label: "Waiting",
-                                        color: "var(--color-waiting)",
-                                    },
-                                    {
-                                        key: "threads",
-                                        label: "OS Threads",
-                                        color: "var(--color-threads)",
-                                    },
-                                ]}
-						>
-							{#snippet tooltip()}
-								<Tooltip labelFormatter={(d) => `Sample ${d}`} />
-							{/snippet}
-						</LineChart>
-					</ChartContainer>
-				</Card.Content>
-			</Card.Root>
+			<MetricChart
+				title="Goroutines & Threads"
+				description="Running, runnable, waiting goroutines and OS threads over time"
+				type="line"
+				data={chartData}
+				height="h-64"
+				series={[
+					{ key: "running", label: "Running" },
+					{ key: "runnable", label: "Runnable" },
+					{ key: "waiting", label: "Waiting" },
+					{ key: "threads", label: "OS Threads" },
+				]}
+			/>
 		</div>
 
 		<Card.Root>
@@ -236,13 +195,13 @@ const schedMeta = $derived(metadata?.scheduler);
 					buckets={schedMeta?.latenciesSecondsBuckets}
 					format={fmtSecsAxis}
 					series={[
-                            {
-                                key: "count",
-                                counts: latest?.latenciesSeconds?.counts,
-                                label: "Goroutines",
-                                color: "var(--chart-1)",
-                            },
-                        ]}
+						{
+							key: "count",
+							counts: latest?.latenciesSeconds?.counts,
+							label: "Goroutines",
+							color: "var(--chart-1)",
+						},
+					]}
 				/>
 			</Card.Content>
 		</Card.Root>
@@ -259,13 +218,13 @@ const schedMeta = $derived(metadata?.scheduler);
 					buckets={schedMeta?.totalGcPauseSecondsBuckets}
 					format={fmtSecsAxis}
 					series={[
-                            {
-                                key: "count",
-                                counts: latest?.totalGcPauseSeconds?.counts,
-                                label: "Pauses",
-                                color: "var(--chart-3)",
-                            },
-                        ]}
+						{
+							key: "count",
+							counts: latest?.totalGcPauseSeconds?.counts,
+							label: "Pauses",
+							color: "var(--chart-3)",
+						},
+					]}
 				/>
 			</Card.Content>
 		</Card.Root>
@@ -282,13 +241,13 @@ const schedMeta = $derived(metadata?.scheduler);
 					buckets={schedMeta?.stoppingGcSecondsBuckets}
 					format={fmtSecsAxis}
 					series={[
-                            {
-                                key: "count",
-                                counts: latest?.stoppingGcSeconds?.counts,
-                                label: "Stops",
-                                color: "var(--chart-4)",
-                            },
-                        ]}
+						{
+							key: "count",
+							counts: latest?.stoppingGcSeconds?.counts,
+							label: "Stops",
+							color: "var(--chart-4)",
+						},
+					]}
 				/>
 			</Card.Content>
 		</Card.Root>

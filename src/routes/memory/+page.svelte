@@ -12,7 +12,8 @@ import {
 	RecycleIcon,
 	WrenchIcon,
 } from "@lucide/svelte";
-import { AreaChart, LineChart, PieChart } from "layerchart";
+import { PieChart } from "layerchart";
+import { MetricChart } from "$lib/components/custom/charts";
 import { EmptyState, PageShell } from "$lib/components/custom/page";
 import { StatGrid } from "$lib/components/custom/stat-card";
 import * as Card from "$lib/components/ui/card";
@@ -132,25 +133,6 @@ const compositionChartConfig = {
 	stacks: { label: "Stacks", color: "var(--chart-4)" },
 	offHeap: { label: "Off-Heap", color: "var(--chart-5)" },
 } satisfies ChartConfig;
-
-const heapChartConfig = {
-	heapObject: { label: "In-Use", color: "var(--chart-1)" },
-	heapUnused: { label: "Unused", color: "var(--chart-2)" },
-	heapFree: { label: "Free", color: "var(--chart-3)" },
-	heapReleased: { label: "Released", color: "var(--chart-4)" },
-} satisfies ChartConfig;
-
-const totalChartConfig = {
-	total: { label: "Total", color: "var(--chart-1)" },
-	heapObject: { label: "Heap In-Use", color: "var(--chart-2)" },
-} satisfies ChartConfig;
-
-const structuresChartConfig = {
-	stacks: { label: "Stacks", color: "var(--chart-1)" },
-	mspan: { label: "MSpan", color: "var(--chart-2)" },
-	mcache: { label: "MCache", color: "var(--chart-3)" },
-	metadata: { label: "Metadata", color: "var(--chart-4)" },
-} satisfies ChartConfig;
 </script>
 
 <PageShell
@@ -185,17 +167,17 @@ const structuresChartConfig = {
 							innerRadius={0.6}
 							outerRadius={0.78}
 							cRange={[
-                                    "var(--chart-1)",
-                                    "var(--chart-2)",
-                                    "var(--chart-3)",
-                                    "var(--chart-4)",
-                                    "var(--chart-5)",
-                                ]}
+								"var(--chart-1)",
+								"var(--chart-2)",
+								"var(--chart-3)",
+								"var(--chart-4)",
+								"var(--chart-5)",
+							]}
 							c="key"
 							labels={{
-                                    value: (d) => d.label,
-                                    class: "fill-foreground text-xs font-medium",
-                                }}
+								value: (d) => d.label,
+								class: "fill-foreground text-xs font-medium",
+							}}
 						>
 							{#snippet tooltip()}
 								<Tooltip hideLabel nameKey="label" />
@@ -205,134 +187,45 @@ const structuresChartConfig = {
 				</Card.Content>
 			</Card.Root>
 
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Heap Breakdown</Card.Title>
-					<Card.Description>
-						In-use, unused, free, and released heap over time
-					</Card.Description>
-				</Card.Header>
-				<Card.Content>
-					<ChartContainer config={heapChartConfig} class="aspect-auto h-64">
-						<AreaChart
-							data={chartData}
-							x="sample"
-							yNice
-							seriesLayout="stack"
-							padding={{ left: 35 }}
-							props={{ yAxis: { format: fmtBytesAxis } }}
-							series={[
-                                    {
-                                        key: "heapObject",
-                                        label: "In-Use",
-                                        color: "var(--color-heapObject)",
-                                    },
-                                    {
-                                        key: "heapUnused",
-                                        label: "Unused",
-                                        color: "var(--color-heapUnused)",
-                                    },
-                                    {
-                                        key: "heapFree",
-                                        label: "Free",
-                                        color: "var(--color-heapFree)",
-                                    },
-                                    {
-                                        key: "heapReleased",
-                                        label: "Released",
-                                        color: "var(--color-heapReleased)",
-                                    },
-                                ]}
-						>
-							{#snippet tooltip()}
-								<Tooltip labelFormatter={(d) => `Sample ${d}`} />
-							{/snippet}
-						</AreaChart>
-					</ChartContainer>
-				</Card.Content>
-			</Card.Root>
+			<MetricChart
+				title="Heap Breakdown"
+				description="In-use, unused, free, and released heap over time"
+				data={chartData}
+				format={fmtBytesAxis}
+				stacked
+				height="h-64"
+				series={[
+					{ key: "heapObject", label: "In-Use" },
+					{ key: "heapUnused", label: "Unused" },
+					{ key: "heapFree", label: "Free" },
+					{ key: "heapReleased", label: "Released" },
+				]}
+			/>
 		</div>
 
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Total Footprint</Card.Title>
-				<Card.Description>
-					Total mapped memory and live heap over time
-				</Card.Description>
-			</Card.Header>
-			<Card.Content>
-				<ChartContainer config={totalChartConfig} class="aspect-auto h-52">
-					<AreaChart
-						data={chartData}
-						x="sample"
-						yNice
-						padding={{ left: 35 }}
-						props={{ yAxis: { format: fmtBytesAxis } }}
-						series={[
-                                {
-                                    key: "total",
-                                    label: "Total",
-                                    color: "var(--color-total)",
-                                },
-                                {
-                                    key: "heapObject",
-                                    label: "Heap In-Use",
-                                    color: "var(--color-heapObject)",
-                                },
-                            ]}
-					>
-						{#snippet tooltip()}
-							<Tooltip labelFormatter={(d) => `Sample ${d}`} />
-						{/snippet}
-					</AreaChart>
-				</ChartContainer>
-			</Card.Content>
-		</Card.Root>
+		<MetricChart
+			title="Total Footprint"
+			description="Total mapped memory and live heap over time"
+			data={chartData}
+			format={fmtBytesAxis}
+			series={[
+				{ key: "total", label: "Total" },
+				{ key: "heapObject", label: "Heap In-Use" },
+			]}
+		/>
 
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Runtime Structures</Card.Title>
-				<Card.Description>
-					Stacks, span/cache allocators, and metadata over time
-				</Card.Description>
-			</Card.Header>
-			<Card.Content>
-				<ChartContainer config={structuresChartConfig} class="aspect-auto h-52">
-					<LineChart
-						data={chartData}
-						x="sample"
-						yNice
-						padding={{ left: 35 }}
-						props={{ yAxis: { format: fmtBytesAxis } }}
-						series={[
-                                {
-                                    key: "stacks",
-                                    label: "Stacks",
-                                    color: "var(--color-stacks)",
-                                },
-                                {
-                                    key: "mspan",
-                                    label: "MSpan",
-                                    color: "var(--color-mspan)",
-                                },
-                                {
-                                    key: "mcache",
-                                    label: "MCache",
-                                    color: "var(--color-mcache)",
-                                },
-                                {
-                                    key: "metadata",
-                                    label: "Metadata",
-                                    color: "var(--color-metadata)",
-                                },
-                            ]}
-					>
-						{#snippet tooltip()}
-							<Tooltip labelFormatter={(d) => `Sample ${d}`} />
-						{/snippet}
-					</LineChart>
-				</ChartContainer>
-			</Card.Content>
-		</Card.Root>
+		<MetricChart
+			title="Runtime Structures"
+			description="Stacks, span/cache allocators, and metadata over time"
+			type="line"
+			data={chartData}
+			format={fmtBytesAxis}
+			series={[
+				{ key: "stacks", label: "Stacks" },
+				{ key: "mspan", label: "MSpan" },
+				{ key: "mcache", label: "MCache" },
+				{ key: "metadata", label: "Metadata" },
+			]}
+		/>
 	{/if}
 </PageShell>

@@ -10,16 +10,10 @@ import {
 	RefreshCwIcon,
 	ZapIcon,
 } from "@lucide/svelte";
-import { AreaChart, LineChart } from "layerchart";
-import { HistogramChart } from "$lib/components/custom/histogram-chart";
+import { HistogramChart, MetricChart } from "$lib/components/custom/charts";
 import { EmptyState, PageShell } from "$lib/components/custom/page";
 import { StatGrid } from "$lib/components/custom/stat-card";
 import * as Card from "$lib/components/ui/card";
-import {
-	type ChartConfig,
-	ChartContainer,
-	Tooltip,
-} from "$lib/components/ui/chart";
 import { fmtBytes, fmtBytesAxis } from "$lib/format";
 import { CollectionService } from "$lib/services";
 
@@ -95,21 +89,6 @@ function fmtCompactAxis(n: number): string {
 	if (n < 100_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
 	return `${(n / 1_000_000_000).toFixed(1)}B`;
 }
-
-const heapChartConfig = {
-	liveOccupiedBytes: { label: "Live Heap", color: "var(--chart-1)" },
-	goalHeapSizeBytes: { label: "Heap Goal", color: "var(--chart-2)" },
-} satisfies ChartConfig;
-
-const allocChartConfig = {
-	bytesAllocs: { label: "Allocated", color: "var(--chart-1)" },
-	bytesFrees: { label: "Freed", color: "var(--chart-2)" },
-} satisfies ChartConfig;
-
-const cycleChartConfig = {
-	automaticCycles: { label: "Automatic", color: "var(--chart-1)" },
-	forcedCycles: { label: "Forced", color: "var(--chart-2)" },
-} satisfies ChartConfig;
 </script>
 
 <PageShell
@@ -123,113 +102,39 @@ const cycleChartConfig = {
 	{:else}
 		<StatGrid {stats} />
 
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Heap Size</Card.Title>
-				<Card.Description>
-					Live heap and GC goal size over time
-				</Card.Description>
-			</Card.Header>
-			<Card.Content>
-				<ChartContainer config={heapChartConfig} class="aspect-auto h-52">
-					<AreaChart
-						data={chartData}
-						x="sample"
-						yNice
-						padding={{ left: 35 }}
-						props={{ yAxis: { format: fmtBytesAxis } }}
-						series={[
-							{
-								key: "liveOccupiedBytes",
-								label: "Live Heap",
-								color: "var(--color-liveOccupiedBytes)",
-							},
-							{
-								key: "goalHeapSizeBytes",
-								label: "Heap Goal",
-								color: "var(--color-goalHeapSizeBytes)",
-							},
-						]}
-					>
-						{#snippet tooltip()}
-							<Tooltip labelFormatter={(d) => `Sample ${d}`} />
-						{/snippet}
-					</AreaChart>
-				</ChartContainer>
-			</Card.Content>
-		</Card.Root>
+		<MetricChart
+			title="Heap Size"
+			description="Live heap and GC goal size over time"
+			data={chartData}
+			format={fmtBytesAxis}
+			series={[
+				{ key: "liveOccupiedBytes", label: "Live Heap" },
+				{ key: "goalHeapSizeBytes", label: "Heap Goal" },
+			]}
+		/>
 
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Allocation Activity</Card.Title>
-				<Card.Description>
-					Cumulative bytes allocated and freed over time
-				</Card.Description>
-			</Card.Header>
-			<Card.Content>
-				<ChartContainer config={allocChartConfig} class="aspect-auto h-52">
-					<AreaChart
-						data={chartData}
-						x="sample"
-						yNice
-						padding={{ left: 35 }}
-						props={{ yAxis: { format: fmtBytesAxis } }}
-						series={[
-							{
-								key: "bytesAllocs",
-								label: "Allocated",
-								color: "var(--color-bytesAllocs)",
-							},
-							{
-								key: "bytesFrees",
-								label: "Freed",
-								color: "var(--color-bytesFrees)",
-							},
-						]}
-					>
-						{#snippet tooltip()}
-							<Tooltip labelFormatter={(d) => `Sample ${d}`} />
-						{/snippet}
-					</AreaChart>
-				</ChartContainer>
-			</Card.Content>
-		</Card.Root>
+		<MetricChart
+			title="Allocation Activity"
+			description="Cumulative bytes allocated and freed over time"
+			data={chartData}
+			format={fmtBytesAxis}
+			series={[
+				{ key: "bytesAllocs", label: "Allocated" },
+				{ key: "bytesFrees", label: "Freed" },
+			]}
+		/>
 
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>GC Cycles</Card.Title>
-				<Card.Description>
-					Cumulative automatic and forced GC cycles over time
-				</Card.Description>
-			</Card.Header>
-			<Card.Content>
-				<ChartContainer config={cycleChartConfig} class="aspect-auto h-52">
-					<LineChart
-						data={chartData}
-						x="sample"
-						yNice
-						padding={{ left: 35 }}
-						props={{ yAxis: { format: fmtCompactAxis } }}
-						series={[
-							{
-								key: "automaticCycles",
-								label: "Automatic",
-								color: "var(--color-automaticCycles)",
-							},
-							{
-								key: "forcedCycles",
-								label: "Forced",
-								color: "var(--color-forcedCycles)",
-							},
-						]}
-					>
-						{#snippet tooltip()}
-							<Tooltip labelFormatter={(d) => `Sample ${d}`} />
-						{/snippet}
-					</LineChart>
-				</ChartContainer>
-			</Card.Content>
-		</Card.Root>
+		<MetricChart
+			title="GC Cycles"
+			description="Cumulative automatic and forced GC cycles over time"
+			type="line"
+			data={chartData}
+			format={fmtCompactAxis}
+			series={[
+				{ key: "automaticCycles", label: "Automatic" },
+				{ key: "forcedCycles", label: "Forced" },
+			]}
+		/>
 
 		<Card.Root>
 			<Card.Header>

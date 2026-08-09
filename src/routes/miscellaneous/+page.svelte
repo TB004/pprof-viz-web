@@ -5,16 +5,12 @@
 
 <script lang="ts">
 import { BracesIcon, LinkIcon, PackageIcon } from "@lucide/svelte";
-import { AreaChart, LineChart } from "layerchart";
 import type { Component } from "svelte";
+import { MetricChart } from "$lib/components/custom/charts";
 import { EmptyState, PageShell } from "$lib/components/custom/page";
 import { StatGrid } from "$lib/components/custom/stat-card";
 import * as Card from "$lib/components/ui/card";
-import {
-	type ChartConfig,
-	ChartContainer,
-	Tooltip,
-} from "$lib/components/ui/chart";
+import { Tooltip } from "$lib/components/ui/chart";
 import { fmtSecs, fmtSecsAxis } from "$lib/format";
 import { CollectionService } from "$lib/services";
 
@@ -162,18 +158,6 @@ const summaryStats = $derived([
 		Icon: BracesIcon as Component,
 	},
 ]);
-
-const cgoChartConfig = {
-	cgoCalls: { label: "CGo Calls", color: "var(--chart-1)" },
-} satisfies ChartConfig;
-
-const syncChartConfig = {
-	mutexWait: { label: "Mutex Wait", color: "var(--chart-2)" },
-} satisfies ChartConfig;
-
-const debugTotalChartConfig = {
-	total: { label: "Total Events", color: "var(--chart-3)" },
-} satisfies ChartConfig;
 </script>
 
 <PageShell
@@ -185,124 +169,38 @@ const debugTotalChartConfig = {
 			Select a profile and start collecting to see miscellaneous metrics.
 		</EmptyState>
 	{:else}
-		<!-- Summary cards -->
 		<StatGrid stats={summaryStats} class="grid grid-cols-2 gap-4" />
 
-		<!-- CGo chart -->
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>CGo Calls</Card.Title>
-				<Card.Description>
-					Cumulative C function calls from Go over samples
-				</Card.Description>
-			</Card.Header>
-			<Card.Content>
-				<ChartContainer config={cgoChartConfig} class="aspect-auto h-52">
-					<LineChart
-						data={cgoChartData}
-						x="sample"
-						yNice
-						padding={{ left: 35 }}
-						props={{ yAxis: { format: fmtIntAxis } }}
-						series={[
-                                {
-                                    key: "cgoCalls",
-                                    label: "CGo Calls",
-                                    color: "var(--color-cgoCalls)",
-                                },
-                            ]}
-					>
-						{#snippet tooltip()}
-							<Tooltip labelFormatter={(d) => `Sample ${d}`} />
-						{/snippet}
-					</LineChart>
-				</ChartContainer>
-			</Card.Content>
-		</Card.Root>
+		<MetricChart
+			title="CGo Calls"
+			description="Cumulative C function calls from Go over samples"
+			type="line"
+			data={cgoChartData}
+			format={fmtIntAxis}
+			series={[{ key: "cgoCalls", label: "CGo Calls" }]}
+		/>
 
-		<!-- Sync chart -->
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Mutex Wait Duration</Card.Title>
-				<Card.Description>
-					Total accumulated mutex contention time per sample
-				</Card.Description>
-			</Card.Header>
-			<Card.Content>
-				<ChartContainer config={syncChartConfig} class="aspect-auto h-52">
-					<AreaChart
-						data={syncChartData}
-						x="sample"
-						yNice
-						padding={{ left: 35 }}
-						props={{ yAxis: { format: fmtSecsAxis } }}
-						series={[
-                                {
-                                    key: "mutexWait",
-                                    label: "Mutex Wait",
-                                    color: "var(--color-mutexWait)",
-                                },
-                            ]}
-					>
-						{#snippet tooltip()}
-							<Tooltip labelFormatter={(d) => `Sample ${d}`}>
-								{#snippet formatter({ value, name })}
-									<div class="flex w-full items-center gap-2">
-										<div
-											style="--color-bg: var(--chart-2); --color-border: var(--chart-2);"
-											class="size-2.5 shrink-0 rounded-xs border-(--color-border) bg-(--color-bg)"
-										></div>
-										<div
-											class="flex flex-1 items-center justify-between leading-none"
-										>
-											<span class="text-muted-foreground">{name}</span>
-											<span
-												class="text-foreground font-mono font-medium tabular-nums"
-											>
-												{fmtSecs(Number(value))}
-											</span>
-										</div>
-									</div>
-								{/snippet}
-							</Tooltip>
-						{/snippet}
-					</AreaChart>
-				</ChartContainer>
-			</Card.Content>
-		</Card.Root>
+		<MetricChart
+			title="Mutex Wait Duration"
+			description="Total accumulated mutex contention time per sample"
+			data={syncChartData}
+			format={fmtSecsAxis}
+			series={[
+				{ key: "mutexWait", label: "Mutex Wait", color: "var(--chart-2)" },
+			]}
+			tooltip={mutexTooltip}
+		/>
 
-		<!-- Debug events over time chart -->
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Debug Events Over Time</Card.Title>
-				<Card.Description>
-					Total GODEBUG event count accumulated across all event types per
-					sample
-				</Card.Description>
-			</Card.Header>
-			<Card.Content>
-				<ChartContainer config={debugTotalChartConfig} class="aspect-auto h-52">
-					<LineChart
-						data={debugChartData}
-						x="sample"
-						yNice
-						padding={{ left: 35 }}
-						props={{ yAxis: { format: fmtIntAxis } }}
-						series={[
-                                {
-                                    key: "total",
-                                    label: "Total Events",
-                                    color: "var(--color-total)",
-                                },
-                            ]}
-					>
-						{#snippet tooltip()}
-							<Tooltip labelFormatter={(d) => `Sample ${d}`} />
-						{/snippet}
-					</LineChart>
-				</ChartContainer>
-			</Card.Content>
-		</Card.Root>
+		<MetricChart
+			title="Debug Events Over Time"
+			description="Total GODEBUG event count accumulated across all event types per sample"
+			type="line"
+			data={debugChartData}
+			format={fmtIntAxis}
+			series={[
+				{ key: "total", label: "Total Events", color: "var(--chart-3)" },
+			]}
+		/>
 
 		<!-- Debug events table -->
 		<Card.Root>
@@ -344,15 +242,13 @@ const debugTotalChartConfig = {
 										<div class="flex items-center gap-2">
 											<span
 												class="size-1.5 shrink-0 rounded-full {row.activeInLast
-                                                        ? 'bg-green-500'
-                                                        : row.count > 0
-                                                          ? 'bg-muted-foreground/40'
-                                                          : 'bg-muted'}"
+													? 'bg-green-500'
+													: row.count > 0
+														? 'bg-muted-foreground/40'
+														: 'bg-muted'}"
 											></span>
 											<span
-												class={row.count === 0
-                                                        ? "text-muted-foreground"
-                                                        : ""}
+												class={row.count === 0 ? "text-muted-foreground" : ""}
 											>
 												{row.label}
 											</span>
@@ -360,16 +256,14 @@ const debugTotalChartConfig = {
 									</td>
 									<td
 										class="px-4 py-2.5 text-right font-mono tabular-nums {row.count ===
-                                            0
-                                                ? 'text-muted-foreground'
-                                                : ''}"
+										0
+											? 'text-muted-foreground'
+											: ''}"
 									>
 										{row.count.toLocaleString()}
 									</td>
 									<td class="px-4 py-2.5 text-right text-muted-foreground">
-										{row.lastActive === -1
-                                                ? "—"
-                                                : `Sample ${row.lastActive}`}
+										{row.lastActive === -1 ? "—" : `Sample ${row.lastActive}`}
 									</td>
 								</tr>
 							{/each}
@@ -380,3 +274,22 @@ const debugTotalChartConfig = {
 		</Card.Root>
 	{/if}
 </PageShell>
+
+{#snippet mutexTooltip()}
+	<Tooltip labelFormatter={(d) => `Sample ${d}`}>
+		{#snippet formatter({ value, name })}
+			<div class="flex w-full items-center gap-2">
+				<div
+					style="--color-bg: var(--chart-2); --color-border: var(--chart-2);"
+					class="size-2.5 shrink-0 rounded-xs border-(--color-border) bg-(--color-bg)"
+				></div>
+				<div class="flex flex-1 items-center justify-between leading-none">
+					<span class="text-muted-foreground">{name}</span>
+					<span class="text-foreground font-mono font-medium tabular-nums">
+						{fmtSecs(Number(value))}
+					</span>
+				</div>
+			</div>
+		{/snippet}
+	</Tooltip>
+{/snippet}

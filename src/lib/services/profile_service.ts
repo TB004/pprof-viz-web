@@ -77,6 +77,33 @@ async function reload() {
 	});
 }
 
+/**
+ * Run a catalog mutation and refresh the catalog afterwards.
+ *
+ * Returns `undefined` when the mutation itself failed. A failed *reload* is
+ * reported but does not discard the result — the mutation already went
+ * through, only our view of it is stale.
+ */
+async function mutate<T>(
+	verb: string,
+	gerund: string,
+	op: () => Promise<T>,
+): Promise<T | undefined> {
+	let result: T;
+	try {
+		result = await op();
+	} catch (e) {
+		reportInvokeError(`Failed to ${verb}`, e);
+		return undefined;
+	}
+	try {
+		await reload();
+	} catch (e) {
+		reportInvokeError(`Failed to reload after ${gerund}`, e);
+	}
+	return result;
+}
+
 async function ensureHydrated() {
 	if (hydrated) return;
 	hydrated = true;
@@ -152,50 +179,24 @@ function toInput(input: ProfileInput): ProfileInput {
 export async function createProject(name: string): Promise<string | undefined> {
 	const trimmed = name.trim();
 	if (!trimmed) return undefined;
-	let id: string;
-	try {
-		const project = await Ipc.createProject(trimmed);
-		id = project.id;
-	} catch (e) {
-		reportInvokeError("Failed to create project", e);
-		return undefined;
-	}
-	try {
-		await reload();
-	} catch (e) {
-		reportInvokeError("Failed to reload after creating project", e);
-	}
-	return id;
+	const project = await mutate("create project", "creating project", () =>
+		Ipc.createProject(trimmed),
+	);
+	return project?.id;
 }
 
 export async function renameProject(projectId: string, name: string) {
 	const trimmed = name.trim();
 	if (!trimmed) return;
-	try {
-		await Ipc.renameProject(projectId, trimmed);
-	} catch (e) {
-		reportInvokeError("Failed to rename project", e);
-		return;
-	}
-	try {
-		await reload();
-	} catch (e) {
-		reportInvokeError("Failed to reload after renaming project", e);
-	}
+	await mutate("rename project", "renaming project", () =>
+		Ipc.renameProject(projectId, trimmed),
+	);
 }
 
 export async function deleteProject(projectId: string) {
-	try {
-		await Ipc.deleteProject(projectId);
-	} catch (e) {
-		reportInvokeError("Failed to delete project", e);
-		return;
-	}
-	try {
-		await reload();
-	} catch (e) {
-		reportInvokeError("Failed to reload after deleting project", e);
-	}
+	await mutate("delete project", "deleting project", () =>
+		Ipc.deleteProject(projectId),
+	);
 }
 
 export async function createProfile(
@@ -210,20 +211,10 @@ export async function createProfile(
 		reportInvokeError("Failed to create profile", new Error("Invalid URL"));
 		return undefined;
 	}
-	let id: string;
-	try {
-		const created = await Ipc.createProfile(projectId, trimmed);
-		id = created.id;
-	} catch (e) {
-		reportInvokeError("Failed to create profile", e);
-		return undefined;
-	}
-	try {
-		await reload();
-	} catch (e) {
-		reportInvokeError("Failed to reload after creating profile", e);
-	}
-	return id;
+	const created = await mutate("create profile", "creating profile", () =>
+		Ipc.createProfile(projectId, trimmed),
+	);
+	return created?.id;
 }
 
 export async function updateProfile(profileId: string, input: ProfileInput) {
@@ -235,31 +226,15 @@ export async function updateProfile(profileId: string, input: ProfileInput) {
 		reportInvokeError("Failed to update profile", new Error("Invalid URL"));
 		return;
 	}
-	try {
-		await Ipc.updateProfile(profileId, trimmed);
-	} catch (e) {
-		reportInvokeError("Failed to update profile", e);
-		return;
-	}
-	try {
-		await reload();
-	} catch (e) {
-		reportInvokeError("Failed to reload after updating profile", e);
-	}
+	await mutate("update profile", "updating profile", () =>
+		Ipc.updateProfile(profileId, trimmed),
+	);
 }
 
 export async function deleteProfile(profileId: string) {
-	try {
-		await Ipc.deleteProfile(profileId);
-	} catch (e) {
-		reportInvokeError("Failed to delete profile", e);
-		return;
-	}
-	try {
-		await reload();
-	} catch (e) {
-		reportInvokeError("Failed to reload after deleting profile", e);
-	}
+	await mutate("delete profile", "deleting profile", () =>
+		Ipc.deleteProfile(profileId),
+	);
 }
 
 if (browser) {

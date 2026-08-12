@@ -330,10 +330,7 @@ pub async fn save_collection(
     let sample_count = snapshot.frames.len() as i64;
     let created_at = crate::now_millis();
 
-    let description = description.and_then(|d| {
-        let d = d.trim().to_string();
-        if d.is_empty() { None } else { Some(d) }
-    });
+    let description = crate::non_empty(description);
     let mode_str = snapshot.mode.map(|m| {
         match m {
             CollectionType::Snapshot => "snapshot",
@@ -457,10 +454,7 @@ pub async fn update_collection(
     if name.is_empty() {
         return Err("collection name must not be empty".into());
     }
-    let description = description.and_then(|d| {
-        let d = d.trim().to_string();
-        if d.is_empty() { None } else { Some(d) }
-    });
+    let description = crate::non_empty(description);
 
     let pool = db::pool(&app);
     sqlx::query("UPDATE collections SET name = ?, description = ? WHERE id = ?")

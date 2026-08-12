@@ -175,10 +175,7 @@ pub async fn create_profile(
     if url::Url::parse(&trimmed_url).is_err() {
         return Err(format!("invalid url: {trimmed_url}"));
     }
-    let token = input.token.and_then(|t| {
-        let t = t.trim().to_string();
-        if t.is_empty() { None } else { Some(t) }
-    });
+    let token = crate::non_empty(input.token);
     let now = crate::now_millis();
     let row = ProfileRow {
         id: ulid::Ulid::generate().to_string(),
@@ -230,10 +227,7 @@ pub async fn update_profile(app: AppHandle, id: String, input: ProfileInput) -> 
     if url::Url::parse(&trimmed_url).is_err() {
         return Err(format!("invalid url: {trimmed_url}"));
     }
-    let token = input.token.and_then(|t| {
-        let t = t.trim().to_string();
-        if t.is_empty() { None } else { Some(t) }
-    });
+    let token = crate::non_empty(input.token);
 
     sqlx::query(
         "UPDATE profiles SET name = ?, url = ?, mode = ?, http_version = ?, token = ?, \

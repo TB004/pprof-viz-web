@@ -33,6 +33,13 @@ pub struct AppState {
 /// number: epoch millis, byte counts, sample counts.
 pub type TsNumber = specta_typescript::Number;
 
+/// Trim an optional user-supplied string, treating a blank result as absent.
+pub fn non_empty(value: Option<String>) -> Option<String> {
+    value
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+}
+
 pub fn now_millis() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

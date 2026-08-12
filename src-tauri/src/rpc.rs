@@ -1,7 +1,7 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::net::SocketAddr;
+use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::pin::Pin;
 use std::sync::{Arc, OnceLock};
 use std::task::{Context, Poll};
@@ -304,14 +304,15 @@ impl AgentClient {
                 let server_name: Arc<str> = host.into();
 
                 let quic_config = h3_quinn_client_config(allow_insecure_tls)?;
+                // Bind to an ephemeral port on every interface.
                 let mut endpoint_v4 =
-                    quinn::Endpoint::client("0.0.0.0:0".parse().expect("valid IPv4 addr"))
+                    quinn::Endpoint::client(SocketAddr::from((Ipv4Addr::UNSPECIFIED, 0)))
                         .map_err(|e| AgentRpcError::Rpc(format!("QUIC endpoint (v4): {e}")))?;
                 endpoint_v4.set_default_client_config(quic_config.clone());
 
                 // IPv6 endpoint is best-effort — some environments disable it.
                 let endpoint_v6 =
-                    quinn::Endpoint::client("[::]:0".parse().expect("valid IPv6 addr"))
+                    quinn::Endpoint::client(SocketAddr::from((Ipv6Addr::UNSPECIFIED, 0)))
                         .ok()
                         .map(|mut ep| {
                             ep.set_default_client_config(quic_config);

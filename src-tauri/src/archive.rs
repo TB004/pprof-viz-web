@@ -3,6 +3,7 @@
 
 use std::collections::VecDeque;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use buffa::Message;
 use serde::{Deserialize, Serialize};
@@ -206,13 +207,13 @@ fn encode_stored(
     meta: CollectionMeta,
 ) -> Result<StoredCollection, String> {
     let mut proto_frames: Vec<AllResponse> = Vec::with_capacity(frames.len());
-    let mut prev = Value::Null;
+    let mut prev = Arc::new(Value::Null);
     for frame in frames {
         let sparse = diff_frame(&prev, &frame.0);
         let af: AllResponse =
             serde_json::from_value(sparse).map_err(|e| format!("encode frame: {e}"))?;
         proto_frames.push(af);
-        prev = frame.0.clone();
+        prev = Arc::clone(&frame.0);
     }
 
     let metadata = match metadata {
@@ -253,8 +254,8 @@ fn decode_stored(stored: StoredCollection) -> Result<DecodedCollection, String> 
     for af in &stored.frames {
         let v = serde_json::to_value(af).map_err(|e| e.to_string())?;
         let merged = collection::merge_frame(prev, v);
-        frames.push_back(Frame(merged.clone()));
-        prev = merged;
+        prev = merged.clone();
+        frames.push_back(Frame::from(merged));
     }
 
     let frame_times: VecDeque<i64> = stored.frame_timestamps.into_iter().collect();
@@ -613,7 +614,7 @@ mod tests {
                 }
             }),
         );
-        let original = vec![Frame(f0.clone()), Frame(f1.clone())];
+        let original = vec![Frame::from(f0.clone()), Frame::from(f1.clone())];
         let metadata = Some(json!({
             "scheduler": { "latenciesSecondsBuckets": [0.1, 0.2, 0.3, 0.4, 0.5] }
         }));

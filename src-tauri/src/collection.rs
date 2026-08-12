@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::collections::VecDeque;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -34,7 +34,13 @@ pub enum CollectionStatus {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, specta::Type)]
 #[serde(transparent)]
-pub struct Frame(#[specta(type = specta_typescript::Unknown)] pub Value);
+pub struct Frame(#[specta(type = specta_typescript::Unknown)] pub Arc<Value>);
+
+impl From<Value> for Frame {
+    fn from(value: Value) -> Self {
+        Frame(Arc::new(value))
+    }
+}
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
@@ -80,6 +86,21 @@ pub struct CollectionSession {
     pub frame_times: VecDeque<i64>,
     pub metadata: Option<Value>,
     pub cancel_tx: watch::Sender<bool>,
+}
+
+impl CollectionSession {
+    /// Append a frame with its arrival time, evicting the oldest once the cap
+    /// is reached. Returns the stored value for the caller to emit.
+    fn push(&mut self, frame: Frame) -> Arc<Value> {
+        let value = Arc::clone(&frame.0);
+        self.frames.push_back(frame);
+        self.frame_times.push_back(crate::now_millis());
+        while self.frames.len() > MAX_FRAMES {
+            self.frames.pop_front();
+            self.frame_times.pop_front();
+        }
+        value
+    }
 }
 
 #[derive(Debug, Default)]
@@ -133,32 +154,36 @@ impl CollectionStore {
         guard.as_ref().map(|s| s.cancel_tx.clone())
     }
 
-    /// Push a merged frame into the active session, but only if the session
-    /// id still matches — guards against a stale worker writing into a
-    /// freshly-started session. Returns the new sample count, or `None`
-    /// when the worker should exit.
-    fn push_frame(&self, session_id: &str, frame: Frame) -> Option<usize> {
+    /// Store a frame in the active session, but only if the session id still
+    /// matches — guards against a stale worker writing into a freshly-started
+    /// session. Returns the stored frame so the caller can emit it without
+    /// cloning the JSON, or `None` when the worker should exit.
+    fn push_frame(&self, session_id: &str, frame: Value) -> Option<Arc<Value>> {
         let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         let session = guard.as_mut()?;
         if session.session_id != session_id {
             return None;
         }
-        session.frames.push_back(frame);
-        session.frame_times.push_back(crate::now_millis());
-        while session.frames.len() > MAX_FRAMES {
-            session.frames.pop_front();
-            session.frame_times.pop_front();
-        }
-        Some(session.frames.len())
+        Some(session.push(Frame::from(frame)))
     }
 
-    fn last_frame_value(&self, session_id: &str) -> Option<Value> {
-        let guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let session = guard.as_ref()?;
+    /// Merge `next` into the session's latest frame and store the result.
+    /// Same session-id guard and return value as [`Self::push_frame`], but
+    /// the lock is held across the merge so the previous frame can be read
+    /// and the merged one appended without racing a session swap.
+    fn merge_push(&self, session_id: &str, next: Value) -> Option<Arc<Value>> {
+        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let session = guard.as_mut()?;
         if session.session_id != session_id {
             return None;
         }
-        session.frames.back().map(|f| f.0.clone())
+        // Always merge — even the first frame — so its histograms are
+        // normalised to dense `counts`.
+        let prev = session
+            .frames
+            .back()
+            .map_or(Value::Null, |f| f.0.as_ref().clone());
+        Some(session.push(Frame::from(merge_frame(prev, next))))
     }
 
     fn set_metadata(&self, session_id: &str, value: Value) -> bool {
@@ -430,8 +455,8 @@ async fn run_session(
                             // Normalise histograms to dense `counts` for a
                             // consistent shape across snapshot and stream modes.
                             let value = merge_frame(Value::Null, value);
-                            if store.push_frame(&session_id, Frame(value.clone())).is_some() {
-                                let _ = app.emit(EVENT_FRAME, &value);
+                            if let Some(stored) = store.push_frame(&session_id, value) {
+                                let _ = app.emit(EVENT_FRAME, &stored);
                             }
                         }
                     }
@@ -478,15 +503,9 @@ async fn run_session(
                                         continue;
                                     }
                                 };
-                                // Always merge — even the first frame — so its
-                                // histograms are normalised to dense `counts`.
-                                let prev = store
-                                    .last_frame_value(&session_id)
-                                    .unwrap_or(Value::Null);
-                                let merged = merge_frame(prev, next);
-                                if store.push_frame(&session_id, Frame(merged.clone())).is_none() {
+                                let Some(merged) = store.merge_push(&session_id, next) else {
                                     break;
-                                }
+                                };
                                 let _ = app.emit(EVENT_FRAME, &merged);
                             }
                             Ok(None) => break,

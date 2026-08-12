@@ -50,6 +50,23 @@ pub struct ProfileInput {
     pub number_of_cycles: Option<i16>,
 }
 
+impl ProfileInput {
+    /// Trim the user-supplied fields, rejecting a blank name or url and a url
+    /// that does not parse.
+    fn normalized(mut self) -> Result<Self, String> {
+        self.name = self.name.trim().to_string();
+        self.url = self.url.trim().to_string();
+        if self.name.is_empty() || self.url.is_empty() {
+            return Err("profile name and url must not be empty".into());
+        }
+        if url::Url::parse(&self.url).is_err() {
+            return Err(format!("invalid url: {}", self.url));
+        }
+        self.token = crate::non_empty(self.token);
+        Ok(self)
+    }
+}
+
 /// The shared SQLite pool. Cloning is cheap — the pool is an `Arc` internally —
 /// and it detaches the borrow from `app`, so callers can hold it across awaits.
 pub(crate) fn pool(app: &AppHandle) -> SqlitePool {
@@ -167,24 +184,16 @@ pub async fn create_profile(
     project_id: String,
     input: ProfileInput,
 ) -> Result<ProfileRow, String> {
-    let trimmed_name = input.name.trim().to_string();
-    let trimmed_url = input.url.trim().to_string();
-    if trimmed_name.is_empty() || trimmed_url.is_empty() {
-        return Err("profile name and url must not be empty".into());
-    }
-    if url::Url::parse(&trimmed_url).is_err() {
-        return Err(format!("invalid url: {trimmed_url}"));
-    }
-    let token = crate::non_empty(input.token);
+    let input = input.normalized()?;
     let now = crate::now_millis();
     let row = ProfileRow {
         id: ulid::Ulid::generate().to_string(),
         project_id,
-        name: trimmed_name,
-        url: trimmed_url,
+        name: input.name,
+        url: input.url,
         mode: input.mode,
         http_version: input.http_version,
-        token,
+        token: input.token,
         allow_insecure_tls: input.allow_insecure_tls,
         interval_seconds: input.interval_seconds,
         number_of_cycles: input.number_of_cycles,
@@ -219,26 +228,18 @@ pub async fn create_profile(
 #[tauri::command]
 #[specta::specta]
 pub async fn update_profile(app: AppHandle, id: String, input: ProfileInput) -> Result<(), String> {
-    let trimmed_name = input.name.trim().to_string();
-    let trimmed_url = input.url.trim().to_string();
-    if trimmed_name.is_empty() || trimmed_url.is_empty() {
-        return Err("profile name and url must not be empty".into());
-    }
-    if url::Url::parse(&trimmed_url).is_err() {
-        return Err(format!("invalid url: {trimmed_url}"));
-    }
-    let token = crate::non_empty(input.token);
+    let input = input.normalized()?;
 
     sqlx::query(
         "UPDATE profiles SET name = ?, url = ?, mode = ?, http_version = ?, token = ?, \
          allow_insecure_tls = ?, interval_seconds = ?, number_of_cycles = ?, \
          updated_at = ? WHERE id = ?",
     )
-    .bind(&trimmed_name)
-    .bind(&trimmed_url)
+    .bind(&input.name)
+    .bind(&input.url)
     .bind(input.mode)
     .bind(input.http_version)
-    .bind(token.as_deref())
+    .bind(input.token.as_deref())
     .bind(input.allow_insecure_tls)
     .bind(input.interval_seconds)
     .bind(input.number_of_cycles)

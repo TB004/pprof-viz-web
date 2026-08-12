@@ -303,7 +303,7 @@ fn install_loaded(
     if let Some(prev_cancel) = store.replace(session) {
         let _ = prev_cancel.send(true);
     }
-    collection::emit_state(app, Some(store.snapshot()));
+    collection::emit_state(app, store.snapshot());
 }
 
 // ---------- commands ----------
@@ -321,14 +321,15 @@ pub async fn save_collection(
     }
 
     let snapshot = app.state::<AppState>().collection.snapshot();
-    if snapshot.frames.is_empty() {
+    let frames = snapshot.frames.unwrap_or_default();
+    if frames.is_empty() {
         return Err("no collected data to save".into());
     }
     let started_at = snapshot
         .started_at
         .ok_or_else(|| "collection has no start time".to_string())?;
     let duration_ms = (snapshot.ended_at.unwrap_or_else(crate::now_millis) - started_at).max(0);
-    let sample_count = snapshot.frames.len() as i64;
+    let sample_count = frames.len() as i64;
     let created_at = crate::now_millis();
 
     let description = crate::non_empty(description);
@@ -354,8 +355,8 @@ pub async fn save_collection(
     };
 
     let stored = encode_stored(
-        &snapshot.frames,
-        snapshot.frame_timestamps.clone(),
+        &frames,
+        snapshot.frame_timestamps.clone().unwrap_or_default(),
         snapshot.metadata.clone(),
         meta,
     )?;
@@ -405,7 +406,7 @@ pub async fn save_collection(
     // This exact session is now archived — disable further saves of it.
     let store = app.state::<AppState>().collection.clone();
     store.mark_saved();
-    collection::emit_state(&app, Some(store.snapshot()));
+    collection::emit_state(&app, store.state());
 
     Ok(row)
 }

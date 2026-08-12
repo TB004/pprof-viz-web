@@ -101,8 +101,8 @@ export type CollectionStateSnapshot = {
 	loaded: boolean,
 	saved: boolean,
 	sampleCount: number,
-	frames: Frame[],
-	frameTimestamps: number[],
+	frames: Frame[] | null,
+	frameTimestamps: number[] | null,
 	metadata: unknown | null,
 };
 

@@ -129,11 +129,15 @@ function applySnapshot(snapshot: CollectionStateSnapshot) {
 		// collection loaded from disk. Loaded collections carry no per-frame
 		// timestamps, so reuse of the previous session's would be misleading.
 		const sessionChanged = startedAt !== state.startedAt;
+		// A state event without frames means "unchanged, you already have them";
+		// only a new session invalidates what we hold.
+		const frames =
+			snapshot.frames ?? (sessionChanged ? [] : (state.data ?? []));
 		// Backend records per-frame arrival times; prefer them when present and
 		// aligned (covers loaded collections and survives a page reload).
 		const backendTimestamps =
 			snapshot.frameTimestamps &&
-			snapshot.frameTimestamps.length === snapshot.frames.length
+			snapshot.frameTimestamps.length === frames.length
 				? snapshot.frameTimestamps
 				: undefined;
 		const next: CollectionState = {
@@ -142,12 +146,12 @@ function applySnapshot(snapshot: CollectionStateSnapshot) {
 			loaded: snapshot.loaded,
 			saved: snapshot.saved,
 			collectedSamples: snapshot.sampleCount ?? 0,
-			data: snapshot.frames,
+			data: frames,
 			// Prefer backend timestamps; otherwise preserve live ones for the same
 			// session and clear when frames reset or the session changed.
 			dataTimestamps:
 				backendTimestamps ??
-				(snapshot.frames.length === 0 || sessionChanged
+				(frames.length === 0 || sessionChanged
 					? undefined
 					: state.dataTimestamps),
 			metadata: snapshot.metadata ?? undefined,

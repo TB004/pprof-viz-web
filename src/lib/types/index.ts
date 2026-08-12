@@ -198,7 +198,8 @@ export type CollectionStateSnapshot = Omit<
 	GeneratedSnapshot,
 	"frames" | "metadata"
 > & {
-	frames: Frame[];
+	/** `null` on state events that carry no frame buffer — see the Rust side. */
+	frames: Frame[] | null;
 	metadata: MetadataResponse | null;
 };
 

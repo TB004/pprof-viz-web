@@ -58,9 +58,9 @@ pub struct CollectionStateSnapshot {
     pub saved: bool,
     #[specta(type = crate::TsNumber)]
     pub sample_count: usize,
-    pub frames: Vec<Frame>,
-    #[specta(type = Vec<crate::TsNumber>)]
-    pub frame_timestamps: Vec<i64>,
+    pub frames: Option<Vec<Frame>>,
+    #[specta(type = Option<Vec<crate::TsNumber>>)]
+    pub frame_timestamps: Option<Vec<i64>>,
     #[specta(type = Option<specta_typescript::Unknown>)]
     pub metadata: Option<Value>,
 }
@@ -109,7 +109,19 @@ pub struct CollectionStore {
 }
 
 impl CollectionStore {
+    /// The full state, frame buffer included. For hydration and for loading a
+    /// collection from disk.
     pub fn snapshot(&self) -> CollectionStateSnapshot {
+        self.build(true)
+    }
+
+    /// The state without the frame buffer, for the events fired when only the
+    /// session's metadata changed.
+    pub(crate) fn state(&self) -> CollectionStateSnapshot {
+        self.build(false)
+    }
+
+    fn build(&self, with_frames: bool) -> CollectionStateSnapshot {
         let guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         match guard.as_ref() {
             Some(session) => CollectionStateSnapshot {
@@ -123,11 +135,16 @@ impl CollectionStore {
                 loaded: session.loaded,
                 saved: session.saved,
                 sample_count: session.frames.len(),
-                frames: session.frames.iter().cloned().collect(),
-                frame_timestamps: session.frame_times.iter().copied().collect(),
+                frames: with_frames.then(|| session.frames.iter().cloned().collect()),
+                frame_timestamps: with_frames
+                    .then(|| session.frame_times.iter().copied().collect()),
                 metadata: session.metadata.clone(),
             },
-            None => CollectionStateSnapshot::default(),
+            None => CollectionStateSnapshot {
+                frames: with_frames.then(Vec::new),
+                frame_timestamps: with_frames.then(Vec::new),
+                ..Default::default()
+            },
         }
     }
 
@@ -384,7 +401,7 @@ pub async fn start_collection(app: AppHandle, profile_id: String) -> Result<(), 
         let _ = prev_cancel.send(true);
     }
 
-    emit_state(&app, Some(state_arc.snapshot()));
+    emit_state(&app, state_arc.state());
 
     let app_for_task = app.clone();
     tokio::spawn(async move {
@@ -394,9 +411,8 @@ pub async fn start_collection(app: AppHandle, profile_id: String) -> Result<(), 
     Ok(())
 }
 
-pub(crate) fn emit_state(app: &AppHandle, snapshot: Option<CollectionStateSnapshot>) {
-    let payload = snapshot.unwrap_or_default();
-    let _ = app.emit(EVENT_STATE, &payload);
+pub(crate) fn emit_state(app: &AppHandle, snapshot: CollectionStateSnapshot) {
+    let _ = app.emit(EVENT_STATE, &snapshot);
 }
 
 async fn run_session(
@@ -535,7 +551,7 @@ async fn run_session(
 /// newer one (in which case there's nothing to mark idle).
 fn finish(app: &AppHandle, store: &CollectionStore, session_id: &str) {
     store.mark_idle(session_id);
-    emit_state(app, Some(store.snapshot()));
+    emit_state(app, store.state());
 }
 
 #[cfg(test)]

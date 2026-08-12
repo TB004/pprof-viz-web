@@ -435,7 +435,9 @@ async fn run_session(
                             }
                         }
                     }
-                    Err(e) => errors::report(&app, format!("snapshot failed: {e}")),
+                    Err(e) => {
+                        errors::report(&app, format!("snapshot failed: {e}"));
+                    }
                 }
             }
         }
@@ -498,7 +500,9 @@ async fn run_session(
                         }
                     }
                 },
-                Err(e) => errors::report(&app, format!("stream open failed: {e}")),
+                Err(e) => {
+                    errors::report(&app, format!("stream open failed: {e}"));
+                }
             }
         }
     }

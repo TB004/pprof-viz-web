@@ -65,22 +65,19 @@ impl ErrorLog {
     }
 }
 
-/// Internal helper: push an error and emit it. Used from Rust call sites
-/// (collection failures, sql errors, ...) that want to surface a problem.
-pub fn report(app: &AppHandle, message: String) {
+/// Push an error and emit it, returning the stored entry. Used from Rust call
+/// sites (collection failures, sql errors, ...) that want to surface a problem.
+pub fn report(app: &AppHandle, message: String) -> AppError {
     let log = app.state::<AppState>().errors.clone();
     let entry = log.push(message);
     let _ = app.emit(EVENT_NEW_ERROR, &entry);
+    entry
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn register_error(app: AppHandle, message: String) -> Result<AppError, String> {
-    let log = app.state::<AppState>().errors.clone();
-    let entry = log.push(message);
-    app.emit(EVENT_NEW_ERROR, &entry)
-        .map_err(|e| e.to_string())?;
-    Ok(entry)
+    Ok(report(&app, message))
 }
 
 #[tauri::command]

@@ -24,9 +24,10 @@ pub const EVENT_METADATA: &str = "collection://metadata";
 pub(crate) const SUB_KEYS: &[&str] =
     &["scheduler", "goDebug", "gc", "memory", "cpu", "cgo", "sync"];
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default, specta::Type)]
 #[serde(rename_all = "lowercase")]
 pub enum CollectionStatus {
+    #[default]
     Idle,
     Running,
 }
@@ -35,7 +36,7 @@ pub enum CollectionStatus {
 #[serde(transparent)]
 pub struct Frame(#[specta(type = specta_typescript::Unknown)] pub Value);
 
-#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionStateSnapshot {
     pub status: CollectionStatus,
@@ -105,21 +106,7 @@ impl CollectionStore {
                 frame_timestamps: session.frame_times.iter().copied().collect(),
                 metadata: session.metadata.clone(),
             },
-            None => CollectionStateSnapshot {
-                status: CollectionStatus::Idle,
-                profile_id: None,
-                profile_name: None,
-                profile_url: None,
-                mode: None,
-                started_at: None,
-                ended_at: None,
-                loaded: false,
-                saved: false,
-                sample_count: 0,
-                frames: Vec::new(),
-                frame_timestamps: Vec::new(),
-                metadata: None,
-            },
+            None => CollectionStateSnapshot::default(),
         }
     }
 
@@ -383,21 +370,7 @@ pub async fn start_collection(app: AppHandle, profile_id: String) -> Result<(), 
 }
 
 pub(crate) fn emit_state(app: &AppHandle, snapshot: Option<CollectionStateSnapshot>) {
-    let payload = snapshot.unwrap_or_else(|| CollectionStateSnapshot {
-        status: CollectionStatus::Idle,
-        profile_id: None,
-        profile_name: None,
-        profile_url: None,
-        mode: None,
-        started_at: None,
-        ended_at: None,
-        loaded: false,
-        saved: false,
-        sample_count: 0,
-        frames: Vec::new(),
-        frame_timestamps: Vec::new(),
-        metadata: None,
-    });
+    let payload = snapshot.unwrap_or_default();
     let _ = app.emit(EVENT_STATE, &payload);
 }
 

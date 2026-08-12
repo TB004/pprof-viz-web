@@ -45,7 +45,7 @@ fn read_stored(path: &std::path::Path) -> Result<StoredCollection, String> {
     StoredCollection::decode_from_slice(&bytes).map_err(|e| format!("decode .ppvz: {e}"))
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, specta::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionRow {
     pub id: String,
@@ -383,22 +383,22 @@ pub async fn save_collection(
     };
 
     let pool = db::pool(&app);
-    sqlx::query(
+    sqlx::query!(
         "INSERT INTO collections (id, name, description, filename, size_bytes, duration_ms, \
          sample_count, profile_name, profile_url, mode, created_at) \
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        row.id,
+        row.name,
+        row.description,
+        row.filename,
+        row.size_bytes,
+        row.duration_ms,
+        row.sample_count,
+        row.profile_name,
+        row.profile_url,
+        row.mode,
+        row.created_at
     )
-    .bind(&row.id)
-    .bind(&row.name)
-    .bind(row.description.as_deref())
-    .bind(&row.filename)
-    .bind(row.size_bytes)
-    .bind(row.duration_ms)
-    .bind(row.sample_count)
-    .bind(row.profile_name.as_deref())
-    .bind(row.profile_url.as_deref())
-    .bind(row.mode.as_deref())
-    .bind(row.created_at)
     .execute(&pool)
     .await
     .map_err(|e| e.to_string())?;
@@ -415,30 +415,42 @@ pub async fn save_collection(
 #[specta::specta]
 pub async fn list_collections(app: AppHandle) -> Result<Vec<CollectionRow>, String> {
     let pool = db::pool(&app);
-    sqlx::query_as::<_, CollectionRow>("SELECT * FROM collections ORDER BY created_at DESC")
-        .fetch_all(&pool)
-        .await
-        .map_err(|e| e.to_string())
+    sqlx::query_as!(
+        CollectionRow,
+        r#"SELECT
+            id AS "id!",
+            name,
+            description,
+            filename,
+            size_bytes,
+            duration_ms,
+            sample_count,
+            profile_name,
+            profile_url,
+            mode,
+            created_at
+        FROM collections ORDER BY created_at DESC"#
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn delete_collection(app: AppHandle, id: String) -> Result<(), String> {
     let pool = db::pool(&app);
-    let filename: Option<(String,)> =
-        sqlx::query_as("SELECT filename FROM collections WHERE id = ?")
-            .bind(&id)
-            .fetch_optional(&pool)
-            .await
-            .map_err(|e| e.to_string())?;
+    let filename = sqlx::query_scalar!("SELECT filename FROM collections WHERE id = ?", id)
+        .fetch_optional(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
-    sqlx::query("DELETE FROM collections WHERE id = ?")
-        .bind(&id)
+    sqlx::query!("DELETE FROM collections WHERE id = ?", id)
         .execute(&pool)
         .await
         .map_err(|e| e.to_string())?;
 
-    if let Some((filename,)) = filename {
+    if let Some(filename) = filename {
         let _ = std::fs::remove_file(collections_dir(&app)?.join(filename));
     }
     Ok(())
@@ -459,13 +471,15 @@ pub async fn update_collection(
     let description = crate::non_empty(description);
 
     let pool = db::pool(&app);
-    sqlx::query("UPDATE collections SET name = ?, description = ? WHERE id = ?")
-        .bind(&name)
-        .bind(description.as_deref())
-        .bind(&id)
-        .execute(&pool)
-        .await
-        .map_err(|e| e.to_string())?;
+    sqlx::query!(
+        "UPDATE collections SET name = ?, description = ? WHERE id = ?",
+        name,
+        description,
+        id
+    )
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -473,12 +487,27 @@ pub async fn update_collection(
 #[specta::specta]
 pub async fn load_collection(app: AppHandle, id: String) -> Result<(), String> {
     let pool = db::pool(&app);
-    let row = sqlx::query_as::<_, CollectionRow>("SELECT * FROM collections WHERE id = ?")
-        .bind(&id)
-        .fetch_optional(&pool)
-        .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| format!("collection '{id}' not found"))?;
+    let row = sqlx::query_as!(
+        CollectionRow,
+        r#"SELECT
+            id AS "id!",
+            name,
+            description,
+            filename,
+            size_bytes,
+            duration_ms,
+            sample_count,
+            profile_name,
+            profile_url,
+            mode,
+            created_at
+        FROM collections WHERE id = ?"#,
+        id
+    )
+    .fetch_optional(&pool)
+    .await
+    .map_err(|e| e.to_string())?
+    .ok_or_else(|| format!("collection '{id}' not found"))?;
 
     let path = collections_dir(&app)?.join(&row.filename);
     let decoded = decode_stored(read_stored(&path)?)?;
@@ -507,13 +536,26 @@ pub async fn load_from_path(app: &AppHandle, path: &std::path::Path) -> Result<(
 
     // Prefer the archive row if this file lives in our collections folder.
     let db_row = match path.file_name().and_then(|n| n.to_str()) {
-        Some(filename) => {
-            sqlx::query_as::<_, CollectionRow>("SELECT * FROM collections WHERE filename = ?")
-                .bind(filename)
-                .fetch_optional(&pool)
-                .await
-                .map_err(|e| e.to_string())?
-        }
+        Some(filename) => sqlx::query_as!(
+            CollectionRow,
+            r#"SELECT
+            id AS "id!",
+            name,
+            description,
+            filename,
+            size_bytes,
+            duration_ms,
+            sample_count,
+            profile_name,
+            profile_url,
+            mode,
+            created_at
+        FROM collections WHERE filename = ?"#,
+            filename
+        )
+        .fetch_optional(&pool)
+        .await
+        .map_err(|e| e.to_string())?,
         None => None,
     };
 
@@ -559,11 +601,12 @@ pub async fn load_from_path(app: &AppHandle, path: &std::path::Path) -> Result<(
 pub async fn disk_usage(app: AppHandle) -> Result<DiskUsage, String> {
     let dir = collections_dir(&app)?;
     let pool = db::pool(&app);
-    let collections_bytes: i64 =
-        sqlx::query_scalar("SELECT COALESCE(SUM(size_bytes), 0) FROM collections")
-            .fetch_one(&pool)
-            .await
-            .map_err(|e| e.to_string())?;
+    let collections_bytes = sqlx::query_scalar!(
+        r#"SELECT COALESCE(SUM(size_bytes), 0) AS "total!: i64" FROM collections"#
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
     let free_bytes = fs4::free_space(&dir).map_err(|e| e.to_string())?;
     let total_bytes = fs4::total_space(&dir).map_err(|e| e.to_string())?;
     Ok(DiskUsage {

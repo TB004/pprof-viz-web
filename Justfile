@@ -73,6 +73,11 @@ vuln:
     - bun outdated
     - cargo audit -f ./src-tauri/Cargo.lock
 
+# Regenerate the sqlx offline query data in src-tauri/.sqlx.
+[group('Maintenance')]
+sqlx-prepare:
+    cd src-tauri && export DATABASE_URL="sqlite://$PWD/target/dev.db" && sqlx database create && sqlx migrate run --source migrations && cargo sqlx prepare -- --all-targets
+
 # Remove build and dependency artifacts
 [group('Maintenance')]
 clean:

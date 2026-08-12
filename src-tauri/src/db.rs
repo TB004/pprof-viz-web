@@ -7,7 +7,7 @@ use tauri::{AppHandle, Manager};
 
 use crate::settings;
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, specta::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ProjectRow {
     pub id: String,
@@ -18,7 +18,7 @@ pub struct ProjectRow {
     pub updated_at: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, specta::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileRow {
     pub id: String,
@@ -76,50 +76,104 @@ pub(crate) fn pool(app: &AppHandle) -> SqlitePool {
 #[tauri::command]
 #[specta::specta]
 pub async fn list_projects(app: AppHandle) -> Result<Vec<ProjectRow>, String> {
-    sqlx::query_as::<_, ProjectRow>("SELECT * FROM projects ORDER BY created_at ASC")
-        .fetch_all(&pool(&app))
-        .await
-        .map_err(|e| e.to_string())
+    sqlx::query_as!(
+        ProjectRow,
+        r#"SELECT id AS "id!", name, created_at, updated_at FROM projects ORDER BY created_at ASC"#
+    )
+    .fetch_all(&pool(&app))
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn list_profiles(app: AppHandle) -> Result<Vec<ProfileRow>, String> {
-    sqlx::query_as::<_, ProfileRow>("SELECT * FROM profiles ORDER BY created_at ASC")
-        .fetch_all(&pool(&app))
-        .await
-        .map_err(|e| e.to_string())
+    sqlx::query_as!(
+        ProfileRow,
+        r#"SELECT
+            id AS "id!",
+            project_id,
+            name,
+            url,
+            mode AS "mode: settings::CollectionType",
+            http_version AS "http_version: settings::HttpVersion",
+            token,
+            allow_insecure_tls,
+            interval_seconds AS "interval_seconds: i16",
+            number_of_cycles AS "number_of_cycles: i16",
+            created_at,
+            updated_at
+        FROM profiles ORDER BY created_at ASC"#
+    )
+    .fetch_all(&pool(&app))
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn get_project_by_id(app: AppHandle, id: String) -> Result<Option<ProjectRow>, String> {
-    sqlx::query_as::<_, ProjectRow>("SELECT * FROM projects WHERE id = ?")
-        .bind(&id)
-        .fetch_optional(&pool(&app))
-        .await
-        .map_err(|e| e.to_string())
+    sqlx::query_as!(
+        ProjectRow,
+        r#"SELECT id AS "id!", name, created_at, updated_at FROM projects WHERE id = ?"#,
+        id
+    )
+    .fetch_optional(&pool(&app))
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn get_profile_by_id(app: AppHandle, id: String) -> Result<Option<ProfileRow>, String> {
-    sqlx::query_as::<_, ProfileRow>("SELECT * FROM profiles WHERE id = ?")
-        .bind(&id)
-        .fetch_optional(&pool(&app))
-        .await
-        .map_err(|e| e.to_string())
+    sqlx::query_as!(
+        ProfileRow,
+        r#"SELECT
+            id AS "id!",
+            project_id,
+            name,
+            url,
+            mode AS "mode: settings::CollectionType",
+            http_version AS "http_version: settings::HttpVersion",
+            token,
+            allow_insecure_tls,
+            interval_seconds AS "interval_seconds: i16",
+            number_of_cycles AS "number_of_cycles: i16",
+            created_at,
+            updated_at
+        FROM profiles WHERE id = ?"#,
+        id
+    )
+    .fetch_optional(&pool(&app))
+    .await
+    .map_err(|e| e.to_string())
 }
 
 /// Load a single profile by id. Not exposed as a Tauri command — internal to
 /// the Rust side (the collection module calls it during start_collection).
 pub async fn load_profile(app: &AppHandle, profile_id: &str) -> Result<ProfileRow, String> {
-    sqlx::query_as::<_, ProfileRow>("SELECT * FROM profiles WHERE id = ?")
-        .bind(profile_id)
-        .fetch_optional(&pool(app))
-        .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| format!("profile '{profile_id}' not found"))
+    sqlx::query_as!(
+        ProfileRow,
+        r#"SELECT
+            id AS "id!",
+            project_id,
+            name,
+            url,
+            mode AS "mode: settings::CollectionType",
+            http_version AS "http_version: settings::HttpVersion",
+            token,
+            allow_insecure_tls,
+            interval_seconds AS "interval_seconds: i16",
+            number_of_cycles AS "number_of_cycles: i16",
+            created_at,
+            updated_at
+        FROM profiles WHERE id = ?"#,
+        profile_id
+    )
+    .fetch_optional(&pool(app))
+    .await
+    .map_err(|e| e.to_string())?
+    .ok_or_else(|| format!("profile '{profile_id}' not found"))
 }
 
 #[tauri::command]
@@ -137,14 +191,16 @@ pub async fn create_project(app: AppHandle, name: String) -> Result<ProjectRow, 
         updated_at: now,
     };
 
-    sqlx::query("INSERT INTO projects (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
-        .bind(&row.id)
-        .bind(&row.name)
-        .bind(row.created_at)
-        .bind(row.updated_at)
-        .execute(&pool(&app))
-        .await
-        .map_err(|e| e.to_string())?;
+    sqlx::query!(
+        "INSERT INTO projects (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)",
+        row.id,
+        row.name,
+        row.created_at,
+        row.updated_at
+    )
+    .execute(&pool(&app))
+    .await
+    .map_err(|e| e.to_string())?;
     Ok(row)
 }
 
@@ -155,22 +211,24 @@ pub async fn rename_project(app: AppHandle, id: String, name: String) -> Result<
     if trimmed.is_empty() {
         return Err("project name must not be empty".into());
     }
+    let now = crate::now_millis();
 
-    sqlx::query("UPDATE projects SET name = ?, updated_at = ? WHERE id = ?")
-        .bind(trimmed)
-        .bind(crate::now_millis())
-        .bind(id)
-        .execute(&pool(&app))
-        .await
-        .map_err(|e| e.to_string())?;
+    sqlx::query!(
+        "UPDATE projects SET name = ?, updated_at = ? WHERE id = ?",
+        trimmed,
+        now,
+        id
+    )
+    .execute(&pool(&app))
+    .await
+    .map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn delete_project(app: AppHandle, id: String) -> Result<(), String> {
-    sqlx::query("DELETE FROM projects WHERE id = ?")
-        .bind(id)
+    sqlx::query!("DELETE FROM projects WHERE id = ?", id)
         .execute(&pool(&app))
         .await
         .map_err(|e| e.to_string())?;
@@ -201,23 +259,23 @@ pub async fn create_profile(
         updated_at: now,
     };
 
-    sqlx::query(
+    sqlx::query!(
         "INSERT INTO profiles (id, project_id, name, url, mode, http_version, token, \
              allow_insecure_tls, interval_seconds, number_of_cycles, created_at, updated_at) \
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        row.id,
+        row.project_id,
+        row.name,
+        row.url,
+        row.mode,
+        row.http_version,
+        row.token,
+        row.allow_insecure_tls,
+        row.interval_seconds,
+        row.number_of_cycles,
+        row.created_at,
+        row.updated_at
     )
-    .bind(&row.id)
-    .bind(&row.project_id)
-    .bind(&row.name)
-    .bind(&row.url)
-    .bind(row.mode)
-    .bind(row.http_version)
-    .bind(row.token.as_deref())
-    .bind(row.allow_insecure_tls)
-    .bind(row.interval_seconds)
-    .bind(row.number_of_cycles)
-    .bind(row.created_at)
-    .bind(row.updated_at)
     .execute(&pool(&app))
     .await
     .map_err(|e| e.to_string())?;
@@ -230,21 +288,23 @@ pub async fn create_profile(
 pub async fn update_profile(app: AppHandle, id: String, input: ProfileInput) -> Result<(), String> {
     let input = input.normalized()?;
 
-    sqlx::query(
+    let now = crate::now_millis();
+
+    sqlx::query!(
         "UPDATE profiles SET name = ?, url = ?, mode = ?, http_version = ?, token = ?, \
          allow_insecure_tls = ?, interval_seconds = ?, number_of_cycles = ?, \
          updated_at = ? WHERE id = ?",
+        input.name,
+        input.url,
+        input.mode,
+        input.http_version,
+        input.token,
+        input.allow_insecure_tls,
+        input.interval_seconds,
+        input.number_of_cycles,
+        now,
+        id
     )
-    .bind(&input.name)
-    .bind(&input.url)
-    .bind(input.mode)
-    .bind(input.http_version)
-    .bind(input.token.as_deref())
-    .bind(input.allow_insecure_tls)
-    .bind(input.interval_seconds)
-    .bind(input.number_of_cycles)
-    .bind(crate::now_millis())
-    .bind(&id)
     .execute(&pool(&app))
     .await
     .map_err(|e| e.to_string())?;
@@ -254,8 +314,7 @@ pub async fn update_profile(app: AppHandle, id: String, input: ProfileInput) -> 
 #[tauri::command]
 #[specta::specta]
 pub async fn delete_profile(app: AppHandle, id: String) -> Result<(), String> {
-    sqlx::query("DELETE FROM profiles WHERE id = ?")
-        .bind(id)
+    sqlx::query!("DELETE FROM profiles WHERE id = ?", id)
         .execute(&pool(&app))
         .await
         .map_err(|e| e.to_string())?;
@@ -268,13 +327,13 @@ pub async fn reset_all_data(app: AppHandle) -> Result<(), String> {
     let pool = pool(&app);
 
     // Clear all DB rows (profiles cascade from projects)
-    sqlx::query("DELETE FROM projects")
+    sqlx::query!("DELETE FROM projects")
         .execute(&pool)
         .await
         .map_err(|e| e.to_string())?;
 
     // Delete all stored collections (.ppvz files + DB rows)
-    let filenames: Vec<String> = sqlx::query_scalar("SELECT filename FROM collections")
+    let filenames: Vec<String> = sqlx::query_scalar!("SELECT filename FROM collections")
         .fetch_all(&pool)
         .await
         .map_err(|e| e.to_string())?;
@@ -285,7 +344,7 @@ pub async fn reset_all_data(app: AppHandle) -> Result<(), String> {
         }
     }
 
-    sqlx::query("DELETE FROM collections")
+    sqlx::query!("DELETE FROM collections")
         .execute(&pool)
         .await
         .map_err(|e| e.to_string())?;

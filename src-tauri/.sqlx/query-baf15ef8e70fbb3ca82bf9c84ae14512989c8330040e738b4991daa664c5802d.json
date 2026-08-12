@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO profiles (id, project_id, name, url, mode, http_version, token, allow_insecure_tls, interval_seconds, number_of_cycles, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 12
+    },
+    "nullable": []
+  },
+  "hash": "baf15ef8e70fbb3ca82bf9c84ae14512989c8330040e738b4991daa664c5802d"
+}

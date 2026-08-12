@@ -31,6 +31,11 @@ is re-exported on every debug build from `make_builder()` in `src-tauri/src/lib.
 
 ## Rust
 
+- SQL goes through the checked `sqlx::query!` / `query_as!` macros, verified at compile time
+  against the offline data in `src-tauri/.sqlx` (committed; no database needed to build).
+  After touching a query or a migration, run `just sqlx-prepare` — a stale `.sqlx` fails the
+  build. SQLite reports `TEXT PRIMARY KEY` columns as nullable, hence the `id AS "id!"`
+  casts; enum and `i16` columns need `col AS "col: Type"` overrides.
 - No `.unwrap()` / `.expect()` in production paths.
 - Keep blocking work off the main thread — `tauri::async_runtime` or `std::thread` for the
   RPC stream loop and other heavy lifting.

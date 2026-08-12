@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { listen } from "@tauri-apps/api/event";
-import { type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
 import { goto } from "$app/navigation";
 import { MAX_FRAMES } from "$lib/bindings";
@@ -38,19 +37,17 @@ export interface CollectionState {
 	startedAt?: number;
 }
 
-const defaultCollectionState: CollectionState = {
+/**
+ * The live session state. Reactive: reads inside components re-run as frames
+ * arrive. Treat as read-only outside this module.
+ */
+export const collectionState: CollectionState = $state({
 	status: CollectionStatus.Idle,
 	collectedSamples: 0,
 	elapsedSeconds: 0,
 	loaded: false,
 	saved: false,
-};
-
-const collectionStateStore = writable<CollectionState>(defaultCollectionState);
-
-export const collectionState: Readable<CollectionState> = {
-	subscribe: collectionStateStore.subscribe,
-};
+});
 
 let hydrated = false;
 let timerHandle: ReturnType<typeof setInterval> | undefined;
@@ -60,15 +57,6 @@ export function formatElapsedTime(totalSeconds: number): string {
 	const minutes = Math.floor((totalSeconds % 3600) / 60);
 	const seconds = totalSeconds % 60;
 	return `${hours}h ${minutes}m ${seconds}s`;
-}
-
-function getSnapshot(): CollectionState {
-	let snapshot = defaultCollectionState;
-	const unsubscribe = collectionStateStore.subscribe((value) => {
-		snapshot = value;
-	});
-	unsubscribe();
-	return snapshot;
 }
 
 function asStatus(raw: CollectionStateSnapshot["status"]): CollectionStatus {
@@ -98,18 +86,12 @@ function asUrl(raw: string | null | undefined): URL | undefined {
 function startElapsedTimer() {
 	if (timerHandle !== undefined) return;
 	const tick = () => {
-		collectionStateStore.update((state) => {
-			if (state.status !== CollectionStatus.Running || !state.startedAt) {
-				return state;
-			}
-			return {
-				...state,
-				elapsedSeconds: Math.max(
-					0,
-					Math.floor((Date.now() - state.startedAt) / 1000),
-				),
-			};
-		});
+		const { status, startedAt } = collectionState;
+		if (status !== CollectionStatus.Running || !startedAt) return;
+		collectionState.elapsedSeconds = Math.max(
+			0,
+			Math.floor((Date.now() - startedAt) / 1000),
+		);
 	};
 	tick();
 	timerHandle = setInterval(tick, 1000);
@@ -123,54 +105,52 @@ function stopElapsedTimer() {
 }
 
 function applySnapshot(snapshot: CollectionStateSnapshot) {
-	collectionStateStore.update((state) => {
-		const startedAt = snapshot.startedAt ?? undefined;
-		// A different startedAt means a different session — a fresh live run or a
-		// collection loaded from disk. Loaded collections carry no per-frame
-		// timestamps, so reuse of the previous session's would be misleading.
-		const sessionChanged = startedAt !== state.startedAt;
-		// A state event without frames means "unchanged, you already have them";
-		// only a new session invalidates what we hold.
-		const frames =
-			snapshot.frames ?? (sessionChanged ? [] : (state.data ?? []));
-		// Backend records per-frame arrival times; prefer them when present and
-		// aligned (covers loaded collections and survives a page reload).
-		const backendTimestamps =
-			snapshot.frameTimestamps &&
-			snapshot.frameTimestamps.length === frames.length
-				? snapshot.frameTimestamps
-				: undefined;
-		const next: CollectionState = {
-			...state,
-			status: asStatus(snapshot.status),
-			loaded: snapshot.loaded,
-			saved: snapshot.saved,
-			collectedSamples: snapshot.sampleCount ?? 0,
-			data: frames,
-			// Prefer backend timestamps; otherwise preserve live ones for the same
-			// session and clear when frames reset or the session changed.
-			dataTimestamps:
-				backendTimestamps ??
-				(frames.length === 0 || sessionChanged
-					? undefined
-					: state.dataTimestamps),
-			metadata: snapshot.metadata ?? undefined,
-			startedAt,
-			mode: snapshot.mode ?? undefined,
-			url: asUrl(snapshot.profileUrl),
-		};
-		if (snapshot.profileId) {
-			next.selectedProfile = snapshot.profileId;
-			next.selectedProfileLabel = snapshot.profileName ?? undefined;
-		}
-		// A stopped or loaded session has an endedAt — freeze elapsed at its
-		// actual duration instead of counting wall-clock since startedAt.
-		const endTime = snapshot.endedAt ?? Date.now();
-		next.elapsedSeconds = startedAt
-			? Math.max(0, Math.floor((endTime - startedAt) / 1000))
-			: 0;
-		return next;
-	});
+	const state = collectionState;
+	const startedAt = snapshot.startedAt ?? undefined;
+	// A different startedAt means a different session — a fresh live run or a
+	// collection loaded from disk. Loaded collections carry no per-frame
+	// timestamps, so reuse of the previous session's would be misleading.
+	const sessionChanged = startedAt !== state.startedAt;
+	// A state event without frames means "unchanged, you already have them";
+	// only a new session invalidates what we hold.
+	const frames = snapshot.frames ?? (sessionChanged ? [] : (state.data ?? []));
+	// Backend records per-frame arrival times; prefer them when present and
+	// aligned (covers loaded collections and survives a page reload).
+	const backendTimestamps =
+		snapshot.frameTimestamps &&
+		snapshot.frameTimestamps.length === frames.length
+			? snapshot.frameTimestamps
+			: undefined;
+	const next: CollectionState = {
+		...state,
+		status: asStatus(snapshot.status),
+		loaded: snapshot.loaded,
+		saved: snapshot.saved,
+		collectedSamples: snapshot.sampleCount ?? 0,
+		data: frames,
+		// Prefer backend timestamps; otherwise preserve live ones for the same
+		// session and clear when frames reset or the session changed.
+		dataTimestamps:
+			backendTimestamps ??
+			(frames.length === 0 || sessionChanged
+				? undefined
+				: state.dataTimestamps),
+		metadata: snapshot.metadata ?? undefined,
+		startedAt,
+		mode: snapshot.mode ?? undefined,
+		url: asUrl(snapshot.profileUrl),
+	};
+	if (snapshot.profileId) {
+		next.selectedProfile = snapshot.profileId;
+		next.selectedProfileLabel = snapshot.profileName ?? undefined;
+	}
+	// A stopped or loaded session has an endedAt — freeze elapsed at its
+	// actual duration instead of counting wall-clock since startedAt.
+	const endTime = snapshot.endedAt ?? Date.now();
+	next.elapsedSeconds = startedAt
+		? Math.max(0, Math.floor((endTime - startedAt) / 1000))
+		: 0;
+	Object.assign(collectionState, next);
 	if (asStatus(snapshot.status) === CollectionStatus.Running) {
 		startElapsedTimer();
 	} else {
@@ -191,24 +171,19 @@ if (browser) {
 						applySnapshot(event.payload);
 					}),
 					listen<Frame>(EVENT_FRAME, (event) => {
-						collectionStateStore.update((state) => {
-							const data = evictOldest([...(state.data ?? []), event.payload]);
-							return {
-								...state,
-								data,
-								dataTimestamps: evictOldest([
-									...(state.dataTimestamps ?? []),
-									Date.now(),
-								]),
-								collectedSamples: data.length,
-							};
-						});
+						const data = evictOldest([
+							...(collectionState.data ?? []),
+							event.payload,
+						]);
+						collectionState.data = data;
+						collectionState.dataTimestamps = evictOldest([
+							...(collectionState.dataTimestamps ?? []),
+							Date.now(),
+						]);
+						collectionState.collectedSamples = data.length;
 					}),
 					listen<MetadataResponse>(EVENT_METADATA, (event) => {
-						collectionStateStore.update((state) => ({
-							...state,
-							metadata: event.payload,
-						}));
+						collectionState.metadata = event.payload;
 					}),
 					// A double-clicked .ppvz file was loaded — jump to a metric page
 					// (warm start only; cold start lands on home with data hydrated).
@@ -252,33 +227,27 @@ export function cleanup() {
 
 export async function selectProfile(profileId?: string): Promise<void> {
 	if (!profileId) {
-		collectionStateStore.update((state) => ({
-			...state,
-			selectedProfile: undefined,
-			selectedProfileLabel: undefined,
-			url: undefined,
-			mode: undefined,
-		}));
+		collectionState.selectedProfile = undefined;
+		collectionState.selectedProfileLabel = undefined;
+		collectionState.url = undefined;
+		collectionState.mode = undefined;
 		return;
 	}
 
 	const located = await ProfileService.getProfileById(profileId);
 	if (!located) return;
 
-	collectionStateStore.update((state) => ({
-		...state,
-		selectedProfile: located.id,
-		selectedProfileLabel: located.name,
-		url: asUrl(located.url),
-		mode: located.mode,
-	}));
+	collectionState.selectedProfile = located.id;
+	collectionState.selectedProfileLabel = located.name;
+	collectionState.url = asUrl(located.url);
+	collectionState.mode = located.mode;
 }
 
 export async function startCollection(): Promise<void> {
-	const state = getSnapshot();
-	if (!state.selectedProfile) return;
+	const { selectedProfile } = collectionState;
+	if (!selectedProfile) return;
 	try {
-		await Ipc.startCollection(state.selectedProfile);
+		await Ipc.startCollection(selectedProfile);
 	} catch (e) {
 		await ErrorService.registerError(
 			e instanceof Error ? e.message : `Failed to start collection: ${e}`,

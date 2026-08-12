@@ -106,20 +106,18 @@ const columns: ColDef[] = [
 
 // ── derived ────────────────────────────────────────────────────────────────
 
-const isRunning = $derived(
-	$collectionState.status === CollectionStatus.Running,
-);
+const isRunning = $derived(collectionState.status === CollectionStatus.Running);
 
 const metadata = $derived<MetadataResponse | undefined>(
-	$collectionState.metadata,
+	collectionState.metadata,
 );
 
 const allRows = $derived(
-	($collectionState.data ?? [])
+	(collectionState.data ?? [])
 		.map((frame, i) => ({
 			sample: i + 1,
 			frame,
-			arrivedAt: $collectionState.dataTimestamps?.[i],
+			arrivedAt: collectionState.dataTimestamps?.[i],
 		}))
 		.reverse(),
 );

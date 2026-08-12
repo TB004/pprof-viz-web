@@ -25,8 +25,8 @@ import { CollectionService } from "$lib/services";
 
 const collectionState = CollectionService.collectionState;
 
-const frames = $derived($collectionState.data ?? []);
-const metadata = $derived($collectionState.metadata);
+const frames = $derived(collectionState.data ?? []);
+const metadata = $derived(collectionState.metadata);
 const hasData = $derived(frames.length > 0);
 const latest = $derived(frames.at(-1)?.scheduler);
 

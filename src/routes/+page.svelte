@@ -21,17 +21,14 @@ import type { Component } from "svelte";
 import { PMDialog } from "$lib/components/custom/profile-manager-dialog";
 import { Button } from "$lib/components/ui/button";
 import * as Card from "$lib/components/ui/card";
-import { CollectionService } from "$lib/services";
-import { profileOptions } from "$lib/services/profile_service.js";
+import { CollectionService, ProfileService } from "$lib/services";
 import { CollectionStatus } from "$lib/types";
 
 const collectionState = CollectionService.collectionState;
 
-const hasProfiles = $derived($profileOptions.length > 0);
-const hasSelectedProfile = $derived(!!$collectionState.selectedProfile);
-const isRunning = $derived(
-	$collectionState.status === CollectionStatus.Running,
-);
+const hasProfiles = $derived(ProfileService.profileOptions().length > 0);
+const hasSelectedProfile = $derived(!!collectionState.selectedProfile);
+const isRunning = $derived(collectionState.status === CollectionStatus.Running);
 
 const activeStep = $derived(
 	!hasProfiles ? 1 : !hasSelectedProfile ? 2 : !isRunning ? 3 : 0,

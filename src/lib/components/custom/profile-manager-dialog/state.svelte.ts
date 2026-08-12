@@ -43,7 +43,7 @@ export const dialogState = $state({
 });
 
 export function clearProfileForm() {
-	const settings = SettingsService.getSettingsSnapshot();
+	const settings = SettingsService.settings;
 	dialogState.profileName = settings.defaultName;
 	// Parse the default URL into scheme + host (regex handles scheme-only like "https://")
 	const m = settings.defaultUrl.match(/^(https?):\/\/([^/]*)/);

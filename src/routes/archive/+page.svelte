@@ -25,8 +25,8 @@ onMount(() => {
 	void ArchiveService.refresh();
 });
 
-const collections = $derived($archiveState.collections);
-const disk = $derived($archiveState.diskUsage);
+const collections = $derived(archiveState.collections);
+const disk = $derived(archiveState.diskUsage);
 const hasCollections = $derived(collections.length > 0);
 
 // Cycle through the theme chart colors for slices.

@@ -19,11 +19,11 @@ import { CollectionService } from "$lib/services";
 
 const collectionState = CollectionService.collectionState;
 
-const latestGc = $derived($collectionState.data?.at(-1)?.gc);
-const gcMeta = $derived($collectionState.metadata?.gc);
+const latestGc = $derived(collectionState.data?.at(-1)?.gc);
+const gcMeta = $derived(collectionState.metadata?.gc);
 
 const chartData = $derived(
-	($collectionState.data ?? []).map((frame, i) => ({
+	(collectionState.data ?? []).map((frame, i) => ({
 		sample: i + 1,
 		liveOccupiedBytes: Number(frame.gc?.liveOccupiedBytes ?? 0),
 		goalHeapSizeBytes: Number(frame.gc?.goalHeapSizeBytes ?? 0),

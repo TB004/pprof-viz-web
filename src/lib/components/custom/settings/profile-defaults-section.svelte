@@ -64,7 +64,7 @@ function parseDefaultUrl(url: string): {
 				<span class="ml-1 font-normal text-muted-foreground">(optional)</span>
 			</span>
 			<Input
-				value={$settings.defaultName}
+				value={settings.defaultName}
 				placeholder="Production pprof"
 				oninput={(e) =>
                     SettingsService.updateSettings({
@@ -81,10 +81,10 @@ function parseDefaultUrl(url: string): {
 			<div class="flex gap-2">
 				<Select.Root
 					type="single"
-					value={parseDefaultUrl($settings.defaultUrl).scheme}
+					value={parseDefaultUrl(settings.defaultUrl).scheme}
 					onValueChange={(v) => {
                         if (!v) return;
-                        const host = parseDefaultUrl($settings.defaultUrl).host;
+                        const host = parseDefaultUrl(settings.defaultUrl).host;
                         SettingsService.updateSettings({
                             defaultUrl: `${v}://${host}`,
                         });
@@ -94,14 +94,14 @@ function parseDefaultUrl(url: string): {
 						{schemeOptions.find(
                             (o) =>
                                 o.value ===
-                                parseDefaultUrl($settings.defaultUrl).scheme,
+                                parseDefaultUrl(settings.defaultUrl).scheme,
                         )?.label ?? "http://"}
 					</Select.Trigger>
 					<Select.Content class="p-1.5">
 						{#each schemeOptions as opt (opt.value)}
 							<Select.Item
 								value={opt.value}
-								disabled={$settings.defaultHttpVersion ===
+								disabled={settings.defaultHttpVersion ===
                                     HttpVersion.Http3 && opt.value === "http"}
 							>
 								{opt.label}
@@ -110,12 +110,12 @@ function parseDefaultUrl(url: string): {
 					</Select.Content>
 				</Select.Root>
 				<Input
-					value={parseDefaultUrl($settings.defaultUrl).host}
+					value={parseDefaultUrl(settings.defaultUrl).host}
 					placeholder="localhost:9090"
 					class="flex-1 min-w-0"
 					oninput={(e) => {
                         const scheme = parseDefaultUrl(
-                            $settings.defaultUrl,
+                            settings.defaultUrl,
                         ).scheme;
                         SettingsService.updateSettings({
                             defaultUrl: `${scheme}://${e.currentTarget.value}`,
@@ -124,12 +124,12 @@ function parseDefaultUrl(url: string): {
 				/>
 				<Select.Root
 					type="single"
-					value={$settings.defaultHttpVersion}
+					value={settings.defaultHttpVersion}
 					onValueChange={(v) => {
                         if (!v) return;
                         const httpVersion = v as HttpVersion;
-                        const { host } = parseDefaultUrl($settings.defaultUrl);
-                        const patch: Partial<typeof $settings> = {
+                        const { host } = parseDefaultUrl(settings.defaultUrl);
+                        const patch: Partial<typeof settings> = {
                             defaultHttpVersion: httpVersion,
                         };
                         if (httpVersion === HttpVersion.Http3) {
@@ -140,7 +140,7 @@ function parseDefaultUrl(url: string): {
 				>
 					<Select.Trigger class="w-25 shrink-0">
 						{httpVersionOptions.find(
-                            (o) => o.value === $settings.defaultHttpVersion,
+                            (o) => o.value === settings.defaultHttpVersion,
                         )?.label ?? "HTTP/2"}
 					</Select.Trigger>
 					<Select.Content class="p-1.5">
@@ -158,7 +158,7 @@ function parseDefaultUrl(url: string): {
 			<p class="mb-3 text-sm font-medium text-foreground">Collection mode</p>
 			<div class="grid gap-3 sm:grid-cols-2">
 				{#each modeOptions as option (option.value)}
-					{@const isSelected = $settings.defaultMode === option.value}
+					{@const isSelected = settings.defaultMode === option.value}
 					<button
 						type="button"
 						class={`rounded-2xl border p-4 text-left transition-colors ${isSelected ? "border-primary bg-primary/5" : "border-border/70 bg-muted/25 hover:border-primary/30"}`}
@@ -189,7 +189,7 @@ function parseDefaultUrl(url: string): {
 			</div>
 		</div>
 
-		{#if $settings.defaultMode === CollectionType.Stream}
+		{#if settings.defaultMode === CollectionType.Stream}
 			<div class="grid gap-4 sm:grid-cols-2">
 				<label class="block">
 					<span class="mb-3 block text-sm font-medium text-foreground">
@@ -202,7 +202,7 @@ function parseDefaultUrl(url: string): {
 						type="number"
 						min={1}
 						step={1}
-						value={$settings.defaultIntervalSeconds}
+						value={settings.defaultIntervalSeconds}
 						oninput={(e) => {
                             const v = Number.parseInt(
                                 e.currentTarget.value,
@@ -226,7 +226,7 @@ function parseDefaultUrl(url: string): {
 						type="number"
 						min={0}
 						step={1}
-						value={$settings.defaultNumberOfCycles}
+						value={settings.defaultNumberOfCycles}
 						oninput={(e) => {
                             const v = Number.parseInt(
                                 e.currentTarget.value,

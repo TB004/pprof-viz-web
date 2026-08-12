@@ -39,8 +39,8 @@ async function confirmSave() {
 			<Dialog.Title>Save collection</Dialog.Title>
 			<Dialog.Description>
 				Store the current
-				{$collectionState.collectedSamples}
-				sample{$collectionState.collectedSamples === 1 ? "" : "s"}
+				{collectionState.collectedSamples}
+				sample{collectionState.collectedSamples === 1 ? "" : "s"}
 				to disk as a .ppvz file.
 			</Dialog.Description>
 		</Dialog.Header>

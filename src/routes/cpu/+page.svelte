@@ -14,7 +14,7 @@ import { CollectionService } from "$lib/services";
 const collectionState = CollectionService.collectionState;
 
 const chartData = $derived(
-	($collectionState.data ?? []).map((frame, i) => ({
+	(collectionState.data ?? []).map((frame, i) => ({
 		sample: i + 1,
 		user: frame.cpu?.userSeconds ?? 0,
 		idle: frame.cpu?.idleSeconds ?? 0,

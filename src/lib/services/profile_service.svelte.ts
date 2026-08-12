@@ -1,7 +1,6 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { derived, type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
 import * as Ipc from "$lib/ipc";
 import { ErrorService } from "$lib/services";
@@ -30,21 +29,14 @@ export interface ProfileCatalogState {
 	projects: ProfileProject[];
 }
 
-const emptyCatalog = (): ProfileCatalogState => ({
+/**
+ * Projects with their profiles, plus the flattened `options` view the profile
+ * pickers bind to. Treat as read-only outside this module.
+ */
+export const profileCatalog: ProfileCatalogState = $state({
 	loaded: false,
 	projects: [],
 });
-
-const profileCatalogStore = writable<ProfileCatalogState>(emptyCatalog());
-
-export const profileCatalog: Readable<ProfileCatalogState> = {
-	subscribe: profileCatalogStore.subscribe,
-};
-
-export const profileProjects = derived(
-	profileCatalogStore,
-	(catalog) => catalog.projects,
-);
 
 let hydrated = false;
 
@@ -71,10 +63,8 @@ async function reload() {
 		profiles: profilesByProjectId.get(project.id) ?? [],
 	}));
 
-	profileCatalogStore.set({
-		loaded: true,
-		projects: catalog,
-	});
+	profileCatalog.loaded = true;
+	profileCatalog.projects = catalog;
 }
 
 /**
@@ -110,34 +100,34 @@ async function ensureHydrated() {
 	try {
 		await reload();
 	} catch (e) {
-		profileCatalogStore.set({ loaded: true, projects: [] });
+		profileCatalog.loaded = true;
+		profileCatalog.projects = [];
 		hydrated = false;
 		reportInvokeError("Failed to load projects/profiles", e);
 	}
 }
 
-export const profileOptions: Readable<CollectionProfile[]> = derived(
-	profileCatalogStore,
-	(catalog) =>
-		catalog.projects.flatMap((project) =>
-			project.profiles.flatMap((profile) => {
-				try {
-					return [
-						{
-							value: profile.id,
-							label: profile.name,
-							projectId: project.id,
-							projectName: project.name,
-							url: new URL(profile.url),
-							mode: profile.mode,
-						},
-					];
-				} catch {
-					return [];
-				}
-			}),
-		),
-);
+/** Every profile as a picker option, skipping any with an unparseable URL. */
+export function profileOptions(): CollectionProfile[] {
+	return profileCatalog.projects.flatMap((project) =>
+		project.profiles.flatMap((profile) => {
+			try {
+				return [
+					{
+						value: profile.id,
+						label: profile.name,
+						projectId: project.id,
+						projectName: project.name,
+						url: new URL(profile.url),
+						mode: profile.mode,
+					},
+				];
+			} catch {
+				return [];
+			}
+		}),
+	);
+}
 
 export async function getProjectById(
 	projectId: string,

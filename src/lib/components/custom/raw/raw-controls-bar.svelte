@@ -34,10 +34,8 @@ const ROWS_OPTIONS = [25, 50, 100, 200] as const;
 
 let rowsPerPageStr = $state(String(rowsPerPage));
 
-const isRunning = $derived(
-	$collectionState.status === CollectionStatus.Running,
-);
-const sampleCount = $derived($collectionState.data?.length ?? 0);
+const isRunning = $derived(collectionState.status === CollectionStatus.Running);
+const sampleCount = $derived(collectionState.data?.length ?? 0);
 const totalPages = $derived(Math.max(1, Math.ceil(totalRows / rowsPerPage)));
 const effectivePage = $derived(Math.min(currentPage, totalPages));
 

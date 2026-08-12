@@ -77,7 +77,7 @@ function fmtDebugKey(key: string): string {
 		.join(" ");
 }
 
-const frames = $derived($collectionState.data ?? []);
+const frames = $derived(collectionState.data ?? []);
 const hasData = $derived(frames.length > 0);
 const latest = $derived(frames.at(-1));
 

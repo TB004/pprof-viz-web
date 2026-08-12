@@ -22,7 +22,7 @@ import { CollectionService } from "$lib/services";
 const collectionState = CollectionService.collectionState;
 
 const chartData = $derived(
-	($collectionState.data ?? []).map((frame, i) => {
+	(collectionState.data ?? []).map((frame, i) => {
 		const m = frame.memory;
 		const heapObject = Number(m?.heapObjectBytes ?? 0);
 		const heapUnused = Number(m?.heapUnusedBytes ?? 0);

@@ -1,7 +1,6 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { type Readable, writable } from "svelte/store";
 import { browser } from "$app/environment";
 import * as Ipc from "$lib/ipc";
 import {
@@ -23,11 +22,18 @@ const fallbackSettings: AppSettings = {
 	defaultHttpVersion: HttpVersion.Http2,
 };
 
-const settingsStore = writable<AppSettings>(fallbackSettings);
+/**
+ * The live settings. Reactive: reads inside components re-run when Rust hands
+ * back an update. Treat as read-only — `updateSettings` is the only writer.
+ */
+export const settings: AppSettings = $state({ ...fallbackSettings });
 
-export const settings: Readable<AppSettings> = {
-	subscribe: settingsStore.subscribe,
-};
+/** Overwrite the live settings in place, keeping the exported identity. */
+function apply(next: AppSettings) {
+	Object.assign(settings, next);
+	applyTheme(next.theme);
+	cacheThemeForBoot(next.theme);
+}
 
 let hydrated = false;
 
@@ -54,8 +60,7 @@ async function ensureHydrated() {
 	if (hydrated) return;
 	hydrated = true;
 	try {
-		const loaded = await Ipc.getSettings();
-		settingsStore.set(loaded);
+		apply(await Ipc.getSettings());
 	} catch {
 		// Leave fallback in place — Rust may not be ready yet during very
 		// early boot. We'll re-hydrate next time updateSettings is called.
@@ -64,25 +69,10 @@ async function ensureHydrated() {
 }
 
 if (browser) {
-	settingsStore.subscribe((s) => {
-		applyTheme(s.theme);
-		cacheThemeForBoot(s.theme);
-	});
+	apply(settings);
 	void ensureHydrated();
 }
 
 export async function updateSettings(patch: Partial<AppSettings>) {
-	const current = getSettingsSnapshot();
-	const merged = { ...current, ...patch };
-	const updated = await Ipc.updateSettings(merged);
-	settingsStore.set(updated);
-}
-
-export function getSettingsSnapshot(): AppSettings {
-	let snapshot = fallbackSettings;
-	const unsubscribe = settings.subscribe((value) => {
-		snapshot = value;
-	});
-	unsubscribe();
-	return snapshot;
+	apply(await Ipc.updateSettings({ ...settings, ...patch }));
 }

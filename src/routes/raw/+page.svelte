@@ -17,7 +17,7 @@ let currentPage = $state(1);
 let rowsPerPage = $state(25);
 let totalRows = $state(0);
 
-const hasData = $derived(($collectionState.data?.length ?? 0) > 0);
+const hasData = $derived((collectionState.data?.length ?? 0) > 0);
 </script>
 
 <PageShell

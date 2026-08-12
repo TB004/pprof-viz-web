@@ -1,7 +1,6 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { type Readable, writable } from "svelte/store";
 import * as Ipc from "$lib/ipc";
 import { ErrorService } from "$lib/services";
 import type { CollectionRow, DiskUsage } from "$lib/types";
@@ -12,36 +11,29 @@ export interface ArchiveState {
 	loading: boolean;
 }
 
-const defaultArchiveState: ArchiveState = {
+/** The archive listing. Treat as read-only outside this module. */
+export const archiveState: ArchiveState = $state({
 	collections: [],
 	loading: false,
-};
-
-const archiveStateStore = writable<ArchiveState>(defaultArchiveState);
-
-export const archiveState: Readable<ArchiveState> = {
-	subscribe: archiveStateStore.subscribe,
-};
+});
 
 /** Reload the collection list and disk-usage figures from the backend. */
 export async function refresh(): Promise<void> {
-	archiveStateStore.update((s) => ({ ...s, loading: true }));
+	archiveState.loading = true;
 	try {
 		const [collections, diskUsage] = await Promise.all([
 			Ipc.listCollections(),
 			Ipc.getDiskUsage(),
 		]);
 
-		archiveStateStore.set({
-			collections,
-			diskUsage,
-			loading: false,
-		});
+		archiveState.collections = collections;
+		archiveState.diskUsage = diskUsage;
 	} catch (e) {
-		archiveStateStore.update((s) => ({ ...s, loading: false }));
 		await ErrorService.registerError(
 			e instanceof Error ? e.message : `Failed to load archive: ${e}`,
 		);
+	} finally {
+		archiveState.loading = false;
 	}
 }
 

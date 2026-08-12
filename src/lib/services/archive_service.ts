@@ -45,21 +45,36 @@ export async function refresh(): Promise<void> {
 	}
 }
 
+/**
+ * Run an archive operation and report any failure, returning whether it
+ * succeeded. With `reload`, the collection list is refreshed afterwards — only
+ * on success, since a failed operation changed nothing.
+ */
+async function withReporting(
+	label: string,
+	op: () => Promise<unknown>,
+	{ reload = false }: { reload?: boolean } = {},
+): Promise<boolean> {
+	try {
+		await op();
+		if (reload) await refresh();
+		return true;
+	} catch (e) {
+		await ErrorService.registerError(
+			e instanceof Error ? e.message : `Failed to ${label} collection: ${e}`,
+		);
+		return false;
+	}
+}
+
 /** Persist the current in-memory collection to disk, then refresh the list. */
 export async function save(
 	name: string,
 	description: string | null,
 ): Promise<boolean> {
-	try {
-		await Ipc.saveCollection(name, description);
-		await refresh();
-		return true;
-	} catch (e) {
-		await ErrorService.registerError(
-			e instanceof Error ? e.message : `Failed to save collection: ${e}`,
-		);
-		return false;
-	}
+	return withReporting("save", () => Ipc.saveCollection(name, description), {
+		reload: true,
+	});
 }
 
 /** Edit a stored collection's name/description, then refresh the list. */
@@ -68,39 +83,21 @@ export async function update(
 	name: string,
 	description: string | null,
 ): Promise<boolean> {
-	try {
-		await Ipc.updateCollection(id, name, description);
-		await refresh();
-		return true;
-	} catch (e) {
-		await ErrorService.registerError(
-			e instanceof Error ? e.message : `Failed to update collection: ${e}`,
-		);
-		return false;
-	}
+	return withReporting(
+		"update",
+		() => Ipc.updateCollection(id, name, description),
+		{ reload: true },
+	);
 }
 
 /** Delete a stored collection (file + metadata), then refresh the list. */
 export async function remove(id: string): Promise<void> {
-	try {
-		await Ipc.deleteCollection(id);
-		await refresh();
-	} catch (e) {
-		await ErrorService.registerError(
-			e instanceof Error ? e.message : `Failed to delete collection: ${e}`,
-		);
-	}
+	await withReporting("delete", () => Ipc.deleteCollection(id), {
+		reload: true,
+	});
 }
 
 /** Load a stored collection back into memory for visualization. */
 export async function load(id: string): Promise<boolean> {
-	try {
-		await Ipc.loadCollection(id);
-		return true;
-	} catch (e) {
-		await ErrorService.registerError(
-			e instanceof Error ? e.message : `Failed to load collection: ${e}`,
-		);
-		return false;
-	}
+	return withReporting("load", () => Ipc.loadCollection(id));
 }

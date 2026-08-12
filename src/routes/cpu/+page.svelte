@@ -8,7 +8,7 @@ import { ActivityIcon, CpuIcon, TimerIcon, ZapIcon } from "@lucide/svelte";
 import { MetricChart } from "$lib/components/custom/charts";
 import { EmptyState, PageShell } from "$lib/components/custom/page";
 import { StatGrid } from "$lib/components/custom/stat-card";
-import { fmtSecs, fmtSecsAxis } from "$lib/format";
+import { fmtCountAxis, fmtSecs, fmtSecsAxis } from "$lib/format";
 import { CollectionService } from "$lib/services";
 
 const collectionState = CollectionService.collectionState;
@@ -73,12 +73,6 @@ const stats = $derived([
 		Icon: CpuIcon,
 	},
 ]);
-
-function fmtCompactAxis(n: number): string {
-	if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-	if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-	return String(Math.round(n));
-}
 </script>
 
 <PageShell
@@ -122,7 +116,7 @@ function fmtCompactAxis(n: number): string {
 			description="Running, runnable, and waiting goroutines over time"
 			type="line"
 			data={chartData}
-			format={fmtCompactAxis}
+			format={fmtCountAxis}
 			series={[
 				{ key: "goroutinesRunning", label: "Running" },
 				{ key: "goroutinesRunnable", label: "Runnable" },

@@ -14,7 +14,7 @@ import { HistogramChart, MetricChart } from "$lib/components/custom/charts";
 import { EmptyState, PageShell } from "$lib/components/custom/page";
 import { StatGrid } from "$lib/components/custom/stat-card";
 import * as Card from "$lib/components/ui/card";
-import { fmtBytes, fmtBytesAxis } from "$lib/format";
+import { fmtBytes, fmtBytesAxis, fmtCountAxis } from "$lib/format";
 import { CollectionService } from "$lib/services";
 
 const collectionState = CollectionService.collectionState;
@@ -82,13 +82,6 @@ const stats = $derived([
 		Icon: ActivityIcon,
 	},
 ]);
-
-function fmtCompactAxis(n: number): string {
-	if (n < 1_000) return String(Math.round(n));
-	if (n < 100_000) return `${(n / 1_000).toFixed(1)}K`;
-	if (n < 100_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-	return `${(n / 1_000_000_000).toFixed(1)}B`;
-}
 </script>
 
 <PageShell
@@ -129,7 +122,7 @@ function fmtCompactAxis(n: number): string {
 			description="Cumulative automatic and forced GC cycles over time"
 			type="line"
 			data={chartData}
-			format={fmtCompactAxis}
+			format={fmtCountAxis}
 			series={[
 				{ key: "automaticCycles", label: "Automatic" },
 				{ key: "forcedCycles", label: "Forced" },

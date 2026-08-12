@@ -20,6 +20,17 @@ export function fmtBytesAxis(b: number): string {
 	return `${(b / 1024 ** 4).toFixed(1)}TB`;
 }
 
+/**
+ * Compact count for axis ticks, e.g. `12.5K`, `3.4M`.
+ */
+export function fmtCountAxis(n: number): string {
+	if (n !== Math.floor(n)) return "";
+	if (n < 1_000) return String(n);
+	if (n < 100_000) return `${(n / 1_000).toFixed(1)}K`;
+	if (n < 100_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+	return `${(n / 1_000_000_000).toFixed(1)}B`;
+}
+
 /** Human-readable duration from seconds, e.g. `1.250ms`, `2.500s`. */
 export function fmtSecs(s: number): string {
 	if (s === 0) return "0s";

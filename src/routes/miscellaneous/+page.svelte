@@ -11,7 +11,7 @@ import { EmptyState, PageShell } from "$lib/components/custom/page";
 import { StatGrid } from "$lib/components/custom/stat-card";
 import * as Card from "$lib/components/ui/card";
 import { Tooltip } from "$lib/components/ui/chart";
-import { fmtSecs, fmtSecsAxis } from "$lib/format";
+import { fmtCountAxis, fmtSecs, fmtSecsAxis } from "$lib/format";
 import { CollectionService } from "$lib/services";
 
 const collectionState = CollectionService.collectionState;
@@ -75,15 +75,6 @@ function fmtDebugKey(key: string): string {
 		.split(" ")
 		.map((w, i) => (i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w))
 		.join(" ");
-}
-
-// Returns "" for fractional ticks so duplicate labels don't appear when the
-// data range is small and d3 generates non-integer tick values.
-function fmtIntAxis(n: number): string {
-	if (n !== Math.floor(n)) return "";
-	if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-	if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-	return String(n);
 }
 
 const frames = $derived($collectionState.data ?? []);
@@ -176,7 +167,7 @@ const summaryStats = $derived([
 			description="Cumulative C function calls from Go over samples"
 			type="line"
 			data={cgoChartData}
-			format={fmtIntAxis}
+			format={fmtCountAxis}
 			series={[{ key: "cgoCalls", label: "CGo Calls" }]}
 		/>
 
@@ -196,7 +187,7 @@ const summaryStats = $derived([
 			description="Total GODEBUG event count accumulated across all event types per sample"
 			type="line"
 			data={debugChartData}
-			format={fmtIntAxis}
+			format={fmtCountAxis}
 			series={[
 				{ key: "total", label: "Total Events", color: "var(--chart-3)" },
 			]}

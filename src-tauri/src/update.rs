@@ -64,8 +64,11 @@ pub async fn check_update(app: AppHandle) -> Result<UpdateStatus, String> {
 
     // Check if an update is available based on version diff
     let latest_version = release.tag_name.trim_start_matches('v').to_string();
-    let strip = |s: &str| semver::Version::parse(s.trim_start_matches('v')).ok();
-    let available = matches!((strip(&latest_version), strip(&current_version)), (Some(c), Some(cur)) if c > cur);
+    let parse = |s: &str| semver::Version::parse(s.trim_start_matches('v')).ok();
+    let available = matches!(
+        (parse(&latest_version), parse(&current_version)),
+        (Some(latest), Some(current)) if latest > current
+    );
 
     let os = std::env::consts::OS;
     let arch = std::env::consts::ARCH;

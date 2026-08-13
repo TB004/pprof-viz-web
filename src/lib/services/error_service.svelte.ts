@@ -3,7 +3,7 @@
 
 import { listen } from "@tauri-apps/api/event";
 import { browser } from "$app/environment";
-import * as Ipc from "$lib/ipc";
+import Ipc from "$lib/ipc";
 import type { AppError } from "$lib/types";
 
 export type { AppError };

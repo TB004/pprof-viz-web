@@ -24,7 +24,7 @@ import * as Dialog from "$lib/components/ui/dialog/index.js";
 import Input from "$lib/components/ui/input/input.svelte";
 import * as ScrollArea from "$lib/components/ui/scroll-area/index.js";
 import * as Select from "$lib/components/ui/select/index.js";
-import * as Ipc from "$lib/ipc";
+import Ipc from "$lib/ipc";
 import { ProfileService } from "$lib/services";
 import { CollectionType, HttpVersion } from "$lib/types";
 import { assembleUrl, clearProfileForm, dialogState } from "./state.svelte.ts";

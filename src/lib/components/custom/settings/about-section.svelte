@@ -7,7 +7,7 @@
 import { getVersion } from "@tauri-apps/api/app";
 import { onMount } from "svelte";
 import * as Card from "$lib/components/ui/card/index.js";
-import * as Ipc from "$lib/ipc";
+import Ipc from "$lib/ipc";
 
 let version = $state(new Promise<string>(() => {}));
 let architecture = $state(new Promise<string>(() => {}));

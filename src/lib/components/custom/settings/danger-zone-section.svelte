@@ -7,7 +7,7 @@
 import { TriangleAlertIcon } from "@lucide/svelte";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
-import * as Ipc from "$lib/ipc";
+import Ipc from "$lib/ipc";
 
 let dialogOpen = $state(false);
 let resetting = $state(false);

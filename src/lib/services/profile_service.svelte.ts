@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { browser } from "$app/environment";
-import * as Ipc from "$lib/ipc";
+import Ipc from "$lib/ipc";
 import type {
 	CollectionType,
 	ProfileInput,

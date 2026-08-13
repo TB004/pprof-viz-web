@@ -15,7 +15,7 @@ import { onMount } from "svelte";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 import type { UpdateStatus } from "$lib/ipc";
-import * as Ipc from "$lib/ipc";
+import Ipc from "$lib/ipc";
 
 type UpdateState =
 	| { phase: "idle" }

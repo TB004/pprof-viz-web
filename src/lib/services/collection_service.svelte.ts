@@ -5,7 +5,7 @@ import { listen } from "@tauri-apps/api/event";
 import { browser } from "$app/environment";
 import { goto } from "$app/navigation";
 import { MAX_FRAMES } from "$lib/bindings";
-import * as Ipc from "$lib/ipc";
+import Ipc from "$lib/ipc";
 import { ErrorService, ProfileService } from "$lib/services";
 import {
 	type CollectionStateSnapshot,

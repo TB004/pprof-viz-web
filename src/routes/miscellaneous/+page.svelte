@@ -11,6 +11,7 @@ import { EmptyState, PageShell } from "$lib/components/custom/page";
 import { StatGrid } from "$lib/components/custom/stat-card";
 import * as Card from "$lib/components/ui/card";
 import { Tooltip } from "$lib/components/ui/chart";
+import * as Table from "$lib/components/ui/table";
 import { fmtCountAxis, fmtSecs, fmtSecsAxis } from "$lib/format";
 import { CollectionService } from "$lib/services";
 
@@ -204,32 +205,24 @@ const summaryStats = $derived([
 			</Card.Header>
 			<Card.Content class="p-0">
 				<div class="overflow-hidden rounded-b-xl">
-					<table class="w-full text-sm">
-						<thead>
-							<tr class="border-b bg-muted/50">
-								<th
-									class="px-4 py-3 text-left font-medium text-muted-foreground"
-								>
+					<Table.Root>
+						<Table.Header>
+							<Table.Row class="bg-muted/50 hover:bg-muted/50">
+								<Table.Head class="px-4 py-3 text-muted-foreground">
 									Event
-								</th>
-								<th
-									class="px-4 py-3 text-right font-medium text-muted-foreground"
-								>
+								</Table.Head>
+								<Table.Head class="px-4 py-3 text-right text-muted-foreground">
 									Count
-								</th>
-								<th
-									class="px-4 py-3 text-right font-medium text-muted-foreground"
-								>
+								</Table.Head>
+								<Table.Head class="px-4 py-3 text-right text-muted-foreground">
 									Last Active
-								</th>
-							</tr>
-						</thead>
-						<tbody>
+								</Table.Head>
+							</Table.Row>
+						</Table.Header>
+						<Table.Body>
 							{#each debugTableRows as row (row.key)}
-								<tr
-									class="border-b last:border-0 transition-colors hover:bg-muted/30"
-								>
-									<td class="px-4 py-2.5">
+								<Table.Row class="hover:bg-muted/30">
+									<Table.Cell class="px-4 py-2.5">
 										<div class="flex items-center gap-2">
 											<span
 												class="size-1.5 shrink-0 rounded-full {row.activeInLast
@@ -244,22 +237,24 @@ const summaryStats = $derived([
 												{row.label}
 											</span>
 										</div>
-									</td>
-									<td
+									</Table.Cell>
+									<Table.Cell
 										class="px-4 py-2.5 text-right font-mono tabular-nums {row.count ===
 										0
 											? 'text-muted-foreground'
 											: ''}"
 									>
 										{row.count.toLocaleString()}
-									</td>
-									<td class="px-4 py-2.5 text-right text-muted-foreground">
+									</Table.Cell>
+									<Table.Cell
+										class="px-4 py-2.5 text-right text-muted-foreground"
+									>
 										{row.lastActive === -1 ? "—" : `Sample ${row.lastActive}`}
-									</td>
-								</tr>
+									</Table.Cell>
+								</Table.Row>
 							{/each}
-						</tbody>
-					</table>
+						</Table.Body>
+					</Table.Root>
 				</div>
 			</Card.Content>
 		</Card.Root>

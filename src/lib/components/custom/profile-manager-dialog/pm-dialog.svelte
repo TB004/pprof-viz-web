@@ -14,6 +14,7 @@ import {
 	PlugZapIcon,
 	Trash2Icon,
 } from "@lucide/svelte";
+import { ModePicker, UrlField } from "$lib/components/custom/profile-form";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import Input from "$lib/components/ui/input/input.svelte";
@@ -32,37 +33,6 @@ type Props = {
 };
 
 let { open = $bindable(false) }: Props = $props();
-
-const modeOptions: Array<{
-	value: CollectionType;
-	title: string;
-	description: string;
-}> = [
-	{
-		value: CollectionType.Snapshot,
-		title: "Snapshot",
-		description: "Capture a focused point-in-time profile.",
-	},
-	{
-		value: CollectionType.Stream,
-		title: "Stream",
-		description: "Continuously follow runtime changes.",
-	},
-];
-
-const schemeOptions = [
-	{ value: "http", label: "http://" },
-	{ value: "https", label: "https://" },
-] as const;
-
-const httpVersionOptions: Array<{
-	value: HttpVersion;
-	label: string;
-	requiresHttps: boolean;
-}> = [
-	{ value: HttpVersion.Http2, label: "HTTP/2", requiresHttps: false },
-	{ value: HttpVersion.Http3, label: "HTTP/3", requiresHttps: true },
-];
 
 // When HTTP/3 is selected, force the scheme to https.
 $effect(() => {
@@ -281,81 +251,15 @@ async function testConnection() {
 											/>
 										</label>
 
-										<div class="block">
-											<span
-												class="mb-3 block text-sm font-medium text-foreground"
-												>URL</span
-											>
-											<div class="flex gap-2">
-												<Select.Root
-													type="single"
-													value={dialogState.profileScheme}
-													onValueChange={(v) => {
-                                                        if (v)
-                                                            dialogState.profileScheme =
-                                                                v as
-                                                                    | "http"
-                                                                    | "https";
-                                                    }}
-												>
-													<Select.Trigger class="w-25 shrink-0">
-														{schemeOptions.find(
-                                                            (o) =>
-                                                                o.value ===
-                                                                dialogState.profileScheme,
-                                                        )?.label ?? "http://"}
-													</Select.Trigger>
-													<Select.Content class="p-1.5">
-														{#each schemeOptions as opt (opt.value)}
-															<Select.Item
-																value={opt.value}
-																disabled={dialogState.profileHttpVersion ===
-                                                                    HttpVersion.Http3 &&
-                                                                    opt.value ===
-                                                                        "http"}
-															>
-																{opt.label}
-															</Select.Item>
-														{/each}
-													</Select.Content>
-												</Select.Root>
-												<Input
-													bind:value={dialogState.profileUrlHost}
-													placeholder="localhost:9090"
-													class="flex-1 min-w-0"
-												/>
-												<Select.Root
-													type="single"
-													value={dialogState.profileHttpVersion}
-													onValueChange={(v) => {
-                                                        if (v)
-                                                            dialogState.profileHttpVersion =
-                                                                v as HttpVersion;
-                                                    }}
-												>
-													<Select.Trigger class="w-25 shrink-0">
-														{httpVersionOptions.find(
-                                                            (o) =>
-                                                                o.value ===
-                                                                dialogState.profileHttpVersion,
-                                                        )?.label ?? "HTTP/2"}
-													</Select.Trigger>
-													<Select.Content class="p-1.5">
-														{#each httpVersionOptions as opt (opt.value)}
-															<Select.Item value={opt.value}>
-																{opt.label}
-																{#if opt.requiresHttps}
-																	<span
-																		class="ml-1 text-xs text-muted-foreground"
-																		>(https)</span
-																	>
-																{/if}
-															</Select.Item>
-														{/each}
-													</Select.Content>
-												</Select.Root>
-											</div>
-										</div>
+										<UrlField
+											scheme={dialogState.profileScheme}
+											host={dialogState.profileUrlHost}
+											httpVersion={dialogState.profileHttpVersion}
+											onSchemeChange={(v) => (dialogState.profileScheme = v)}
+											onHostChange={(v) => (dialogState.profileUrlHost = v)}
+											onHttpVersionChange={(v) =>
+												(dialogState.profileHttpVersion = v)}
+										/>
 
 										<div class="block">
 											<span
@@ -428,42 +332,10 @@ async function testConnection() {
 											</label>
 										{/if}
 
-										<div>
-											<p class="mb-3 text-sm font-medium text-foreground">
-												Mode
-											</p>
-											<div class="grid gap-3 sm:grid-cols-2">
-												{#each modeOptions as option (option.value)}
-													<button
-														type="button"
-														class={`rounded-2xl border p-4 text-left transition-colors ${dialogState.profileMode === option.value ? "border-primary bg-primary/5" : "border-border/70 bg-muted/25 hover:border-primary/30"}`}
-														onclick={() =>
-                                                            (dialogState.profileMode =
-                                                                option.value)}
-													>
-														<div class="flex items-start justify-between gap-3">
-															<div>
-																<p
-																	class="text-base font-semibold text-foreground"
-																>
-																	{option.title}
-																</p>
-																<p class="mt-1 text-sm text-muted-foreground">
-																	{option.description}
-																</p>
-															</div>
-															<div
-																class={`flex w-6 h-5 items-center justify-center rounded-full border ${dialogState.profileMode === option.value ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background"}`}
-															>
-																{#if dialogState.profileMode === option.value}
-																	<CheckIcon class="size-3.5" />
-																{/if}
-															</div>
-														</div>
-													</button>
-												{/each}
-											</div>
-										</div>
+										<ModePicker
+											value={dialogState.profileMode}
+											onChange={(v) => (dialogState.profileMode = v)}
+										/>
 
 										{#if dialogState.profileMode === CollectionType.Stream}
 											<div class="grid gap-4 sm:grid-cols-2">

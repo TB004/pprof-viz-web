@@ -3,13 +3,13 @@
 
 import { browser } from "$app/environment";
 import * as Ipc from "$lib/ipc";
-import { ErrorService } from "$lib/services";
 import type {
 	CollectionType,
 	ProfileInput,
 	ProfileRow,
 	ProjectRow,
 } from "$lib/types";
+import * as ErrorService from "./error_service.svelte.js";
 
 export interface CollectionProfile {
 	value: string;

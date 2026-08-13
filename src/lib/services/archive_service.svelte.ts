@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import * as Ipc from "$lib/ipc";
-import { ErrorService } from "$lib/services";
 import type { CollectionRow, DiskUsage } from "$lib/types";
+import * as ErrorService from "./error_service.svelte.js";
 
 export interface ArchiveState {
 	collections: CollectionRow[];

@@ -1,6 +1,5 @@
 {
   "name": "pprof-viz",
-  "version": "0.0.1",
   "devDependencies": {
     "@biomejs/biome": "2.5.0",
     "@fontsource-variable/noto-sans": "^5.3.0",

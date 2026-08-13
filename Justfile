@@ -36,6 +36,28 @@ check:
     bun run check
     cargo check --manifest-path ./src-tauri/Cargo.toml
 
+# Fail if the app version has drifted between its two sources.
+# tauri.conf.json feeds `package_info().version` (what the update checker
+# compares against) and the CI artifact names; Cargo.toml feeds the updater's
+# user agent.
+[group('Quality')]
+version-check:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cargo_version="$(sed -n 's/^version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' src-tauri/Cargo.toml | head -n1)"
+    conf_version="$(sed -n 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' src-tauri/tauri.conf.json | head -n1)"
+    if [[ -z "$cargo_version" || -z "$conf_version" ]]; then
+        printf 'could not read a version (Cargo.toml: %s, tauri.conf.json: %s)\n' \
+            "${cargo_version:-<none>}" "${conf_version:-<none>}" >&2
+        exit 1
+    fi
+    if [[ "$cargo_version" != "$conf_version" ]]; then
+        printf 'version drift: Cargo.toml %s != tauri.conf.json %s\n' \
+            "$cargo_version" "$conf_version" >&2
+        exit 1
+    fi
+    printf 'version %s\n' "$cargo_version"
+
 # Run code quality checks
 [group('Quality')]
 lint:
@@ -62,7 +84,7 @@ format-check:
 
 # Run the main verification pipeline
 [group('Quality')]
-verify: check lint format-check
+verify: check lint format-check version-check
 
 # Report known vulnerabilities and outdated dependencies.
 # `-`: informational only — advisories in transitive dev tooling must not fail

@@ -10,14 +10,12 @@ import {
 	PauseIcon,
 	SaveIcon,
 } from "@lucide/svelte";
-import {
-	ErrorView,
-	SaveDialog,
-	StatusElement,
-} from "$lib/components/custom/session-status-bar";
 import { CollectionService, ErrorService } from "$lib/services";
 import { CollectionStatus, CollectionType } from "$lib/types";
 import { cn } from "$lib/utils.js";
+import ErrorView from "./error-view.svelte";
+import SaveDialog from "./save-dialog.svelte";
+import StatusElement from "./status-element.svelte";
 
 let showErrors = $state(false);
 let saveOpen = $state(false);

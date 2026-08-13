@@ -6,8 +6,7 @@
 <script lang="ts">
 import { BracesIcon } from "@lucide/svelte";
 import { EmptyState, PageShell } from "$lib/components/custom/page";
-import { RawTable } from "$lib/components/custom/raw";
-import RawControlsBar from "$lib/components/custom/raw/raw-controls-bar.svelte";
+import { RawControlsBar, RawTable } from "$lib/components/custom/raw";
 import { CollectionService } from "$lib/services";
 
 const collectionState = CollectionService.collectionState;

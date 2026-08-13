@@ -17,9 +17,9 @@ import {
 } from "@lucide/svelte";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { onMount } from "svelte";
-import { ProfileChooser } from "$lib/components/custom/app-sidebar";
 import { PMDialog } from "$lib/components/custom/profile-manager-dialog";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+import ProfileChooser from "./profile-chooser.svelte";
 
 const menuItems = [
 	{ title: "CPU", url: "/cpu", icon: CpuIcon },

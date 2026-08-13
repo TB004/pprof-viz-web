@@ -14,11 +14,6 @@ import {
 	PlugZapIcon,
 	Trash2Icon,
 } from "@lucide/svelte";
-import {
-	PMDeleteDialog,
-	PMProjectDialog,
-	PMSidebar,
-} from "$lib/components/custom/profile-manager-dialog";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import Input from "$lib/components/ui/input/input.svelte";
@@ -27,6 +22,9 @@ import * as Select from "$lib/components/ui/select/index.js";
 import Ipc from "$lib/ipc";
 import { ProfileService } from "$lib/services";
 import { CollectionType, HttpVersion } from "$lib/types";
+import PMDeleteDialog from "./pm-delete-dialog.svelte";
+import PMProjectDialog from "./pm-project-dialog.svelte";
+import PMSidebar from "./pm-sidebar.svelte";
 import { assembleUrl, clearProfileForm, dialogState } from "./state.svelte.ts";
 
 type Props = {

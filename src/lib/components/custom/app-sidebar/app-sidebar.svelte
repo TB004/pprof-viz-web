@@ -15,10 +15,9 @@ import {
 	PackageIcon,
 	SettingsIcon,
 } from "@lucide/svelte";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import { onMount } from "svelte";
 import { PMDialog } from "$lib/components/custom/profile-manager-dialog";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+import { useWindowChrome } from "$lib/hooks/use-window-chrome.svelte.js";
 import ProfileChooser from "./profile-chooser.svelte";
 
 const menuItems = [
@@ -38,27 +37,11 @@ const footerItems = [
 
 let profileManagerOpen = $state(false);
 
-let isMac = $state(false);
-let isFullscreen = $state(false);
-
-onMount(() => {
-	isMac = navigator.platform.startsWith("Mac");
-
-	let unlisten: (() => void) | undefined;
-	(async () => {
-		const win = getCurrentWindow();
-		isFullscreen = await win.isFullscreen();
-		unlisten = await win.onResized(async () => {
-			isFullscreen = await win.isFullscreen();
-		});
-	})();
-
-	return () => unlisten?.();
-});
+const chrome = useWindowChrome();
 </script>
 
 <Sidebar.Root variant="sidebar">
-	{#if isMac && !isFullscreen}
+	{#if chrome.isMac && !chrome.isFullscreen}
 		<Sidebar.Header class="h-8" data-tauri-drag-region="deep"></Sidebar.Header>
 	{/if}
 	<Sidebar.Content>

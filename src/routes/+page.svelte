@@ -6,21 +6,17 @@
 <script lang="ts">
 import {
 	ActivityIcon,
-	BracesIcon,
 	CheckIcon,
 	ChevronsRightIcon,
-	CpuIcon,
-	HistoryIcon,
-	LayersIcon,
 	ListPlusIcon,
 	MousePointerClickIcon,
-	PackageIcon,
 	PlayIcon,
 } from "@lucide/svelte";
 import type { Component } from "svelte";
 import { PMDialog } from "$lib/components/custom/profile-manager-dialog";
 import { Button } from "$lib/components/ui/button";
 import * as Card from "$lib/components/ui/card";
+import { dataRoutes } from "$lib/routes";
 import { CollectionService, ProfileService } from "$lib/services";
 import { CollectionStatus } from "$lib/types";
 
@@ -58,15 +54,6 @@ const setupSteps: {
 		description:
 			'Click "Start collecting" in the sidebar to begin streaming telemetry.',
 	},
-];
-
-const dataRoutes: { title: string; url: string; icon: Component }[] = [
-	{ title: "CPU", url: "/cpu", icon: CpuIcon },
-	{ title: "GC", url: "/gc", icon: ActivityIcon },
-	{ title: "Memory", url: "/memory", icon: LayersIcon },
-	{ title: "Scheduler", url: "/scheduler", icon: HistoryIcon },
-	{ title: "Miscellaneous", url: "/miscellaneous", icon: PackageIcon },
-	{ title: "Raw", url: "/raw", icon: BracesIcon },
 ];
 </script>
 

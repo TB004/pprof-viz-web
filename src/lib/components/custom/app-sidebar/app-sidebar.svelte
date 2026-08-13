@@ -4,36 +4,11 @@
 -->
 
 <script lang="ts">
-import {
-	ActivityIcon,
-	ArchiveIcon,
-	BracesIcon,
-	CpuIcon,
-	HistoryIcon,
-	House,
-	LayersIcon,
-	PackageIcon,
-	SettingsIcon,
-} from "@lucide/svelte";
 import { PMDialog } from "$lib/components/custom/profile-manager-dialog";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 import { useWindowChrome } from "$lib/hooks/use-window-chrome.svelte.js";
+import { dataRoutes, shellRoutes } from "$lib/routes";
 import ProfileChooser from "./profile-chooser.svelte";
-
-const menuItems = [
-	{ title: "CPU", url: "/cpu", icon: CpuIcon },
-	{ title: "GC", url: "/gc", icon: ActivityIcon },
-	{ title: "Memory", url: "/memory", icon: LayersIcon },
-	{ title: "Scheduler", url: "/scheduler", icon: HistoryIcon },
-	{ title: "Miscellaneous", url: "/miscellaneous", icon: PackageIcon },
-	{ title: "Raw", url: "/raw", icon: BracesIcon },
-];
-
-const footerItems = [
-	{ title: "Home", url: "/", icon: House },
-	{ title: "Archive", url: "/archive", icon: ArchiveIcon },
-	{ title: "Settings", url: "/settings", icon: SettingsIcon },
-];
 
 let profileManagerOpen = $state(false);
 
@@ -49,7 +24,7 @@ const chrome = useWindowChrome();
 			<Sidebar.GroupLabel>Application</Sidebar.GroupLabel>
 			<Sidebar.GroupContent>
 				<Sidebar.Menu>
-					{#each menuItems as item (item.title)}
+					{#each dataRoutes as item (item.url)}
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton>
 								{#snippet child({ props })}
@@ -70,7 +45,7 @@ const chrome = useWindowChrome();
 	</Sidebar.Content>
 	<Sidebar.Footer>
 		<Sidebar.Menu>
-			{#each footerItems as item (item.title)}
+			{#each shellRoutes as item (item.url)}
 				<Sidebar.MenuItem>
 					<Sidebar.MenuButton>
 						{#snippet child({ props })}

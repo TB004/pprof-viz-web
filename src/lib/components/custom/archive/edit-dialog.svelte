@@ -4,9 +4,7 @@
 -->
 
 <script lang="ts">
-import { Button } from "$lib/components/ui/button";
-import * as Dialog from "$lib/components/ui/dialog";
-import { Input } from "$lib/components/ui/input";
+import { NameDescriptionDialog } from "$lib/components/custom/name-description-dialog";
 import { ArchiveService } from "$lib/services";
 import type { CollectionRow } from "$lib/types";
 
@@ -37,42 +35,14 @@ async function confirmEdit() {
 }
 </script>
 
-<Dialog.Root
-	open={target !== null}
-	onOpenChange={(open) => {
-		if (!open) target = null;
-	}}
->
-	<Dialog.Content class="sm:max-w-md">
-		<Dialog.Header>
-			<Dialog.Title>Edit collection</Dialog.Title>
-			<Dialog.Description>
-				Update the name and description of this saved collection.
-			</Dialog.Description>
-		</Dialog.Header>
-
-		<div class="flex flex-col gap-3 px-6">
-			<div class="flex flex-col gap-1.5">
-				<label for="edit-name" class="text-sm font-medium">Name</label>
-				<Input
-					id="edit-name"
-					bind:value={editName}
-					onkeydown={(e) => e.key === "Enter" && confirmEdit()}
-				/>
-			</div>
-			<div class="flex flex-col gap-1.5">
-				<label for="edit-description" class="text-sm font-medium">
-					Description <span class="text-muted-foreground">(optional)</span>
-				</label>
-				<Input id="edit-description" bind:value={editDescription} />
-			</div>
-		</div>
-
-		<div class="flex flex-wrap justify-end gap-2 px-6">
-			<Button variant="outline" onclick={() => (target = null)}>Cancel</Button>
-			<Button onclick={confirmEdit} disabled={!editName.trim() || saving}>
-				{saving ? "Saving…" : "Save"}
-			</Button>
-		</div>
-	</Dialog.Content>
-</Dialog.Root>
+<NameDescriptionDialog
+	bind:open={() => target !== null, (open) => {
+			if (!open) target = null;
+		}}
+	title="Edit collection"
+	subtitle="Update the name and description of this saved collection."
+	bind:name={editName}
+	bind:description={editDescription}
+	pending={saving}
+	onConfirm={confirmEdit}
+/>

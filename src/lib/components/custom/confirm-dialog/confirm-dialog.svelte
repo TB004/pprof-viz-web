@@ -29,6 +29,10 @@ let {
 	pending = false,
 	pendingLabel,
 }: Props = $props();
+
+function cancel() {
+	open = false;
+}
 </script>
 
 <Dialog.Root bind:open>
@@ -38,7 +42,7 @@ let {
 			<Dialog.Description>{description}</Dialog.Description>
 		</Dialog.Header>
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => (open = false)}>
+			<Button variant="outline" onclick={cancel}>
 				{cancelLabel}
 			</Button>
 			<Button variant="destructive" disabled={pending} onclick={onConfirm}>

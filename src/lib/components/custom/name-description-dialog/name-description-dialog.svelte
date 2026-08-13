@@ -42,6 +42,10 @@ let {
 
 // Both fields are labelled, so the ids have to be unique per instance.
 const uid = $props.id();
+
+function cancel() {
+	open = false;
+}
 </script>
 
 <Dialog.Root bind:open>
@@ -74,7 +78,7 @@ const uid = $props.id();
 		</div>
 
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => (open = false)}>
+			<Button variant="outline" onclick={cancel}>
 				{cancelLabel}
 			</Button>
 			<Button onclick={onConfirm} disabled={!name.trim() || pending}>

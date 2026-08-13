@@ -9,7 +9,7 @@ use tauri::{AppHandle, Emitter, Manager};
 
 use crate::AppState;
 
-const MAX_ERRORS: usize = 200;
+pub const MAX_ERRORS: usize = 200;
 pub const EVENT_NEW_ERROR: &str = "error://new";
 
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]

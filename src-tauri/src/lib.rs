@@ -50,6 +50,7 @@ pub fn now_millis() -> i64 {
 fn make_builder() -> tauri_specta::Builder<tauri::Wry> {
     tauri_specta::Builder::new()
         .constant("MAX_FRAMES", collection::MAX_FRAMES)
+        .constant("MAX_ERRORS", errors::MAX_ERRORS)
         .commands(tauri_specta::collect_commands![
             settings::get_arch,
             settings::get_settings,

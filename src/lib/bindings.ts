@@ -57,6 +57,8 @@ export const commands = {
 };
 
 /* Constants */
+export const MAX_ERRORS = 200 as const;
+
 export const MAX_FRAMES = 500 as const;
 
 /* Types */

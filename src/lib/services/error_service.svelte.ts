@@ -3,6 +3,7 @@
 
 import { listen } from "@tauri-apps/api/event";
 import { browser } from "$app/environment";
+import { MAX_ERRORS } from "$lib/bindings";
 import Ipc from "$lib/ipc";
 import type { AppError } from "$lib/types";
 
@@ -10,8 +11,9 @@ export type { AppError };
 
 const EVENT_NEW_ERROR = "error://new";
 
-// Read-only projection of Rust's ErrorLog. Never mutated locally — always
-// re-fetched from Rust so ErrorLog stays the single source of truth.
+// Read-only projection of Rust's ErrorLog. Only ever grows by the entry an
+// error://new event carries; every other change re-fetches, so ErrorLog stays
+// the single source of truth.
 const errors = $state<AppError[]>([]);
 
 export const errorState: readonly AppError[] = errors;
@@ -26,13 +28,22 @@ async function refresh() {
 	}
 }
 
+/** Mirror `ErrorLog::push`: newest first, capped at the same bound. */
+function prepend(entry: AppError) {
+	if (errors.some((e) => e.id === entry.id)) return;
+	errors.unshift(entry);
+	if (errors.length > MAX_ERRORS) errors.length = MAX_ERRORS;
+}
+
 let unlistenNewError: (() => void) | null = null;
 
 if (browser) {
-	void refresh();
-	// Rust emits this event whenever a new error is pushed to ErrorLog.
-	listen(EVENT_NEW_ERROR, () => void refresh()).then((unlisten) => {
-		unlistenNewError = unlisten;
+	refresh().then(async () => {
+		// Rust emits this event whenever a new error is pushed to ErrorLog, with
+		// the pushed entry as its payload.
+		unlistenNewError = await listen<AppError>(EVENT_NEW_ERROR, (event) => {
+			prepend(event.payload);
+		});
 	});
 }
 
@@ -55,7 +66,7 @@ export function formatErrorTimestamp(timestamp: number | null): string {
 }
 
 export async function registerError(message: string) {
-	// Rust pushes to ErrorLog and emits error://new, which triggers refresh().
+	// Rust pushes to ErrorLog and emits error://new, which appends the entry.
 	await Ipc.registerError(message);
 }
 

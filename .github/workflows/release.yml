@@ -2,6 +2,13 @@
 #   - macOS arm64  → .dmg  (uploaded to release directly)
 #   - Windows x86_64 / arm64  → .msi  (uploaded to release directly)
 #   - Linux x86_64 / arm64 → .deb (artifact only, intermediate for flatpak)
+#
+# Deliberately uncached. This workflow triggers on `release: published`, so
+# every job runs on a tag ref, and Actions scopes cache reads to the current ref
+# plus the default branch. A cache saved here is keyed to that one tag and can
+# never be restored by a later release, while the five matrix legs would write
+# several GB apiece against the repository's 10 GB LRU quota — evicting the
+# main-branch caches that Pull Request Checks depends on.
 
 name: Release
 
@@ -47,54 +54,32 @@ jobs:
             protobuf-compiler \
             unzip
 
+      # No `--default-toolchain`: rust-toolchain.toml is the single source of
+      # truth, and `rustup show` materialises whatever it pins.
       - name: Install Rust
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-            | sh -s -- -y --default-toolchain 1.97.1 --no-modify-path
+            | sh -s -- -y --default-toolchain none --no-modify-path
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
 
-      - name: Cache Cargo registry and build artifacts
-        id: cargo-cache
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.cargo/bin
-            ~/.cargo/registry
-            ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('src-tauri/Cargo.lock', 'src-tauri/Cargo.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.target }}-cargo-
+      - name: Install the pinned toolchain
+        run: rustup show
 
       - name: Install Bun
         run: |
           curl -fsSL https://bun.sh/install | bash
           echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
 
-      - name: Cache Bun packages
-        id: bun-cache
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.bun/install/cache
-            node_modules
-          key: ${{ runner.os }}-${{ matrix.target }}-bun-${{ hashFiles('bun.lock', 'package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.target }}-bun-
-
       - name: Install cargo-binstall
-        if: steps.cargo-cache.outputs.cache-hit != 'true'
         run: |
           curl -L --proto '=https' --tlsv1.2 -sSf \
             https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh \
             | sh
 
       - name: Install Tauri CLI
-        if: steps.cargo-cache.outputs.cache-hit != 'true'
-        run: command -v cargo-tauri || cargo binstall -y --disable-telemetry tauri-cli
+        run: cargo binstall -y --disable-telemetry tauri-cli
 
       - name: Install Bun dependencies
-        if: steps.bun-cache.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
 
       - name: Setup Flatpak repo
@@ -107,14 +92,6 @@ jobs:
           flatpak install --user --noninteractive flathub \
             "org.gnome.Platform/${{ matrix.target }}/${RUNTIME_VERSION}" \
             "org.gnome.Sdk/${{ matrix.target }}/${RUNTIME_VERSION}"
-
-      - name: Cache Flatpak builder
-        uses: actions/cache@v6
-        with:
-          path: target/flatpak/state
-          key: ${{ runner.os }}-${{ matrix.target }}-flatpak-builder-${{ hashFiles('packaging/flatpak/de.tb004.pprof-viz.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.target }}-flatpak-builder-
 
       - name: Build flatpak bundle
         run: ./scripts/build-flatpak.py --arch ${{ matrix.target }} --bundle
@@ -141,52 +118,29 @@ jobs:
       - name: Install Rust
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-            | sh -s -- -y --default-toolchain 1.96.0 --no-modify-path
+            | sh -s -- -y --default-toolchain none --no-modify-path
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-          rustup target add aarch64-apple-darwin
 
-      - name: Cache Cargo registry and build artifacts
-        id: cargo-cache
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.cargo/bin
-            ~/.cargo/registry
-            ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-aarch64-cargo-${{ hashFiles('src-tauri/Cargo.lock', 'src-tauri/Cargo.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-aarch64-cargo-
+      - name: Install the pinned toolchain
+        run: |
+          rustup show
+          rustup target add aarch64-apple-darwin
 
       - name: Install Bun
         run: |
           curl -fsSL https://bun.sh/install | bash
           echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
 
-      - name: Cache Bun packages
-        id: bun-cache
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.bun/install/cache
-            node_modules
-          key: ${{ runner.os }}-aarch64-bun-${{ hashFiles('bun.lock', 'package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-aarch64-bun-
-
       - name: Install cargo-binstall
-        if: steps.cargo-cache.outputs.cache-hit != 'true'
         run: |
           curl -L --proto '=https' --tlsv1.2 -sSf \
             https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh \
             | sh
 
       - name: Install Tauri CLI
-        if: steps.cargo-cache.outputs.cache-hit != 'true'
-        run: command -v cargo-tauri || cargo binstall -y --disable-telemetry tauri-cli
+        run: cargo binstall -y --disable-telemetry tauri-cli
 
       - name: Install Bun dependencies
-        if: steps.bun-cache.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
 
       - name: Build .dmg
@@ -231,40 +185,18 @@ jobs:
           Invoke-WebRequest `
             -Uri "https://static.rust-lang.org/rustup/dist/${{ matrix.rust_target }}/rustup-init.exe" `
             -OutFile rustup-init.exe
-          .\rustup-init.exe -y --default-toolchain 1.96.0 --no-modify-path
+          .\rustup-init.exe -y --default-toolchain none --no-modify-path
           "$env:USERPROFILE\.cargo\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Cache Cargo registry and build artifacts
-        id: cargo-cache
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.cargo/bin
-            ~/.cargo/registry
-            ~/.cargo/git
-            src-tauri/target
-          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('src-tauri/Cargo.lock', 'src-tauri/Cargo.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.target }}-cargo-
+      - name: Install the pinned toolchain
+        run: rustup show
 
       - name: Install Bun
         run: |
           powershell -c "irm bun.sh/install.ps1 | iex"
           echo "$env:USERPROFILE\.bun\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Cache Bun packages
-        id: bun-cache
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.bun/install/cache
-            node_modules
-          key: ${{ runner.os }}-${{ matrix.target }}-bun-${{ hashFiles('bun.lock', 'package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.target }}-bun-
-
       - name: Install cargo-binstall
-        if: steps.cargo-cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           curl -L --proto '=https' --tlsv1.2 -sSf \
@@ -272,12 +204,10 @@ jobs:
             | sh
 
       - name: Install Tauri CLI
-        if: steps.cargo-cache.outputs.cache-hit != 'true'
         shell: bash
-        run: command -v cargo-tauri || cargo binstall -y --disable-telemetry tauri-cli
+        run: cargo binstall -y --disable-telemetry tauri-cli
 
       - name: Install Bun dependencies
-        if: steps.bun-cache.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
 
       - name: Build .msi

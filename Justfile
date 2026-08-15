@@ -36,10 +36,16 @@ check:
     bun run check
     cargo check --manifest-path ./src-tauri/Cargo.toml
 
-# Fail if the app version has drifted between its two sources.
-# tauri.conf.json feeds `package_info().version` (what the update checker
-# compares against) and the CI artifact names; Cargo.toml feeds the updater's
-# user agent.
+# Two independent pairs, each duplicated because no single file can feed both
+# consumers:
+#   app version — tauri.conf.json feeds `package_info().version` (what the
+#     update checker compares against) and the CI artifact names; Cargo.toml
+#     feeds the updater's user agent.
+#   toolchain — rust-toolchain.toml is what rustup *selects*; Cargo.toml's
+#     rust-version is what cargo *enforces*, and it drives MSRV-aware
+#     dependency resolution. Cargo never reads the toolchain file, and rustup
+#     never reads rust-version, so nothing but this check ties them together.
+[doc('Fail if the app version or the pinned Rust toolchain has drifted')]
 [group('Quality')]
 version-check:
     #!/usr/bin/env bash
@@ -56,7 +62,19 @@ version-check:
             "$cargo_version" "$conf_version" >&2
         exit 1
     fi
-    printf 'version %s\n' "$cargo_version"
+    cargo_msrv="$(sed -n 's/^rust-version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' src-tauri/Cargo.toml | head -n1)"
+    toolchain="$(sed -n 's/^channel[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' rust-toolchain.toml | head -n1)"
+    if [[ -z "$cargo_msrv" || -z "$toolchain" ]]; then
+        printf 'could not read a toolchain (Cargo.toml: %s, rust-toolchain.toml: %s)\n' \
+            "${cargo_msrv:-<none>}" "${toolchain:-<none>}" >&2
+        exit 1
+    fi
+    if [[ "$cargo_msrv" != "$toolchain" ]]; then
+        printf 'toolchain drift: Cargo.toml rust-version %s != rust-toolchain.toml channel %s\n' \
+            "$cargo_msrv" "$toolchain" >&2
+        exit 1
+    fi
+    printf 'version %s, toolchain %s\n' "$cargo_version" "$toolchain"
 
 # Run code quality checks
 [group('Quality')]

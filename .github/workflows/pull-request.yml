@@ -98,7 +98,7 @@ jobs:
             | sh
 
       - name: Install cargo-audit
-        uses: cargo binstall -y --disable-telemetry cargo-audit
+        run: cargo binstall -y --disable-telemetry cargo-audit
 
       # The advisory database is a full git clone and has nothing to do with
       # this project's lockfile, so it gets its own key that rolls over weekly.

@@ -1,8 +1,4 @@
 # Task runner for pprof-viz
-#
-# Recipe lines are NOT `-`-prefixed: a failing command fails the recipe, so
-# `just verify` is a real gate. The only exception is `vuln`, which reports
-# rather than gates (see the comment there).
 
 # Show the available tasks
 [group('Utilities')]
@@ -30,11 +26,12 @@ flatpak *ARGS:
 icons:
     cargo tauri icon src-tauri/icons/icon-source.png --output src-tauri/icons
 
-# Run the type checkers
+# There is deliberately no `cargo check` here: `lint-rust` runs clippy, which
+# drives rustc itself and reports everything `cargo check` would.
+[doc('Run the frontend type checker')]
 [group('Quality')]
 check:
     bun run check
-    cargo check --manifest-path ./src-tauri/Cargo.toml
 
 # Two independent pairs, each duplicated because no single file can feed both
 # consumers:
@@ -78,8 +75,16 @@ version-check:
 
 # Run code quality checks
 [group('Quality')]
-lint:
+lint: lint-web lint-rust
+
+# Lint the frontend sources
+[group('Quality')]
+lint-web:
     bunx biome check ./src
+
+# Lint the Rust sources
+[group('Quality')]
+lint-rust:
     cargo clippy --manifest-path ./src-tauri/Cargo.toml
 
 # Run code quality checks and write fixes
@@ -96,21 +101,43 @@ format:
 
 # Verify formatting without changing files
 [group('Quality')]
-format-check:
+format-check: format-check-web format-check-rust
+
+# Verify frontend formatting without changing files
+[group('Quality')]
+format-check-web:
     bunx biome format --css-parse-tailwind-directives=true ./src
+
+# Verify Rust formatting without changing files
+[group('Quality')]
+format-check-rust:
     cargo fmt --check --manifest-path ./src-tauri/Cargo.toml --all
+
+# Run the verification checks that need only the frontend toolchain
+[group('Quality')]
+verify-web: check lint-web format-check-web version-check
+
+# Run the verification checks that need only the Rust toolchain
+[group('Quality')]
+verify-rust: lint-rust format-check-rust
 
 # Run the main verification pipeline
 [group('Quality')]
-verify: check lint format-check version-check
+verify: verify-web verify-rust
 
-# Report known vulnerabilities and outdated dependencies.
-# `-`: informational only — advisories in transitive dev tooling must not fail
-# the build. `verify` is the gate; this is the report.
+# Report known vulnerabilities and outdated dependencies
 [group('Maintenance')]
-vuln:
+vuln: vuln-web vuln-rust
+
+# Report known vulnerabilities and outdated frontend dependencies
+[group('Maintenance')]
+vuln-web:
     - bun audit
     - bun outdated
+
+# Report known vulnerabilities in the Rust dependencies
+[group('Maintenance')]
+vuln-rust:
     - cargo audit -f ./src-tauri/Cargo.lock
 
 # Regenerate the sqlx offline query data in src-tauri/.sqlx.

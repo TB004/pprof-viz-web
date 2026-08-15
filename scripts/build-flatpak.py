@@ -104,6 +104,16 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Wipe the flatpak build/repo directories before building.",
     )
+    parser.add_argument(
+        "--install-deps",
+        dest="do_install_deps",
+        action="store_true",
+        help=(
+            "Install missing GNOME runtimes from flathub instead of failing. "
+            "Meant for CI; interactively you probably want the error, since "
+            "this downloads on the order of a gigabyte."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -129,7 +139,12 @@ def read_app_version() -> str:
         return "unknown"
 
 
-def check_prerequisites(arch: Arch) -> None:
+def check_prerequisites(arch: Arch, install_deps: bool) -> None:
+    """flatpak-builder does not fetch missing runtimes by itself — it just
+    fails — so the Platform and Sdk have to be there before it runs. This is
+    the only place that resolves the runtime version, which is why CI calls it
+    with --install-deps rather than re-parsing the manifest in shell."""
+
     for tool in ("flatpak", "flatpak-builder", "ar", "tar"):
         if not have(tool):
             die(f"'{tool}' is not installed")
@@ -142,11 +157,15 @@ def check_prerequisites(arch: Arch) -> None:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-        if result.returncode != 0:
+        if result.returncode == 0:
+            continue
+        if not install_deps:
             die(
                 f"missing flatpak runtime {ref}. Install it with:\n"
                 f"  flatpak install --user flathub {ref}"
             )
+        info(f"installing missing flatpak runtime {ref}")
+        run(["flatpak", "install", "--user", "--noninteractive", "flathub", ref])
 
 
 def build_deb(arch: Arch, cross: bool) -> None:
@@ -204,7 +223,7 @@ def main() -> None:
         )
     cross = arch.flatpak != host_arch
 
-    check_prerequisites(arch)
+    check_prerequisites(arch, args.do_install_deps)
 
     if args.skip_build:
         info("skipping cargo tauri build (--skip-build)")

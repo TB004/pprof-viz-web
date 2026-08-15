@@ -1,15 +1,21 @@
 # Flatpak manifest for Pprof-Viz.
 #
 # Build locally (preferred — handles the .deb build, arch and staging):
-#   ./scripts/build-flatpak.sh --install
-#   ./scripts/build-flatpak.sh --arch aarch64 --bundle
+#   just flatpak --install
+#   just flatpak --arch aarch64 --bundle
+# which wraps ./scripts/build-flatpak.py; pass --install-deps to have it fetch
+# a missing runtime.
 #
 # Or by hand:
-#   1. Build the .deb first:        cargo tauri build --bundles deb
-#   2. Copy the .deb next to this file as `pprof-viz.deb` (the source below
+#   1. Install the runtime matching `runtime-version` below:
+#        flatpak install --user flathub org.gnome.Platform/x86_64/<version> \
+#                                       org.gnome.Sdk/x86_64/<version>
+#      flatpak-builder does not fetch these itself; it fails without them.
+#   2. Build the .deb first:        cargo tauri build --bundles deb
+#   3. Copy the .deb next to this file as `pprof-viz.deb` (the source below
 #      expects that exact name); it is produced under
 #      `src-tauri/target/<triple>/release/bundle/deb/`.
-#   3. flatpak-builder --force-clean --user --install build-flatpak \
+#   4. flatpak-builder --force-clean --user --install build-flatpak \
 #        packaging/flatpak/de.tb004.pprof-viz.yml
 #
 # Run:

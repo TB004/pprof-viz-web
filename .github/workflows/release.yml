@@ -85,16 +85,8 @@ jobs:
       - name: Setup Flatpak repo
         run: flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
-      - name: Install Flatpak runtimes
-        run: |
-          RUNTIME_VERSION=$(sed -n 's/^runtime-version:[[:space:]]*"\{0,1\}\([^"]*\)"\{0,1\}[[:space:]]*$/\1/p' \
-            packaging/flatpak/de.tb004.pprof-viz.yml)
-          flatpak install --user --noninteractive flathub \
-            "org.gnome.Platform/${{ matrix.target }}/${RUNTIME_VERSION}" \
-            "org.gnome.Sdk/${{ matrix.target }}/${RUNTIME_VERSION}"
-
       - name: Build flatpak bundle
-        run: ./scripts/build-flatpak.py --arch ${{ matrix.target }} --bundle
+        run: ./scripts/build-flatpak.py --arch ${{ matrix.target }} --bundle --install-deps
 
       - name: Upload flatpak to release
         env:

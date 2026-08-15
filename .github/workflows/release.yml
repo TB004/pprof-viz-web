@@ -117,7 +117,7 @@ jobs:
             ${{ runner.os }}-${{ matrix.target }}-flatpak-builder-
 
       - name: Build flatpak bundle
-        run: ./scripts/build-flatpak.sh --arch ${{ matrix.target }} --bundle
+        run: ./scripts/build-flatpak.py --arch ${{ matrix.target }} --bundle
 
       - name: Upload flatpak to release
         env:

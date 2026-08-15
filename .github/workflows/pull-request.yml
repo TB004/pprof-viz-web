@@ -12,9 +12,49 @@ on:
 permissions:
   contents: read
 
+# Superseded pushes to a PR are pointless work, and two runs of the same branch
+# race to write the same cache keys. Pushes to main are left alone so every
+# commit on the default branch keeps producing the caches that PRs restore from.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  verify:
-    name: Vulnerability and verification
+  web:
+    name: Verify frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install Bun
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+
+      - name: Cache Bun package store
+        uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install Just
+        run: curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | sudo bash -s -- --to /usr/bin
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run vulnerability scan
+        run: just vuln-web
+
+      - name: Run verification checks
+        run: just verify-web
+
+  rust:
+    name: Verify Rust
     runs-on: ubuntu-latest
 
     steps:
@@ -25,63 +65,60 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            libwebkit2gtk-4.1-dev \
-            curl \
             gcc \
             libappindicator3-dev \
-            librsvg2-dev \
-            patchelf \
-            unzip \
-            protobuf-compiler \
             libprotobuf-dev \
+            librsvg2-dev \
+            libwebkit2gtk-4.1-dev \
+            patchelf \
+            protobuf-compiler
 
-      - name: Set up Bun
+      # No `--default-toolchain`: rust-toolchain.toml is the single source of
+      # truth, and `rustup show` materialises whatever it pins.
+      - name: Install Rust
         run: |
-          curl -fsSL https://bun.sh/install | bash
-          echo "$HOME/.bun/bin" >> $GITHUB_PATH
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+            | sh -s -- -y --default-toolchain none --no-modify-path
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
 
-      - name: Restore Bun and dependency cache
-        id: bun-cache
+      - name: Install the pinned toolchain
+        run: rustup show
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          cache-on-failure: true
+
+      - name: Install cargo-binstall
+        shell: bash
+        run: |
+          curl -L --proto '=https' --tlsv1.2 -sSf \
+            https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh \
+            | sh
+
+      - name: Install cargo-audit
+        uses: cargo binstall -y --disable-telemetry cargo-audit
+
+      # The advisory database is a full git clone and has nothing to do with
+      # this project's lockfile, so it gets its own key that rolls over weekly.
+      - name: Compute advisory database cache key
+        id: advisory
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache RustSec advisory database
         uses: actions/cache@v6
         with:
-          path: |
-            ~/.bun/install/cache
-            node_modules
-          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock', 'package.json') }}
+          path: ~/.cargo/advisory-db
+          key: advisory-db-${{ steps.advisory.outputs.week }}
+          restore-keys: |
+            advisory-db-
 
       - name: Install Just
         run: curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | sudo bash -s -- --to /usr/bin
 
-      - name: Install Rust
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-            | sh -s -- -y --default-toolchain 1.97.1 --no-modify-path
-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-
-      - name: Restore Rust and dependency cache
-        id: rust-cache
-        uses: actions/cache@v6
-        with:
-          path: |
-            ./src-tauri/target
-            ~/.cargo/bin
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-rust-${{ hashFiles('./src-tauri/Cargo.lock', './src-tauri/Cargo.toml') }}
-
-      - name: Install Cargo binstall
-        run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | sh
-
-      - name: Install cargo tools
-        if: steps.rust-cache.outputs.cache-hit != 'true'
-        run: cargo binstall -y --disable-telemetry cargo-audit
-
-      - name: Install dependencies
-        if: steps.bun-cache.outputs.cache-hit != 'true'
-        run: bun install
-
       - name: Run vulnerability scan
-        run: just vuln
+        run: just vuln-rust
 
       - name: Run verification checks
-        run: just verify
+        run: just verify-rust

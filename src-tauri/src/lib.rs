@@ -8,56 +8,98 @@ mod errors;
 mod opener;
 mod rpc;
 mod settings;
-mod state;
 mod update;
-mod utils;
 
 mod proto {
     connectrpc::include_generated!();
 }
 
+use std::sync::Arc;
+
 use tauri::Manager;
 
-use crate::state::AppState;
+use crate::collection::CollectionStore;
+use crate::errors::ErrorLog;
+
+/// Process-wide state that is not persisted: the in-memory error log and the
+/// active collection session.
+#[derive(Debug, Default)]
+pub struct AppState {
+    pub errors: Arc<ErrorLog>,
+    pub collection: Arc<CollectionStore>,
+}
+
+/// TypeScript type for an integer that crosses the IPC boundary as a JSON
+/// number: epoch millis, byte counts, sample counts.
+pub type TsNumber = specta_typescript::Number;
+
+/// Trim an optional user-supplied string, treating a blank result as absent.
+pub fn non_empty(value: Option<String>) -> Option<String> {
+    value
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+}
+
+pub fn now_millis() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
+}
 
 fn make_builder() -> tauri_specta::Builder<tauri::Wry> {
-    tauri_specta::Builder::new().commands(tauri_specta::collect_commands![
-        settings::get_arch,
-        settings::get_settings,
-        settings::update_settings,
-        db::list_projects,
-        db::list_profiles,
-        db::get_project_by_id,
-        db::get_profile_by_id,
-        db::create_project,
-        db::rename_project,
-        db::delete_project,
-        db::create_profile,
-        db::update_profile,
-        db::delete_profile,
-        db::reset_all_data,
-        errors::register_error,
-        errors::get_errors,
-        errors::clear_errors,
-        errors::remove_error,
-        collection::start_collection,
-        collection::stop_collection,
-        collection::get_collection_snapshot,
-        archive::save_collection,
-        archive::list_collections,
-        archive::delete_collection,
-        archive::update_collection,
-        archive::load_collection,
-        archive::disk_usage,
-        rpc::agent_ping,
-        update::check_update,
-        update::install_update,
-        opener::open,
-    ])
+    tauri_specta::Builder::new()
+        .constant("MAX_FRAMES", collection::MAX_FRAMES)
+        .constant("MAX_ERRORS", errors::MAX_ERRORS)
+        .commands(tauri_specta::collect_commands![
+            settings::get_arch,
+            settings::get_settings,
+            settings::update_settings,
+            db::list_projects,
+            db::list_profiles,
+            db::get_project_by_id,
+            db::get_profile_by_id,
+            db::create_project,
+            db::rename_project,
+            db::delete_project,
+            db::create_profile,
+            db::update_profile,
+            db::delete_profile,
+            db::reset_all_data,
+            errors::register_error,
+            errors::get_errors,
+            errors::clear_errors,
+            errors::remove_error,
+            collection::start_collection,
+            collection::stop_collection,
+            collection::get_collection_snapshot,
+            archive::save_collection,
+            archive::list_collections,
+            archive::delete_collection,
+            archive::update_collection,
+            archive::load_collection,
+            archive::disk_usage,
+            rpc::agent_ping,
+            update::check_update,
+            update::install_update,
+            opener::open,
+        ])
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(target_os = "linux")]
+    {
+        // WebKitGTK only enables accelerated compositing when it decides the page
+        // needs it, and otherwise rasterizes on the CPU through Cairo. The dashboards
+        // repaint two dozen up to 500-vertex chart paths once per sample, which is
+        // slow enough to stall page switches on Linux.
+        const VAR: &str = "WEBKIT_FORCE_COMPOSITING_MODE";
+        if std::env::var_os(VAR).is_none() {
+            unsafe { std::env::set_var(VAR, "1") };
+        }
+    }
+
     let builder = make_builder();
 
     #[cfg(debug_assertions)]

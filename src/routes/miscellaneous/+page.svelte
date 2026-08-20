@@ -5,17 +5,14 @@
 
 <script lang="ts">
 import { BracesIcon, LinkIcon, PackageIcon } from "@lucide/svelte";
-import { AreaChart, LineChart } from "layerchart";
 import type { Component } from "svelte";
-import { StatCard } from "$lib/components/custom/stat-card";
+import { MetricChart } from "$lib/components/custom/charts";
+import { EmptyState, PageShell } from "$lib/components/custom/page";
+import { StatGrid } from "$lib/components/custom/stat-card";
 import * as Card from "$lib/components/ui/card";
-import {
-	type ChartConfig,
-	ChartContainer,
-	Tooltip,
-} from "$lib/components/ui/chart";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
-import { fmtSecs, fmtSecsAxis } from "$lib/format";
+import { Tooltip } from "$lib/components/ui/chart";
+import * as Table from "$lib/components/ui/table";
+import { fmtCountAxis, fmtSecs, fmtSecsAxis } from "$lib/format";
 import { CollectionService } from "$lib/services";
 
 const collectionState = CollectionService.collectionState;
@@ -81,27 +78,11 @@ function fmtDebugKey(key: string): string {
 		.join(" ");
 }
 
-// Returns "" for fractional ticks so duplicate labels don't appear when the
-// data range is small and d3 generates non-integer tick values.
-function fmtIntAxis(n: number): string {
-	if (n !== Math.floor(n)) return "";
-	if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-	if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-	return String(n);
-}
-
-const frames = $derived($collectionState.data ?? []);
+const frames = $derived(collectionState.data ?? []);
 const hasData = $derived(frames.length > 0);
 const latest = $derived(frames.at(-1));
 
 const totalCgoCalls = $derived(Number(latest?.cgo?.cgoCalls ?? 0));
-
-const totalDebugEvents = $derived(
-	GO_DEBUG_KEYS.reduce(
-		(sum, key) => sum + Number(latest?.goDebug?.[key] ?? 0),
-		0,
-	),
-);
 
 const cgoChartData = $derived(
 	frames.map((frame, i) => ({
@@ -117,45 +98,43 @@ const syncChartData = $derived(
 	})),
 );
 
-const debugChartData = $derived(
-	frames.map((frame, i) => ({
-		sample: i + 1,
-		total: GO_DEBUG_KEYS.reduce(
-			(sum, key) => sum + Number(frame.goDebug?.[key] ?? 0),
-			0,
-		),
-	})),
-);
+// Everything the GODEBUG chart and table need, from a single walk over the
+// frame buffer.
+const debugSummary = $derived.by(() => {
+	const totals: { sample: number; total: number }[] = [];
+	const counts = new Array<number>(GO_DEBUG_KEYS.length).fill(0);
+	const lastActive = new Array<number>(GO_DEBUG_KEYS.length).fill(-1);
 
-const debugTableRows = $derived(
-	GO_DEBUG_KEYS.map((key) => {
-		const count = Number(latest?.goDebug?.[key] ?? 0);
-
-		let lastActive = -1;
-		for (let i = frames.length - 1; i >= 1; i--) {
-			const curr = Number(frames[i].goDebug?.[key] ?? 0);
-			const prev = Number(frames[i - 1].goDebug?.[key] ?? 0);
-			if (curr > prev) {
-				lastActive = i + 1;
-				break;
+	frames.forEach((frame, sampleIndex) => {
+		const events = frame.goDebug;
+		let total = 0;
+		GO_DEBUG_KEYS.forEach((key, k) => {
+			const value = Number(events?.[key] ?? 0);
+			// A counter that is already non-zero in the very first sample rose
+			// before collection started, so attribute it to sample 1.
+			if (sampleIndex === 0 ? value > 0 : value > counts[k]) {
+				lastActive[k] = sampleIndex + 1;
 			}
-		}
-		if (lastActive === -1 && count > 0) lastActive = 1;
+			counts[k] = value;
+			total += value;
+		});
+		totals.push({ sample: sampleIndex + 1, total });
+	});
 
-		const activeInLast =
-			frames.length >= 2 &&
-			Number(frames.at(-1)?.goDebug?.[key] ?? 0) >
-				Number(frames.at(-2)?.goDebug?.[key] ?? 0);
+	const rows = GO_DEBUG_KEYS.map((key, k) => ({
+		key,
+		label: fmtDebugKey(key),
+		count: counts[k],
+		lastActive: lastActive[k],
+		// Active in the newest sample — needs two samples to be a comparison.
+		activeInLast: frames.length >= 2 && lastActive[k] === frames.length,
+	})).sort((a, b) => b.count - a.count);
 
-		return {
-			key,
-			label: fmtDebugKey(key),
-			count,
-			lastActive,
-			activeInLast,
-		};
-	}).sort((a, b) => b.count - a.count),
-);
+	return { totals, rows, latestTotal: totals.at(-1)?.total ?? 0 };
+});
+
+const debugChartData = $derived(debugSummary.totals);
+const debugTableRows = $derived(debugSummary.rows);
 
 const summaryStats = $derived([
 	{
@@ -166,256 +145,137 @@ const summaryStats = $derived([
 	},
 	{
 		label: "Total Debug Events",
-		value: totalDebugEvents.toLocaleString(),
+		value: debugSummary.latestTotal.toLocaleString(),
 		description: "Sum of all GODEBUG event counters",
 		Icon: BracesIcon as Component,
 	},
 ]);
-
-const cgoChartConfig = {
-	cgoCalls: { label: "CGo Calls", color: "var(--chart-1)" },
-} satisfies ChartConfig;
-
-const syncChartConfig = {
-	mutexWait: { label: "Mutex Wait", color: "var(--chart-2)" },
-} satisfies ChartConfig;
-
-const debugTotalChartConfig = {
-	total: { label: "Total Events", color: "var(--chart-3)" },
-} satisfies ChartConfig;
 </script>
 
-<ScrollArea class="h-full mr-2">
-	<div class="flex min-h-full flex-col gap-6 p-6">
-		<div>
-			<h1 class="text-2xl font-semibold">Miscellaneous</h1>
-			<p class="text-muted-foreground text-sm">
-				CGo calls, mutex contention, and Go debug event counters
-			</p>
-		</div>
+<PageShell
+	title="Miscellaneous"
+	description="CGo calls, mutex contention, and Go debug event counters"
+>
+	{#if !hasData}
+		<EmptyState icon={PackageIcon}>
+			Select a profile and start collecting to see miscellaneous metrics.
+		</EmptyState>
+	{:else}
+		<StatGrid stats={summaryStats} class="grid grid-cols-2 gap-4" />
 
-		{#if !hasData}
-			<div class="flex flex-1 items-center justify-center">
-				<Card.Root class="w-fit border-dashed">
-					<Card.Content
-						class="flex flex-col items-center gap-3 px-16 py-12 text-center"
-					>
-						<div
-							class="bg-muted flex h-12 w-12 items-center justify-center rounded-full"
-						>
-							<PackageIcon class="text-muted-foreground size-6" />
-						</div>
-						<div>
-							<p class="font-medium">No data yet</p>
-							<p class="text-muted-foreground text-sm">
-								Select a profile and start collecting to see miscellaneous
-								metrics.
-							</p>
-						</div>
-					</Card.Content>
-				</Card.Root>
-			</div>
-		{:else}
-			<!-- Summary cards -->
-			<div class="grid grid-cols-2 gap-4">
-				{#each summaryStats as { label, value, description, Icon } (label)}
-					<StatCard {label} {value} {description} icon={Icon} />
-				{/each}
-			</div>
+		<MetricChart
+			title="CGo Calls"
+			description="Cumulative C function calls from Go over samples"
+			type="line"
+			data={cgoChartData}
+			format={fmtCountAxis}
+			series={[{ key: "cgoCalls", label: "CGo Calls" }]}
+		/>
 
-			<!-- CGo chart -->
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>CGo Calls</Card.Title>
-					<Card.Description>
-						Cumulative C function calls from Go over samples
-					</Card.Description>
-				</Card.Header>
-				<Card.Content>
-					<ChartContainer config={cgoChartConfig} class="aspect-auto h-52">
-						<LineChart
-							data={cgoChartData}
-							x="sample"
-							yNice
-							padding={{ left: 35 }}
-							props={{ yAxis: { format: fmtIntAxis } }}
-							series={[
-                                {
-                                    key: "cgoCalls",
-                                    label: "CGo Calls",
-                                    color: "var(--color-cgoCalls)",
-                                },
-                            ]}
-						>
-							{#snippet tooltip()}
-								<Tooltip labelFormatter={(d) => `Sample ${d}`} />
-							{/snippet}
-						</LineChart>
-					</ChartContainer>
-				</Card.Content>
-			</Card.Root>
+		<MetricChart
+			title="Mutex Wait Duration"
+			description="Total accumulated mutex contention time per sample"
+			data={syncChartData}
+			format={fmtSecsAxis}
+			series={[
+				{ key: "mutexWait", label: "Mutex Wait", color: "var(--chart-2)" },
+			]}
+			tooltip={mutexTooltip}
+		/>
 
-			<!-- Sync chart -->
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Mutex Wait Duration</Card.Title>
-					<Card.Description>
-						Total accumulated mutex contention time per sample
-					</Card.Description>
-				</Card.Header>
-				<Card.Content>
-					<ChartContainer config={syncChartConfig} class="aspect-auto h-52">
-						<AreaChart
-							data={syncChartData}
-							x="sample"
-							yNice
-							padding={{ left: 35 }}
-							props={{ yAxis: { format: fmtSecsAxis } }}
-							series={[
-                                {
-                                    key: "mutexWait",
-                                    label: "Mutex Wait",
-                                    color: "var(--color-mutexWait)",
-                                },
-                            ]}
-						>
-							{#snippet tooltip()}
-								<Tooltip labelFormatter={(d) => `Sample ${d}`}>
-									{#snippet formatter({ value, name })}
-										<div class="flex w-full items-center gap-2">
-											<div
-												style="--color-bg: var(--chart-2); --color-border: var(--chart-2);"
-												class="size-2.5 shrink-0 rounded-xs border-(--color-border) bg-(--color-bg)"
-											></div>
-											<div
-												class="flex flex-1 items-center justify-between leading-none"
+		<MetricChart
+			title="Debug Events Over Time"
+			description="Total GODEBUG event count accumulated across all event types per sample"
+			type="line"
+			data={debugChartData}
+			format={fmtCountAxis}
+			series={[
+				{ key: "total", label: "Total Events", color: "var(--chart-3)" },
+			]}
+		/>
+
+		<!-- Debug events table -->
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>Debug Event Counters</Card.Title>
+				<Card.Description>
+					GODEBUG event types sorted by count — green dot indicates activity in
+					the most recent sample
+				</Card.Description>
+			</Card.Header>
+			<Card.Content class="p-0">
+				<div class="overflow-hidden rounded-b-xl">
+					<Table.Root>
+						<Table.Header>
+							<Table.Row class="bg-muted/50 hover:bg-muted/50">
+								<Table.Head class="px-4 py-3 text-muted-foreground">
+									Event
+								</Table.Head>
+								<Table.Head class="px-4 py-3 text-right text-muted-foreground">
+									Count
+								</Table.Head>
+								<Table.Head class="px-4 py-3 text-right text-muted-foreground">
+									Last Active
+								</Table.Head>
+							</Table.Row>
+						</Table.Header>
+						<Table.Body>
+							{#each debugTableRows as row (row.key)}
+								<Table.Row class="hover:bg-muted/30">
+									<Table.Cell class="px-4 py-2.5">
+										<div class="flex items-center gap-2">
+											<span
+												class="size-1.5 shrink-0 rounded-full {row.activeInLast
+													? 'bg-green-500'
+													: row.count > 0
+														? 'bg-muted-foreground/40'
+														: 'bg-muted'}"
+											></span>
+											<span
+												class={row.count === 0 ? "text-muted-foreground" : ""}
 											>
-												<span class="text-muted-foreground">{name}</span>
-												<span
-													class="text-foreground font-mono font-medium tabular-nums"
-												>
-													{fmtSecs(Number(value))}
-												</span>
-											</div>
+												{row.label}
+											</span>
 										</div>
-									{/snippet}
-								</Tooltip>
-							{/snippet}
-						</AreaChart>
-					</ChartContainer>
-				</Card.Content>
-			</Card.Root>
+									</Table.Cell>
+									<Table.Cell
+										class="px-4 py-2.5 text-right font-mono tabular-nums {row.count ===
+										0
+											? 'text-muted-foreground'
+											: ''}"
+									>
+										{row.count.toLocaleString()}
+									</Table.Cell>
+									<Table.Cell
+										class="px-4 py-2.5 text-right text-muted-foreground"
+									>
+										{row.lastActive === -1 ? "—" : `Sample ${row.lastActive}`}
+									</Table.Cell>
+								</Table.Row>
+							{/each}
+						</Table.Body>
+					</Table.Root>
+				</div>
+			</Card.Content>
+		</Card.Root>
+	{/if}
+</PageShell>
 
-			<!-- Debug events over time chart -->
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Debug Events Over Time</Card.Title>
-					<Card.Description>
-						Total GODEBUG event count accumulated across all event types per
-						sample
-					</Card.Description>
-				</Card.Header>
-				<Card.Content>
-					<ChartContainer
-						config={debugTotalChartConfig}
-						class="aspect-auto h-52"
-					>
-						<LineChart
-							data={debugChartData}
-							x="sample"
-							yNice
-							padding={{ left: 35 }}
-							props={{ yAxis: { format: fmtIntAxis } }}
-							series={[
-                                {
-                                    key: "total",
-                                    label: "Total Events",
-                                    color: "var(--color-total)",
-                                },
-                            ]}
-						>
-							{#snippet tooltip()}
-								<Tooltip labelFormatter={(d) => `Sample ${d}`} />
-							{/snippet}
-						</LineChart>
-					</ChartContainer>
-				</Card.Content>
-			</Card.Root>
-
-			<!-- Debug events table -->
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Debug Event Counters</Card.Title>
-					<Card.Description>
-						GODEBUG event types sorted by count — green dot indicates activity
-						in the most recent sample
-					</Card.Description>
-				</Card.Header>
-				<Card.Content class="p-0">
-					<div class="overflow-hidden rounded-b-xl">
-						<table class="w-full text-sm">
-							<thead>
-								<tr class="border-b bg-muted/50">
-									<th
-										class="px-4 py-3 text-left font-medium text-muted-foreground"
-									>
-										Event
-									</th>
-									<th
-										class="px-4 py-3 text-right font-medium text-muted-foreground"
-									>
-										Count
-									</th>
-									<th
-										class="px-4 py-3 text-right font-medium text-muted-foreground"
-									>
-										Last Active
-									</th>
-								</tr>
-							</thead>
-							<tbody>
-								{#each debugTableRows as row (row.key)}
-									<tr
-										class="border-b last:border-0 transition-colors hover:bg-muted/30"
-									>
-										<td class="px-4 py-2.5">
-											<div class="flex items-center gap-2">
-												<span
-													class="size-1.5 shrink-0 rounded-full {row.activeInLast
-                                                        ? 'bg-green-500'
-                                                        : row.count > 0
-                                                          ? 'bg-muted-foreground/40'
-                                                          : 'bg-muted'}"
-												></span>
-												<span
-													class={row.count === 0
-                                                        ? "text-muted-foreground"
-                                                        : ""}
-												>
-													{row.label}
-												</span>
-											</div>
-										</td>
-										<td
-											class="px-4 py-2.5 text-right font-mono tabular-nums {row.count ===
-                                            0
-                                                ? 'text-muted-foreground'
-                                                : ''}"
-										>
-											{row.count.toLocaleString()}
-										</td>
-										<td class="px-4 py-2.5 text-right text-muted-foreground">
-											{row.lastActive === -1
-                                                ? "—"
-                                                : `Sample ${row.lastActive}`}
-										</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
-					</div>
-				</Card.Content>
-			</Card.Root>
-		{/if}
-	</div>
-</ScrollArea>
+{#snippet mutexTooltip()}
+	<Tooltip labelFormatter={(d) => `Sample ${d}`}>
+		{#snippet formatter({ value, name })}
+			<div class="flex w-full items-center gap-2">
+				<div
+					style="--color-bg: var(--chart-2); --color-border: var(--chart-2);"
+					class="size-2.5 shrink-0 rounded-xs border-(--color-border) bg-(--color-bg)"
+				></div>
+				<div class="flex flex-1 items-center justify-between leading-none">
+					<span class="text-muted-foreground">{name}</span>
+					<span class="text-foreground font-mono font-medium tabular-nums">
+						{fmtSecs(Number(value))}
+					</span>
+				</div>
+			</div>
+		{/snippet}
+	</Tooltip>
+{/snippet}

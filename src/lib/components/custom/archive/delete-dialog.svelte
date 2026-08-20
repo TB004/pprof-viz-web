@@ -4,8 +4,7 @@
 -->
 
 <script lang="ts">
-import { Button } from "$lib/components/ui/button";
-import * as Dialog from "$lib/components/ui/dialog";
+import { ConfirmDialog } from "$lib/components/custom/confirm-dialog";
 import { ArchiveService } from "$lib/services";
 import type { CollectionRow } from "$lib/types";
 
@@ -18,22 +17,11 @@ async function confirmDelete() {
 }
 </script>
 
-<Dialog.Root
-	open={target !== null}
-	onOpenChange={(open) => {
-		if (!open) target = null;
-	}}
->
-	<Dialog.Content class="sm:max-w-md">
-		<Dialog.Header>
-			<Dialog.Title>Delete collection</Dialog.Title>
-			<Dialog.Description>
-				Delete {target?.name} and its .ppvz file. This cannot be undone.
-			</Dialog.Description>
-		</Dialog.Header>
-		<div class="flex flex-wrap justify-end gap-2 px-6">
-			<Button variant="outline" onclick={() => (target = null)}>Cancel</Button>
-			<Button variant="destructive" onclick={confirmDelete}>Delete</Button>
-		</div>
-	</Dialog.Content>
-</Dialog.Root>
+<ConfirmDialog
+	bind:open={() => target !== null, (open) => {
+			if (!open) target = null;
+		}}
+	title="Delete collection"
+	description={`Delete ${target?.name} and its .ppvz file. This cannot be undone.`}
+	onConfirm={confirmDelete}
+/>

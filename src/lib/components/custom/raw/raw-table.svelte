@@ -7,6 +7,7 @@
 import { ChevronDownIcon, ChevronRightIcon } from "@lucide/svelte";
 import * as Card from "$lib/components/ui/card";
 import { ScrollArea } from "$lib/components/ui/scroll-area";
+import * as Table from "$lib/components/ui/table";
 import { CollectionService } from "$lib/services";
 import {
 	CollectionStatus,
@@ -106,20 +107,18 @@ const columns: ColDef[] = [
 
 // ── derived ────────────────────────────────────────────────────────────────
 
-const isRunning = $derived(
-	$collectionState.status === CollectionStatus.Running,
-);
+const isRunning = $derived(collectionState.status === CollectionStatus.Running);
 
 const metadata = $derived<MetadataResponse | undefined>(
-	$collectionState.metadata,
+	collectionState.metadata,
 );
 
 const allRows = $derived(
-	($collectionState.data ?? [])
+	(collectionState.data ?? [])
 		.map((frame, i) => ({
 			sample: i + 1,
 			frame,
-			arrivedAt: $collectionState.dataTimestamps?.[i],
+			arrivedAt: collectionState.dataTimestamps?.[i],
 		}))
 		.reverse(),
 );
@@ -179,92 +178,78 @@ function toggleCell(sample: number, colIdx: number) {
 <Card.Root class="py-0">
 	<Card.Content class="p-0">
 		<div class="overflow-hidden rounded-b-xl">
-			<ScrollArea orientation="horizontal">
-				<table class="w-full text-sm">
-					<thead>
-						<tr class="border-b bg-muted/50">
-							<th
-								class="px-4 py-3 text-center font-medium text-muted-foreground whitespace-nowrap"
-							>
-								#
-							</th>
-							<th
-								class="px-4 py-3 text-center font-medium text-muted-foreground whitespace-nowrap"
-							>
-								Time
-							</th>
-							{#each columns as col (col.label)}
-								<th
-									class="px-4 py-3 text-center font-medium text-muted-foreground whitespace-nowrap"
-								>
-									{col.label}
-								</th>
-							{/each}
-						</tr>
-					</thead>
-					<tbody>
-						{#each pageRows as row (row.sample)}
-							<tr
-								class="border-b last:border-0 transition-colors hover:bg-muted/30 align-top"
-							>
-								<td
-									class="px-4 py-2.5 text-center font-mono text-muted-foreground whitespace-nowrap"
-								>
-									{row.sample}
-								</td>
-								<td
-									class="px-4 py-2.5 text-center font-mono text-muted-foreground whitespace-nowrap"
-								>
-									{fmtTimestamp(row.arrivedAt)}
-								</td>
-								{#each columns as col, colIdx (col.label)}
-									{@const json = cellJson(row.frame, col.field)}
-									{@const isExpanded = expandedCells.has(
-                                        `${row.sample}-${colIdx}`,
-                                    )}
-									<td class="px-4 py-2.5 align-top text-center">
-										{#if json === "—"}
-											<span class="font-mono text-muted-foreground/40">—</span>
-										{:else}
-											<div class="flex flex-col items-center gap-1.5">
-												<button
-													type="button"
-													class="flex cursor-pointer items-center gap-1 font-mono text-xs text-muted-foreground transition-colors hover:text-foreground"
-													onclick={() =>
-                                                        toggleCell(
-                                                            row.sample,
-                                                            colIdx,
-                                                        )}
-												>
-													{#if isExpanded}
-														<ChevronDownIcon class="size-3 shrink-0" />
-													{:else}
-														<ChevronRightIcon class="size-3 shrink-0" />
-													{/if}
-													<span>expand</span>
-												</button>
-
-												{#if isExpanded}
-													<ScrollArea
-														orientation="both"
-														class="h-64 max-w-72 rounded-md bg-muted/50"
-													>
-														<div class="p-2.5">
-															<pre
-																class="text-left text-[11px] font-mono leading-relaxed text-foreground/80"
-															>{json}</pre>
-														</div>
-													</ScrollArea>
-												{/if}
-											</div>
-										{/if}
-									</td>
-								{/each}
-							</tr>
+			<Table.Root>
+				<Table.Header>
+					<Table.Row class="bg-muted/50 hover:bg-muted/50">
+						<Table.Head class="px-4 py-3 text-center text-muted-foreground">
+							#
+						</Table.Head>
+						<Table.Head class="px-4 py-3 text-center text-muted-foreground">
+							Time
+						</Table.Head>
+						{#each columns as col (col.label)}
+							<Table.Head class="px-4 py-3 text-center text-muted-foreground">
+								{col.label}
+							</Table.Head>
 						{/each}
-					</tbody>
-				</table>
-			</ScrollArea>
+					</Table.Row>
+				</Table.Header>
+				<Table.Body>
+					{#each pageRows as row (row.sample)}
+						<Table.Row class="align-top hover:bg-muted/30">
+							<Table.Cell
+								class="px-4 py-2.5 text-center font-mono text-muted-foreground"
+							>
+								{row.sample}
+							</Table.Cell>
+							<Table.Cell
+								class="px-4 py-2.5 text-center font-mono text-muted-foreground"
+							>
+								{fmtTimestamp(row.arrivedAt)}
+							</Table.Cell>
+							{#each columns as col, colIdx (col.label)}
+								{@const json = cellJson(row.frame, col.field)}
+								{@const isExpanded = expandedCells.has(
+									`${row.sample}-${colIdx}`,
+								)}
+								<Table.Cell class="px-4 py-2.5 align-top text-center">
+									{#if json === "—"}
+										<span class="font-mono text-muted-foreground/40">—</span>
+									{:else}
+										<div class="flex flex-col items-center gap-1.5">
+											<button
+												type="button"
+												class="flex cursor-pointer items-center gap-1 font-mono text-xs text-muted-foreground transition-colors hover:text-foreground"
+												onclick={() => toggleCell(row.sample, colIdx)}
+											>
+												{#if isExpanded}
+													<ChevronDownIcon class="size-3 shrink-0" />
+												{:else}
+													<ChevronRightIcon class="size-3 shrink-0" />
+												{/if}
+												<span>expand</span>
+											</button>
+
+											{#if isExpanded}
+												<ScrollArea
+													orientation="both"
+													class="h-64 max-w-72 rounded-md bg-muted/50"
+												>
+													<div class="p-2.5">
+														<pre
+															class="text-left text-[11px] font-mono leading-relaxed text-foreground/80"
+														>{json}</pre>
+													</div>
+												</ScrollArea>
+											{/if}
+										</div>
+									{/if}
+								</Table.Cell>
+							{/each}
+						</Table.Row>
+					{/each}
+				</Table.Body>
+			</Table.Root>
 		</div>
 	</Card.Content>
 </Card.Root>

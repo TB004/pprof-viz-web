@@ -1,46 +1,68 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Hand-written DTOs that mirror the Rust side (`src-tauri/src/`).
+// Frontend view of the Rust types.
 //
-// Keep in sync with the corresponding `#[derive(Serialize, Deserialize)]`
-// structs. Field names use camelCase because every Rust DTO is annotated
-// with `#[serde(rename_all = "camelCase")]`.
+// Anything Rust can describe to specta lives in the generated `$lib/bindings`
+// and is re-exported from here — this file must not restate those shapes.
+// What it does add is the part specta cannot express:
+//
+//   - the proto DTOs, which cross the boundary as `unknown` because the frames
+//     are `serde_json::Value` on the Rust side
+//   - value-level constants for the generated string-union enums, so app code
+//     can say `CollectionType.Stream` instead of a bare "stream" literal
 
-// --- settings.rs ---
+import type {
+	CollectionStatus as CollectionStatusUnion,
+	CollectionType as CollectionTypeUnion,
+	CollectionStateSnapshot as GeneratedSnapshot,
+	HttpVersion as HttpVersionUnion,
+	ThemeMode as ThemeModeUnion,
+} from "$lib/bindings";
 
-export enum ThemeMode {
-	Light = "light",
-	Dark = "dark",
-	System = "system",
-}
+export type {
+	AppError,
+	AppSettings,
+	CollectionRow,
+	DiskUsage,
+	ProfileInput,
+	ProfileRow,
+	ProjectRow,
+} from "$lib/bindings";
 
-export enum CollectionType {
-	Snapshot = "snapshot",
-	Stream = "stream",
-}
+// --- enums ---
+//
+// specta emits Rust unit enums as string unions, which are types only. These
+// constants give the same variants a value form. `satisfies` ties them to the
+// generated union, so renaming or removing a variant in Rust fails the build
+// here. (Adding one does not — the union simply grows.)
 
-export enum HttpVersion {
-	Http2 = "http2",
-	Http3 = "http3",
-}
+export const ThemeMode = {
+	Light: "light",
+	Dark: "dark",
+	System: "system",
+} as const satisfies Record<string, ThemeModeUnion>;
+export type ThemeMode = ThemeModeUnion;
 
-export interface AppSettings {
-	theme: ThemeMode;
-	defaultName: string;
-	defaultUrl: string;
-	defaultMode: CollectionType;
-	defaultIntervalSeconds: number;
-	defaultNumberOfCycles: number;
-	defaultHttpVersion: HttpVersion;
-}
+export const CollectionType = {
+	Snapshot: "snapshot",
+	Stream: "stream",
+} as const satisfies Record<string, CollectionTypeUnion>;
+export type CollectionType = CollectionTypeUnion;
 
-// --- collection.rs ---
+export const HttpVersion = {
+	Http2: "http2",
+	Http3: "http3",
+} as const satisfies Record<string, HttpVersionUnion>;
+export type HttpVersion = HttpVersionUnion;
 
-export enum CollectionStatus {
-	Idle = "idle",
-	Running = "running",
-}
+export const CollectionStatus = {
+	Idle: "idle",
+	Running: "running",
+} as const satisfies Record<string, CollectionStatusUnion>;
+export type CollectionStatus = CollectionStatusUnion;
+
+// --- proto DTOs ---
 
 // Proto3 JSON encodes uint64 as a string and double/uint32 as a number.
 // The chart pages wrap accesses with `Number(... ?? 0)` so accepting both
@@ -168,78 +190,20 @@ export interface MetadataResponse {
 	};
 }
 
-export interface CollectionStateSnapshot {
-	status: CollectionStatus;
-	profileId: string | null;
-	profileName: string | null;
-	profileUrl: string | null;
-	mode: CollectionType | null;
-	startedAt: number | null;
-	endedAt: number | null;
-	loaded: boolean;
-	saved: boolean;
-	sampleCount: number | null;
-	frames: Frame[];
-	frameTimestamps: number[] | null;
+/**
+ * The generated snapshot, with the two fields specta can only type as
+ * `unknown` replaced by their real proto shapes.
+ */
+export type CollectionStateSnapshot = Omit<
+	GeneratedSnapshot,
+	"frames" | "metadata"
+> & {
+	/** `null` on state events that carry no frame buffer — see the Rust side. */
+	frames: Frame[] | null;
 	metadata: MetadataResponse | null;
-}
+};
 
 export const EVENT_FRAME = "collection://frame";
 export const EVENT_STATE = "collection://state";
 export const EVENT_METADATA = "collection://metadata";
 export const EVENT_OPENED = "archive://opened";
-
-// --- db.rs ---
-
-export interface ProjectRow {
-	id: string;
-	name: string;
-	createdAt: number;
-	updatedAt: number;
-}
-
-// --- archive.rs ---
-
-export interface CollectionRow {
-	id: string;
-	name: string;
-	description: string | null;
-	filename: string;
-	sizeBytes: number;
-	durationMs: number;
-	sampleCount: number;
-	profileName: string | null;
-	profileUrl: string | null;
-	mode: string | null;
-	createdAt: number;
-}
-
-export interface DiskUsage {
-	collectionsBytes: number;
-	freeBytes: number;
-	totalBytes: number;
-}
-
-export interface ProfileRow {
-	id: string;
-	projectId: string;
-	name: string;
-	url: string;
-	mode: CollectionType;
-	httpVersion: HttpVersion;
-	token: string | null;
-	intervalSeconds: number | null;
-	numberOfCycles: number | null;
-	createdAt: number;
-	updatedAt: number;
-}
-
-export interface ProfileInput {
-	name: string;
-	url: string;
-	mode: CollectionType;
-	httpVersion: HttpVersion;
-	token: string | null;
-	intervalSeconds: number | null;
-	numberOfCycles: number | null;
-}

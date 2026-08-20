@@ -8,8 +8,7 @@ import { PlayIcon, Settings2Icon, SquareIcon } from "@lucide/svelte";
 import { Button } from "$lib/components/ui/button";
 import { ScrollArea } from "$lib/components/ui/scroll-area";
 import * as Select from "$lib/components/ui/select";
-import { CollectionService } from "$lib/services";
-import { profileOptions } from "$lib/services/profile_service.js";
+import { CollectionService, ProfileService } from "$lib/services";
 import { CollectionStatus } from "$lib/types";
 
 type Props = {
@@ -19,13 +18,12 @@ type Props = {
 let { profileManagerOpen = $bindable() }: Props = $props();
 
 const collectionState = CollectionService.collectionState;
+const profileOptions = $derived(ProfileService.profileOptions());
 
-const isRunning = $derived(
-	$collectionState.status === CollectionStatus.Running,
-);
+const isRunning = $derived(collectionState.status === CollectionStatus.Running);
 
 const triggerContent = $derived(
-	$profileOptions.find((p) => p.value === $collectionState.selectedProfile)
+	profileOptions.find((p) => p.value === collectionState.selectedProfile)
 		?.label ?? "Select a profile",
 );
 
@@ -53,7 +51,7 @@ async function handleProfileChange(value?: string) {
 		type="single"
 		name="collection-profile"
 		disabled={isRunning}
-		value={$collectionState.selectedProfile}
+		value={collectionState.selectedProfile}
 		onValueChange={handleProfileChange}
 	>
 		<Select.Trigger class="w-full">
@@ -62,13 +60,13 @@ async function handleProfileChange(value?: string) {
 		<Select.Content>
 			<Select.Group>
 				<Select.Label>Profiles</Select.Label>
-				{#if $profileOptions.length === 0}
+				{#if profileOptions.length === 0}
 					<Select.Item value="" label="No profiles yet" disabled>
 						No profiles yet
 					</Select.Item>
 				{:else}
 					<ScrollArea class="h-80">
-						{#each $profileOptions as profile (profile.value)}
+						{#each profileOptions as profile (profile.value)}
 							<Select.Item value={profile.value} label={profile.label}>
 								<div class="flex flex-col items-start gap-0.5">
 									<span>{profile.label}</span>
@@ -97,7 +95,7 @@ async function handleProfileChange(value?: string) {
 		<Button
 			variant="default"
 			class="w-full"
-			disabled={!$collectionState.selectedProfile}
+			disabled={!collectionState.selectedProfile}
 			onclick={() => CollectionService.startCollection()}
 		>
 			<PlayIcon class="size-3.5" />

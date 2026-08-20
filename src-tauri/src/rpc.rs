@@ -1,7 +1,7 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-use std::net::SocketAddr;
+use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::pin::Pin;
 use std::sync::{Arc, OnceLock};
 use std::task::{Context, Poll};
@@ -9,6 +9,7 @@ use std::time::Duration;
 
 use rustls::client::danger::{HandshakeSignatureValid, ServerCertVerified, ServerCertVerifier};
 use rustls::pki_types::{CertificateDer, ServerName, UnixTime};
+use rustls_platform_verifier::ConfigVerifierExt;
 
 use bytes::Bytes;
 use connectrpc::ConnectError;
@@ -38,6 +39,8 @@ pub enum AgentRpcError {
     AuthToken,
     #[error("rpc: {0}")]
     Rpc(String),
+    #[error("tls: {0}")]
+    Tls(String),
 }
 
 // ---------- HTTP/3 transport ----------
@@ -246,10 +249,15 @@ pub enum AgentClient {
 }
 
 impl AgentClient {
+    /// `allow_insecure_tls` skips certificate verification entirely. It exists
+    /// for development agents presenting a self-signed certificate; on any
+    /// other connection it hands the profile's bearer token to whatever
+    /// answers, so it is opt-in per profile and never the default.
     pub fn connect(
         url: &str,
         token: Option<&str>,
         http_version: HttpVersion,
+        allow_insecure_tls: bool,
     ) -> Result<Self, AgentRpcError> {
         let uri: http::Uri = url
             .parse()
@@ -267,7 +275,7 @@ impl AgentClient {
             HttpVersion::Http2 => {
                 let transport = match uri.scheme_str() {
                     Some("http") => HttpClient::plaintext_http2_only(),
-                    Some("https") => HttpClient::with_tls(tls_config()),
+                    Some("https") => HttpClient::with_tls(tls_config(allow_insecure_tls)?),
                     Some(other) => {
                         return Err(AgentRpcError::Url(format!("unsupported scheme '{other}'")));
                     }
@@ -295,17 +303,19 @@ impl AgentClient {
                 let authority: Arc<str> = format!("{host}:{port}").into();
                 let server_name: Arc<str> = host.into();
 
+                let quic_config = h3_quinn_client_config(allow_insecure_tls)?;
+                // Bind to an ephemeral port on every interface.
                 let mut endpoint_v4 =
-                    quinn::Endpoint::client("0.0.0.0:0".parse().expect("valid IPv4 addr"))
+                    quinn::Endpoint::client(SocketAddr::from((Ipv4Addr::UNSPECIFIED, 0)))
                         .map_err(|e| AgentRpcError::Rpc(format!("QUIC endpoint (v4): {e}")))?;
-                endpoint_v4.set_default_client_config(h3_quinn_client_config());
+                endpoint_v4.set_default_client_config(quic_config.clone());
 
                 // IPv6 endpoint is best-effort — some environments disable it.
                 let endpoint_v6 =
-                    quinn::Endpoint::client("[::]:0".parse().expect("valid IPv6 addr"))
+                    quinn::Endpoint::client(SocketAddr::from((Ipv6Addr::UNSPECIFIED, 0)))
                         .ok()
                         .map(|mut ep| {
-                            ep.set_default_client_config(h3_quinn_client_config());
+                            ep.set_default_client_config(quic_config);
                             ep
                         });
 
@@ -379,9 +389,10 @@ pub async fn agent_ping(
     url: String,
     token: Option<String>,
     http_version: HttpVersion,
+    allow_insecure_tls: bool,
 ) -> Result<(), String> {
-    let client =
-        AgentClient::connect(&url, token.as_deref(), http_version).map_err(|e| e.to_string())?;
+    let client = AgentClient::connect(&url, token.as_deref(), http_version, allow_insecure_tls)
+        .map_err(|e| e.to_string())?;
     client.ping().await.map_err(|e| e.to_string())
 }
 
@@ -437,38 +448,67 @@ impl ServerCertVerifier for NoVerifier {
     }
 }
 
-/// Lazily-initialised TLS configuration for HTTP/2 (hyper/rustls).
-fn tls_config() -> Arc<rustls::ClientConfig> {
-    static CONFIG: OnceLock<Arc<rustls::ClientConfig>> = OnceLock::new();
-    CONFIG
-        .get_or_init(|| {
-            ensure_provider();
-            let config = rustls::ClientConfig::builder()
-                .dangerous()
-                .with_custom_certificate_verifier(Arc::new(NoVerifier))
-                .with_no_client_auth();
-            Arc::new(config)
-        })
-        .clone()
+/// TLS configuration for HTTP/2, cached per verification mode.
+fn tls_config(allow_insecure: bool) -> Result<Arc<rustls::ClientConfig>, AgentRpcError> {
+    static VERIFYING: OnceLock<Arc<rustls::ClientConfig>> = OnceLock::new();
+    static INSECURE: OnceLock<Arc<rustls::ClientConfig>> = OnceLock::new();
+
+    if allow_insecure {
+        return Ok(INSECURE
+            .get_or_init(|| {
+                ensure_provider();
+                Arc::new(
+                    rustls::ClientConfig::builder()
+                        .dangerous()
+                        .with_custom_certificate_verifier(Arc::new(NoVerifier))
+                        .with_no_client_auth(),
+                )
+            })
+            .clone());
+    }
+
+    if let Some(config) = VERIFYING.get() {
+        return Ok(config.clone());
+    }
+    ensure_provider();
+    let config = Arc::new(
+        rustls::ClientConfig::with_platform_verifier()
+            .map_err(|e| AgentRpcError::Tls(e.to_string()))?,
+    );
+    Ok(VERIFYING.get_or_init(|| config).clone())
 }
 
-/// Lazily-initialised QUIC/TLS configuration for HTTP/3.
+/// QUIC/TLS configuration for HTTP/3, cached per verification mode.
 /// ALPN is set to `h3` as required by the QUIC transport.
-fn h3_quinn_client_config() -> quinn::ClientConfig {
-    static CONFIG: OnceLock<Arc<quinn::crypto::rustls::QuicClientConfig>> = OnceLock::new();
-    let quic_tls = CONFIG
-        .get_or_init(|| {
-            ensure_provider();
-            let mut tls = rustls::ClientConfig::builder()
-                .dangerous()
-                .with_custom_certificate_verifier(Arc::new(NoVerifier))
-                .with_no_client_auth();
-            tls.alpn_protocols = vec![b"h3".to_vec()];
-            Arc::new(
-                quinn::crypto::rustls::QuicClientConfig::try_from(tls)
-                    .expect("valid QUIC TLS config"),
-            )
-        })
-        .clone();
-    quinn::ClientConfig::new(quic_tls)
+fn h3_quinn_client_config(allow_insecure: bool) -> Result<quinn::ClientConfig, AgentRpcError> {
+    static VERIFYING: OnceLock<Arc<quinn::crypto::rustls::QuicClientConfig>> = OnceLock::new();
+    static INSECURE: OnceLock<Arc<quinn::crypto::rustls::QuicClientConfig>> = OnceLock::new();
+
+    let cached = if allow_insecure {
+        &INSECURE
+    } else {
+        &VERIFYING
+    };
+    if let Some(config) = cached.get() {
+        return Ok(quinn::ClientConfig::new(config.clone()));
+    }
+
+    ensure_provider();
+    let mut tls = if allow_insecure {
+        rustls::ClientConfig::builder()
+            .dangerous()
+            .with_custom_certificate_verifier(Arc::new(NoVerifier))
+            .with_no_client_auth()
+    } else {
+        rustls::ClientConfig::with_platform_verifier()
+            .map_err(|e| AgentRpcError::Tls(e.to_string()))?
+    };
+    tls.alpn_protocols = vec![b"h3".to_vec()];
+    let quic_tls = Arc::new(
+        quinn::crypto::rustls::QuicClientConfig::try_from(tls)
+            .map_err(|e| AgentRpcError::Tls(format!("QUIC TLS config: {e}")))?,
+    );
+    Ok(quinn::ClientConfig::new(
+        cached.get_or_init(|| quic_tls).clone(),
+    ))
 }

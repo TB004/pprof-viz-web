@@ -12,7 +12,6 @@ import PMSidebarElem from "./pm-sidebar-elem.svelte";
 import { dialogState } from "./state.svelte";
 
 const profileCatalog = ProfileService.profileCatalog;
-const profileProjects = ProfileService.profileProjects;
 
 function openCreateProjectDialog() {
 	dialogState.projectDialogMode = "create";
@@ -46,13 +45,13 @@ function openCreateProjectDialog() {
 
 	<ScrollArea class="min-h-0 flex-1">
 		<div class="p-2">
-			{#if !$profileCatalog.loaded}
+			{#if !profileCatalog.loaded}
 				<div
 					class="rounded-xl border border-dashed border-sidebar-border p-4 text-sm text-sidebar-foreground/60"
 				>
 					Loading profiles...
 				</div>
-			{:else if $profileProjects.length === 0}
+			{:else if profileCatalog.projects.length === 0}
 				<div
 					class="rounded-xl border border-dashed border-sidebar-border p-4 text-sm text-sidebar-foreground/60"
 				>
@@ -60,7 +59,7 @@ function openCreateProjectDialog() {
 				</div>
 			{:else}
 				<div class="space-y-1">
-					{#each $profileProjects as project (project.id)}
+					{#each profileCatalog.projects as project (project.id)}
 						<PMSidebarElem {project} />
 					{/each}
 				</div>

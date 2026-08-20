@@ -49,9 +49,9 @@ const errorState = ErrorService.errorState;
 
 		<Card.Content class="p-3.5 pr-0.5">
 			<ScrollArea.Root class="h-72 pr-3">
-				{#if $errorState.length > 0}
+				{#if errorState.length > 0}
 					<div class="space-y-2">
-						{#each $errorState as error (error.id)}
+						{#each errorState as error (error.id)}
 							<div transition:fly={{ x: 16, duration: 140 }}>
 								<Item.Root
 									variant="muted"

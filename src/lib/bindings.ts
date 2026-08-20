@@ -12,8 +12,8 @@ export const commands = {
 	getProjectById: (id: string) => typedError<{
 	id: string,
 	name: string,
-	createdAt: number | null,
-	updatedAt: number | null,
+	createdAt: number,
+	updatedAt: number,
 } | null, string>(__TAURI_INVOKE("get_project_by_id", { id })),
 	getProfileById: (id: string) => typedError<{
 	id: string,
@@ -23,10 +23,11 @@ export const commands = {
 	mode: CollectionType,
 	httpVersion: HttpVersion,
 	token: string | null,
+	allowInsecureTls: boolean,
 	intervalSeconds: number | null,
 	numberOfCycles: number | null,
-	createdAt: number | null,
-	updatedAt: number | null,
+	createdAt: number,
+	updatedAt: number,
 } | null, string>(__TAURI_INVOKE("get_profile_by_id", { id })),
 	createProject: (name: string) => typedError<ProjectRow, string>(__TAURI_INVOKE("create_project", { name })),
 	renameProject: (id: string, name: string) => typedError<null, string>(__TAURI_INVOKE("rename_project", { id, name })),
@@ -48,18 +49,23 @@ export const commands = {
 	updateCollection: (id: string, name: string, description: string | null) => typedError<null, string>(__TAURI_INVOKE("update_collection", { id, name, description })),
 	loadCollection: (id: string) => typedError<null, string>(__TAURI_INVOKE("load_collection", { id })),
 	diskUsage: () => typedError<DiskUsage, string>(__TAURI_INVOKE("disk_usage")),
-	agentPing: (url: string, token: string | null, httpVersion: HttpVersion) => typedError<null, string>(__TAURI_INVOKE("agent_ping", { url, token, httpVersion })),
+	agentPing: (url: string, token: string | null, httpVersion: HttpVersion, allowInsecureTls: boolean) => typedError<null, string>(__TAURI_INVOKE("agent_ping", { url, token, httpVersion, allowInsecureTls })),
 	checkUpdate: () => typedError<UpdateStatus, string>(__TAURI_INVOKE("check_update")),
 	installUpdate: (url: string, filename: string) => typedError<null, string>(__TAURI_INVOKE("install_update", { url, filename })),
 	/**  Opens a URL or file path with the OS default handler. */
 	open: (target: string) => typedError<null, string>(__TAURI_INVOKE("open", { target })),
 };
 
+/* Constants */
+export const MAX_ERRORS = 200 as const;
+
+export const MAX_FRAMES = 500 as const;
+
 /* Types */
 export type AppError = {
 	id: string,
 	message: string,
-	timestamp: number | null,
+	timestamp: number,
 };
 
 export type AppSettings = {
@@ -77,13 +83,13 @@ export type CollectionRow = {
 	name: string,
 	description: string | null,
 	filename: string,
-	sizeBytes: number | null,
-	durationMs: number | null,
-	sampleCount: number | null,
+	sizeBytes: number,
+	durationMs: number,
+	sampleCount: number,
 	profileName: string | null,
 	profileUrl: string | null,
 	mode: string | null,
-	createdAt: number | null,
+	createdAt: number,
 };
 
 export type CollectionStateSnapshot = {
@@ -96,9 +102,9 @@ export type CollectionStateSnapshot = {
 	endedAt: number | null,
 	loaded: boolean,
 	saved: boolean,
-	sampleCount: number | null,
-	frames: Frame[],
-	frameTimestamps: (number | null)[],
+	sampleCount: number,
+	frames: Frame[] | null,
+	frameTimestamps: number[] | null,
 	metadata: unknown | null,
 };
 
@@ -108,11 +114,11 @@ export type CollectionType = "snapshot" | "stream";
 
 export type DiskUsage = {
 	/**  Total bytes of all stored `.ppvz` files (from the metadata table). */
-	collectionsBytes: number | null,
+	collectionsBytes: number,
 	/**  Free space on the volume that holds the collections folder. */
-	freeBytes: number | null,
+	freeBytes: number,
 	/**  Total size of that volume. */
-	totalBytes: number | null,
+	totalBytes: number,
 };
 
 export type Frame = unknown;
@@ -125,6 +131,7 @@ export type ProfileInput = {
 	mode: CollectionType,
 	httpVersion: HttpVersion,
 	token: string | null,
+	allowInsecureTls: boolean,
 	intervalSeconds: number | null,
 	numberOfCycles: number | null,
 };
@@ -137,17 +144,18 @@ export type ProfileRow = {
 	mode: CollectionType,
 	httpVersion: HttpVersion,
 	token: string | null,
+	allowInsecureTls: boolean,
 	intervalSeconds: number | null,
 	numberOfCycles: number | null,
-	createdAt: number | null,
-	updatedAt: number | null,
+	createdAt: number,
+	updatedAt: number,
 };
 
 export type ProjectRow = {
 	id: string,
 	name: string,
-	createdAt: number | null,
-	updatedAt: number | null,
+	createdAt: number,
+	updatedAt: number,
 };
 
 export type ThemeMode = "light" | "dark" | "system";
@@ -159,7 +167,8 @@ export type UpdateStatus = {
 	releaseUrl: string,
 	/**
 	 *  `https://api.github.com/repos/.../releases/assets/{id}`.
-	 *  `None` when no update is available or no matching asset was found.
+	 *  `None` when no update is available, no matching asset was found, or the
+	 *  platform cannot install one itself (Linux — see `check_update`).
 	 */
 	assetUrl: string | null,
 	/**

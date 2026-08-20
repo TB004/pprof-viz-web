@@ -84,7 +84,9 @@ impl SettingsState {
 
     pub async fn set(&self, settings: AppSettings) -> Result<AppSettings, String> {
         let json = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
-        std::fs::write(&self.path, json).map_err(|e| e.to_string())?;
+        tokio::fs::write(&self.path, json)
+            .await
+            .map_err(|e| e.to_string())?;
         *self.inner.write().await = settings.clone();
         Ok(settings)
     }

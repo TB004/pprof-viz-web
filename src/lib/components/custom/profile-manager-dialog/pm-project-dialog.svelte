@@ -10,8 +10,6 @@ import Input from "$lib/components/ui/input/input.svelte";
 import { ProfileService } from "$lib/services";
 import { clearProfileForm, dialogState } from "./state.svelte.ts";
 
-const profileProjects = ProfileService.profileProjects;
-
 let name = $state("");
 
 // When the dialog opens, if we're in rename mode, we want to populate the input with the current project name.
@@ -21,7 +19,7 @@ $effect(() => {
 			dialogState.projectDialogMode === "rename" &&
 			dialogState.projectDialogProjectId
 		) {
-			const project = $profileProjects.find(
+			const project = ProfileService.profileCatalog.projects.find(
 				(p) => p.id === dialogState.projectDialogProjectId,
 			);
 			name = project?.name ?? "";

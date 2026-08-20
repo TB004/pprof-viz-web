@@ -1,0 +1,6 @@
+# Single source of truth for the Rust toolchain, on developer machines and in
+# CI alike.
+[toolchain]
+channel = "1.97.1"
+profile = "minimal"
+components = ["clippy", "rustfmt"]

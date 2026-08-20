@@ -1,0 +1,124 @@
+<!--
+  Copyright (C) 2026 Tizian Bahr
+  SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
+<script lang="ts">
+import { CheckIcon, EyeIcon, EyeOffIcon } from "@lucide/svelte";
+import { ModePicker, UrlField } from "$lib/components/custom/profile-form";
+import { Button } from "$lib/components/ui/button/index.js";
+import Input from "$lib/components/ui/input/input.svelte";
+import { CollectionType } from "$lib/types";
+import { dialogState } from "./state.svelte.ts";
+
+let showToken = $state(false);
+</script>
+
+<label class="block">
+	<span class="mb-3 block text-sm font-medium text-foreground">
+		Profile name
+	</span>
+	<Input bind:value={dialogState.profileName} placeholder="Production pprof" />
+</label>
+
+<UrlField
+	scheme={dialogState.profileScheme}
+	host={dialogState.profileUrlHost}
+	httpVersion={dialogState.profileHttpVersion}
+	onSchemeChange={(v) => (dialogState.profileScheme = v)}
+	onHostChange={(v) => (dialogState.profileUrlHost = v)}
+	onHttpVersionChange={(v) => (dialogState.profileHttpVersion = v)}
+/>
+
+<div class="block">
+	<span class="mb-3 block text-sm font-medium text-foreground">
+		Auth token
+		<span class="ml-1 font-normal text-muted-foreground">(optional)</span>
+	</span>
+	<div class="flex gap-2">
+		<Input
+			bind:value={dialogState.profileToken}
+			placeholder="eyJ..."
+			type={showToken ? "text" : "password"}
+			class="flex-1"
+		/>
+		<Button
+			variant="outline"
+			size="icon"
+			onclick={() => (showToken = !showToken)}
+			aria-label={showToken ? "Hide token" : "Show token"}
+		>
+			{#if showToken}
+				<EyeOffIcon class="size-4" />
+			{:else}
+				<EyeIcon class="size-4" />
+			{/if}
+		</Button>
+	</div>
+</div>
+
+{#if dialogState.profileScheme === "https"}
+	<label
+		class="flex w-full cursor-pointer items-start gap-3 rounded-2xl border border-border/70 bg-muted/25 p-4 text-left transition-colors hover:border-primary/30"
+	>
+		<input
+			type="checkbox"
+			class="peer sr-only"
+			bind:checked={dialogState.profileAllowInsecureTls}
+		>
+		<div
+			class={`mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-md border peer-focus-visible:ring-2 peer-focus-visible:ring-ring ${dialogState.profileAllowInsecureTls ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background"}`}
+		>
+			{#if dialogState.profileAllowInsecureTls}
+				<CheckIcon class="size-3.5" />
+			{/if}
+		</div>
+		<div>
+			<span class="block text-sm font-medium text-foreground">
+				Allow invalid certificates
+			</span>
+			<span class="mt-1 block text-sm text-muted-foreground">
+				Connect even if the agent's TLS certificate cannot be verified. For a
+				development agent with a self-signed certificate — the auth token is
+				sent to whatever answers, so leave this off for anything reachable over
+				a network.
+			</span>
+		</div>
+	</label>
+{/if}
+
+<ModePicker
+	value={dialogState.profileMode}
+	onChange={(v) => (dialogState.profileMode = v)}
+/>
+
+{#if dialogState.profileMode === CollectionType.Stream}
+	<div class="grid gap-4 sm:grid-cols-2">
+		<label class="block">
+			<span class="mb-3 block text-sm font-medium text-foreground">
+				Interval
+				<span class="ml-1 font-normal text-muted-foreground">(seconds)</span>
+			</span>
+			<Input
+				type="number"
+				min={1}
+				step={1}
+				bind:value={dialogState.profileIntervalSeconds}
+			/>
+		</label>
+		<label class="block">
+			<span class="mb-3 block text-sm font-medium text-foreground">
+				Cycles
+				<span class="ml-1 font-normal text-muted-foreground"
+					>(0 = infinite)</span
+				>
+			</span>
+			<Input
+				type="number"
+				min={0}
+				step={1}
+				bind:value={dialogState.profileNumberOfCycles}
+			/>
+		</label>
+	</div>
+{/if}

@@ -4,29 +4,17 @@
 -->
 
 <script lang="ts">
-import {
-	CheckIcon,
-	CircleCheckIcon,
-	CircleXIcon,
-	EyeIcon,
-	EyeOffIcon,
-	LoaderCircleIcon,
-	PlugZapIcon,
-	Trash2Icon,
-} from "@lucide/svelte";
-import {
-	PMDeleteDialog,
-	PMProjectDialog,
-	PMSidebar,
-} from "$lib/components/custom/profile-manager-dialog";
+import { CheckIcon, Trash2Icon } from "@lucide/svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
-import Input from "$lib/components/ui/input/input.svelte";
 import * as ScrollArea from "$lib/components/ui/scroll-area/index.js";
-import * as Select from "$lib/components/ui/select/index.js";
-import * as Ipc from "$lib/ipc";
 import { ProfileService } from "$lib/services";
 import { CollectionType, HttpVersion } from "$lib/types";
+import ConnectionTester from "./connection-tester.svelte";
+import PMDeleteDialog from "./pm-delete-dialog.svelte";
+import PMProjectDialog from "./pm-project-dialog.svelte";
+import PMSidebar from "./pm-sidebar.svelte";
+import ProfileForm from "./profile-form.svelte";
 import { assembleUrl, clearProfileForm, dialogState } from "./state.svelte.ts";
 
 type Props = {
@@ -34,37 +22,6 @@ type Props = {
 };
 
 let { open = $bindable(false) }: Props = $props();
-
-const modeOptions: Array<{
-	value: CollectionType;
-	title: string;
-	description: string;
-}> = [
-	{
-		value: CollectionType.Snapshot,
-		title: "Snapshot",
-		description: "Capture a focused point-in-time profile.",
-	},
-	{
-		value: CollectionType.Stream,
-		title: "Stream",
-		description: "Continuously follow runtime changes.",
-	},
-];
-
-const schemeOptions = [
-	{ value: "http", label: "http://" },
-	{ value: "https", label: "https://" },
-] as const;
-
-const httpVersionOptions: Array<{
-	value: HttpVersion;
-	label: string;
-	requiresHttps: boolean;
-}> = [
-	{ value: HttpVersion.Http2, label: "HTTP/2", requiresHttps: false },
-	{ value: HttpVersion.Http3, label: "HTTP/3", requiresHttps: true },
-];
 
 // When HTTP/3 is selected, force the scheme to https.
 $effect(() => {
@@ -115,6 +72,7 @@ async function saveProfile() {
 		mode: dialogState.profileMode,
 		httpVersion: dialogState.profileHttpVersion,
 		token: dialogState.profileToken || null,
+		allowInsecureTls: dialogState.profileAllowInsecureTls,
 		intervalSeconds: isStream ? dialogState.profileIntervalSeconds : null,
 		numberOfCycles: isStream ? dialogState.profileNumberOfCycles : null,
 	};
@@ -145,12 +103,11 @@ async function saveProfile() {
 		mode: dialogState.profileMode,
 		httpVersion: dialogState.profileHttpVersion,
 		token: dialogState.profileToken,
+		allowInsecureTls: dialogState.profileAllowInsecureTls,
 		intervalSeconds: dialogState.profileIntervalSeconds,
 		numberOfCycles: dialogState.profileNumberOfCycles,
 	};
 }
-
-type PingStatus = "idle" | "pending" | "success" | "error";
 
 const hasChanges = $derived(
 	dialogState.editorMode === "new-profile" ||
@@ -162,61 +119,13 @@ const hasChanges = $derived(
 		dialogState.profileHttpVersion !==
 			dialogState.originalProfile.httpVersion ||
 		dialogState.profileToken !== dialogState.originalProfile.token ||
+		dialogState.profileAllowInsecureTls !==
+			dialogState.originalProfile.allowInsecureTls ||
 		dialogState.profileIntervalSeconds !==
 			dialogState.originalProfile.intervalSeconds ||
 		dialogState.profileNumberOfCycles !==
 			dialogState.originalProfile.numberOfCycles,
 );
-
-let showToken = $state(false);
-
-let pingStatus = $state<PingStatus>("idle");
-let pingError = $state("");
-let pingResetTimer: ReturnType<typeof setTimeout> | undefined;
-
-// Reset the ping result whenever the URL or version changes so stale indicators don't persist.
-$effect(() => {
-	const _host = dialogState.profileUrlHost;
-	const _scheme = dialogState.profileScheme;
-	const _version = dialogState.profileHttpVersion;
-	pingStatus = "idle";
-	pingError = "";
-});
-
-async function testConnection() {
-	const url = assembleUrl();
-	const host = dialogState.profileUrlHost.trim();
-	if (!host) {
-		return;
-	}
-
-	try {
-		new URL(url);
-	} catch {
-		pingStatus = "error";
-		pingError = "Invalid URL format";
-		return;
-	}
-
-	const token = dialogState.profileToken.trim();
-
-	clearTimeout(pingResetTimer);
-	pingStatus = "pending";
-	pingError = "";
-
-	try {
-		await Ipc.agentPing(url, token || null, dialogState.profileHttpVersion);
-		pingStatus = "success";
-	} catch (err) {
-		pingStatus = "error";
-		pingError = err instanceof Error ? err.message : "Connection failed";
-	}
-
-	pingResetTimer = setTimeout(() => {
-		pingStatus = "idle";
-		pingError = "";
-	}, 4000);
-}
 </script>
 
 <Dialog.Root bind:open>
@@ -262,266 +171,32 @@ async function testConnection() {
 									</div>
 
 									<div class="space-y-6">
-										<label class="block">
-											<span
-												class="mb-3 block text-sm font-medium text-foreground"
-												>Profile name</span
-											>
-											<Input
-												bind:value={dialogState.profileName}
-												placeholder="Production pprof"
-											/>
-										</label>
+										<ProfileForm />
 
-										<div class="block">
-											<span
-												class="mb-3 block text-sm font-medium text-foreground"
-												>URL</span
+										<div class="flex flex-wrap gap-2 pt-2">
+											<Button
+												variant="default"
+												onclick={saveProfile}
+												disabled={!hasChanges}
 											>
-											<div class="flex gap-2">
-												<Select.Root
-													type="single"
-													value={dialogState.profileScheme}
-													onValueChange={(v) => {
-                                                        if (v)
-                                                            dialogState.profileScheme =
-                                                                v as
-                                                                    | "http"
-                                                                    | "https";
-                                                    }}
-												>
-													<Select.Trigger class="w-25 shrink-0">
-														{schemeOptions.find(
-                                                            (o) =>
-                                                                o.value ===
-                                                                dialogState.profileScheme,
-                                                        )?.label ?? "http://"}
-													</Select.Trigger>
-													<Select.Content class="p-1.5">
-														{#each schemeOptions as opt (opt.value)}
-															<Select.Item
-																value={opt.value}
-																disabled={dialogState.profileHttpVersion ===
-                                                                    HttpVersion.Http3 &&
-                                                                    opt.value ===
-                                                                        "http"}
-															>
-																{opt.label}
-															</Select.Item>
-														{/each}
-													</Select.Content>
-												</Select.Root>
-												<Input
-													bind:value={dialogState.profileUrlHost}
-													placeholder="localhost:9090"
-													class="flex-1 min-w-0"
-												/>
-												<Select.Root
-													type="single"
-													value={dialogState.profileHttpVersion}
-													onValueChange={(v) => {
-                                                        if (v)
-                                                            dialogState.profileHttpVersion =
-                                                                v as HttpVersion;
-                                                    }}
-												>
-													<Select.Trigger class="w-25 shrink-0">
-														{httpVersionOptions.find(
-                                                            (o) =>
-                                                                o.value ===
-                                                                dialogState.profileHttpVersion,
-                                                        )?.label ?? "HTTP/2"}
-													</Select.Trigger>
-													<Select.Content class="p-1.5">
-														{#each httpVersionOptions as opt (opt.value)}
-															<Select.Item value={opt.value}>
-																{opt.label}
-																{#if opt.requiresHttps}
-																	<span
-																		class="ml-1 text-xs text-muted-foreground"
-																		>(https)</span
-																	>
-																{/if}
-															</Select.Item>
-														{/each}
-													</Select.Content>
-												</Select.Root>
-											</div>
-										</div>
-
-										<div class="block">
-											<span
-												class="mb-3 block text-sm font-medium text-foreground"
-												>Auth token
-												<span class="ml-1 font-normal text-muted-foreground"
-													>(optional)</span
-												></span
-											>
-											<div class="flex gap-2">
-												<Input
-													bind:value={dialogState.profileToken}
-													placeholder="eyJ..."
-													type={showToken
-                                                        ? "text"
-                                                        : "password"}
-													class="flex-1"
-												/>
+												<CheckIcon class="size-4" />
+												<span>
+													{dialogState.editorMode === "new-profile"
+														? "Create profile"
+														: "Save profile"}
+												</span>
+											</Button>
+											<ConnectionTester />
+											{#if dialogState.selectedProfileId}
 												<Button
-													variant="outline"
-													size="icon"
+													variant="destructive"
 													onclick={() =>
-                                                        (showToken =
-                                                            !showToken)}
-													aria-label={showToken
-                                                        ? "Hide token"
-                                                        : "Show token"}
+														openDeleteProfileDialog(dialogState.selectedProfileId)}
 												>
-													{#if showToken}
-														<EyeOffIcon class="size-4" />
-													{:else}
-														<EyeIcon class="size-4" />
-													{/if}
+													<Trash2Icon class="size-4" />
+													<span>Delete</span>
 												</Button>
-											</div>
-										</div>
-
-										<div>
-											<p class="mb-3 text-sm font-medium text-foreground">
-												Mode
-											</p>
-											<div class="grid gap-3 sm:grid-cols-2">
-												{#each modeOptions as option (option.value)}
-													<button
-														type="button"
-														class={`rounded-2xl border p-4 text-left transition-colors ${dialogState.profileMode === option.value ? "border-primary bg-primary/5" : "border-border/70 bg-muted/25 hover:border-primary/30"}`}
-														onclick={() =>
-                                                            (dialogState.profileMode =
-                                                                option.value)}
-													>
-														<div class="flex items-start justify-between gap-3">
-															<div>
-																<p
-																	class="text-base font-semibold text-foreground"
-																>
-																	{option.title}
-																</p>
-																<p class="mt-1 text-sm text-muted-foreground">
-																	{option.description}
-																</p>
-															</div>
-															<div
-																class={`flex w-6 h-5 items-center justify-center rounded-full border ${dialogState.profileMode === option.value ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background"}`}
-															>
-																{#if dialogState.profileMode === option.value}
-																	<CheckIcon class="size-3.5" />
-																{/if}
-															</div>
-														</div>
-													</button>
-												{/each}
-											</div>
-										</div>
-
-										{#if dialogState.profileMode === CollectionType.Stream}
-											<div class="grid gap-4 sm:grid-cols-2">
-												<label class="block">
-													<span
-														class="mb-3 block text-sm font-medium text-foreground"
-														>Interval
-														<span class="ml-1 font-normal text-muted-foreground"
-															>(seconds)</span
-														></span
-													>
-													<Input
-														type="number"
-														min={1}
-														step={1}
-														bind:value={dialogState.profileIntervalSeconds}
-													/>
-												</label>
-												<label class="block">
-													<span
-														class="mb-3 block text-sm font-medium text-foreground"
-														>Cycles
-														<span class="ml-1 font-normal text-muted-foreground"
-															>(0 = infinite)</span
-														></span
-													>
-													<Input
-														type="number"
-														min={0}
-														step={1}
-														bind:value={dialogState.profileNumberOfCycles}
-													/>
-												</label>
-											</div>
-										{/if}
-
-										<div class="space-y-3 pt-2">
-											{#if pingStatus === "error" && pingError}
-												<p class="text-sm text-destructive">
-													{pingError}
-												</p>
 											{/if}
-											<div
-												class="flex flex-wrap items-center justify-between gap-3"
-											>
-												<div class="flex flex-wrap gap-2">
-													<Button
-														variant="default"
-														onclick={saveProfile}
-														disabled={!hasChanges}
-													>
-														<CheckIcon class="size-4" />
-														<span
-															>{dialogState.editorMode ===
-                                                            "new-profile"
-                                                                ? "Create profile"
-                                                                : "Save profile"}</span
-														>
-													</Button>
-													<Button
-														variant="outline"
-														disabled={pingStatus ===
-                                                            "pending" ||
-                                                            !dialogState.profileUrlHost.trim()}
-														class={pingStatus ===
-                                                        "success"
-                                                            ? "border-green-500/40 bg-green-500/10 text-green-600 hover:bg-green-500/15 hover:text-green-600"
-                                                            : pingStatus ===
-                                                                "error"
-                                                              ? "border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/15 hover:text-destructive"
-                                                              : ""}
-														onclick={testConnection}
-													>
-														{#if pingStatus === "pending"}
-															<LoaderCircleIcon class="size-4 animate-spin" />
-															<span>Testing...</span>
-														{:else if pingStatus === "success"}
-															<CircleCheckIcon class="size-4" />
-															<span>Connected</span>
-														{:else if pingStatus === "error"}
-															<CircleXIcon class="size-4" />
-															<span>Unreachable</span>
-														{:else}
-															<PlugZapIcon class="size-4" />
-															<span>Test connection</span>
-														{/if}
-													</Button>
-													{#if dialogState.selectedProfileId}
-														<Button
-															variant="destructive"
-															onclick={() =>
-                                                                openDeleteProfileDialog(
-                                                                    dialogState.selectedProfileId,
-                                                                )}
-														>
-															<Trash2Icon class="size-4" />
-															<span>Delete</span>
-														</Button>
-													{/if}
-												</div>
-											</div>
 										</div>
 									</div>
 								</div>

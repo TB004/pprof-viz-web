@@ -1,10 +1,8 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import ChartCard from "./chart-card.svelte";
-import CollectionTable from "./collection-table.svelte";
-import DeleteDialog from "./delete-dialog.svelte";
-import EditDialog from "./edit-dialog.svelte";
-
 export type { Slice } from "./chart-card.svelte";
-export { ChartCard, CollectionTable, DeleteDialog, EditDialog };
+export { default as ChartCard } from "./chart-card.svelte";
+export { default as CollectionTable } from "./collection-table.svelte";
+export { default as DeleteDialog } from "./delete-dialog.svelte";
+export { default as EditDialog } from "./edit-dialog.svelte";

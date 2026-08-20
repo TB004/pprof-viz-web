@@ -10,14 +10,12 @@ import {
 	PauseIcon,
 	SaveIcon,
 } from "@lucide/svelte";
-import {
-	ErrorView,
-	SaveDialog,
-	StatusElement,
-} from "$lib/components/custom/session-status-bar";
 import { CollectionService, ErrorService } from "$lib/services";
 import { CollectionStatus, CollectionType } from "$lib/types";
 import { cn } from "$lib/utils.js";
+import ErrorView from "./error-view.svelte";
+import SaveDialog from "./save-dialog.svelte";
+import StatusElement from "./status-element.svelte";
 
 let showErrors = $state(false);
 let saveOpen = $state(false);
@@ -28,43 +26,43 @@ const errorState = ErrorService.errorState;
 // Only offer to save freshly collected data — not a session loaded from disk,
 // and only once it has stopped (Idle) with samples in hand.
 const canSave = $derived(
-	$collectionState.status === CollectionStatus.Idle &&
-		$collectionState.collectedSamples > 0 &&
-		!$collectionState.loaded &&
-		!$collectionState.saved,
+	collectionState.status === CollectionStatus.Idle &&
+		collectionState.collectedSamples > 0 &&
+		!collectionState.loaded &&
+		!collectionState.saved,
 );
 
 const modeLabel = $derived(
-	$collectionState.mode === CollectionType.Snapshot
+	collectionState.mode === CollectionType.Snapshot
 		? "Snapshot"
-		: $collectionState.mode === CollectionType.Stream
+		: collectionState.mode === CollectionType.Stream
 			? "Stream"
 			: undefined,
 );
 
-const urlLabel = $derived($collectionState.url?.toString() ?? undefined);
+const urlLabel = $derived(collectionState.url?.toString() ?? undefined);
 
 const statusLabel = $derived(
-	$collectionState.status === CollectionStatus.Running ? "Running" : "Idle",
+	collectionState.status === CollectionStatus.Running ? "Running" : "Idle",
 );
 
 const statusIconClass = $derived(
-	$collectionState.status === CollectionStatus.Running
+	collectionState.status === CollectionStatus.Running
 		? "size-3.5 animate-spin text-foreground"
 		: "size-3.5 text-muted-foreground",
 );
 
-const errorCount = $derived($errorState.length);
+const errorCount = $derived(errorState.length);
 </script>
 
 <footer
-	class="border-sidebar-border/70 bg-sidebar/90 text-sidebar-foreground supports-backdrop-filter:bg-sidebar/80 shrink-0 border-t backdrop-blur"
+	class="border-sidebar-border/70 bg-sidebar/90 text-sidebar-foreground shrink-0 border-t"
 >
 	<div
 		class="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 text-xs"
 	>
 		<StatusElement>
-			{#if $collectionState.status === CollectionStatus.Running}
+			{#if collectionState.status === CollectionStatus.Running}
 				<LoaderCircle class={statusIconClass} />
 			{:else}
 				<PauseIcon class={statusIconClass} />
@@ -92,14 +90,14 @@ const errorCount = $derived($errorState.length);
 
 		<StatusElement>
 			<span class="text-muted-foreground">Samples</span>
-			<span class="font-medium">{$collectionState.collectedSamples}</span>
+			<span class="font-medium">{collectionState.collectedSamples}</span>
 		</StatusElement>
 
 		<StatusElement>
 			<span class="text-muted-foreground">Time</span>
 			<span class="font-medium"
 				>{CollectionService.formatElapsedTime(
-                    $collectionState.elapsedSeconds,
+                    collectionState.elapsedSeconds,
                 )}</span
 			>
 		</StatusElement>

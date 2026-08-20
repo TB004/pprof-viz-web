@@ -7,10 +7,9 @@ use std::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager};
 
-use crate::state::AppState;
-use crate::utils;
+use crate::AppState;
 
-const MAX_ERRORS: usize = 200;
+pub const MAX_ERRORS: usize = 200;
 pub const EVENT_NEW_ERROR: &str = "error://new";
 
 #[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
@@ -18,7 +17,7 @@ pub const EVENT_NEW_ERROR: &str = "error://new";
 pub struct AppError {
     pub id: String,
     pub message: String,
-    #[specta(type = f64)]
+    #[specta(type = crate::TsNumber)]
     pub timestamp: i64,
 }
 
@@ -32,7 +31,7 @@ impl ErrorLog {
         let entry = AppError {
             id: ulid::Ulid::generate().to_string(),
             message,
-            timestamp: utils::now_millis(),
+            timestamp: crate::now_millis(),
         };
         let mut entries = self.entries.lock().unwrap_or_else(|e| e.into_inner());
         entries.push_front(entry.clone());
@@ -66,22 +65,19 @@ impl ErrorLog {
     }
 }
 
-/// Internal helper: push an error and emit it. Used from Rust call sites
-/// (collection failures, sql errors, ...) that want to surface a problem.
-pub fn report(app: &AppHandle, message: String) {
+/// Push an error and emit it, returning the stored entry. Used from Rust call
+/// sites (collection failures, sql errors, ...) that want to surface a problem.
+pub fn report(app: &AppHandle, message: String) -> AppError {
     let log = app.state::<AppState>().errors.clone();
     let entry = log.push(message);
     let _ = app.emit(EVENT_NEW_ERROR, &entry);
+    entry
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn register_error(app: AppHandle, message: String) -> Result<AppError, String> {
-    let log = app.state::<AppState>().errors.clone();
-    let entry = log.push(message);
-    app.emit(EVENT_NEW_ERROR, &entry)
-        .map_err(|e| e.to_string())?;
-    Ok(entry)
+    Ok(report(&app, message))
 }
 
 #[tauri::command]

@@ -2,19 +2,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 use std::collections::VecDeque;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::watch;
 
-use crate::db::{self, ProfileDescriptor};
+use crate::AppState;
+use crate::db::{self, ProfileRow};
 use crate::errors;
 use crate::rpc::AgentClient;
 use crate::settings::CollectionType;
-use crate::state::AppState;
-use crate::utils;
 
 pub const MAX_FRAMES: usize = 500;
 
@@ -25,18 +24,25 @@ pub const EVENT_METADATA: &str = "collection://metadata";
 pub(crate) const SUB_KEYS: &[&str] =
     &["scheduler", "goDebug", "gc", "memory", "cpu", "cgo", "sync"];
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default, specta::Type)]
 #[serde(rename_all = "lowercase")]
 pub enum CollectionStatus {
+    #[default]
     Idle,
     Running,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, specta::Type)]
 #[serde(transparent)]
-pub struct Frame(#[specta(type = specta_typescript::Unknown)] pub Value);
+pub struct Frame(#[specta(type = specta_typescript::Unknown)] pub Arc<Value>);
 
-#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+impl From<Value> for Frame {
+    fn from(value: Value) -> Self {
+        Frame(Arc::new(value))
+    }
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionStateSnapshot {
     pub status: CollectionStatus,
@@ -44,17 +50,17 @@ pub struct CollectionStateSnapshot {
     pub profile_name: Option<String>,
     pub profile_url: Option<String>,
     pub mode: Option<CollectionType>,
-    #[specta(type = Option<f64>)]
+    #[specta(type = Option<crate::TsNumber>)]
     pub started_at: Option<i64>,
-    #[specta(type = Option<f64>)]
+    #[specta(type = Option<crate::TsNumber>)]
     pub ended_at: Option<i64>,
     pub loaded: bool,
     pub saved: bool,
-    #[specta(type = f64)]
+    #[specta(type = crate::TsNumber)]
     pub sample_count: usize,
-    pub frames: Vec<Frame>,
-    #[specta(type = Vec<f64>)]
-    pub frame_timestamps: Vec<i64>,
+    pub frames: Option<Vec<Frame>>,
+    #[specta(type = Option<Vec<crate::TsNumber>>)]
+    pub frame_timestamps: Option<Vec<i64>>,
     #[specta(type = Option<specta_typescript::Unknown>)]
     pub metadata: Option<Value>,
 }
@@ -82,13 +88,40 @@ pub struct CollectionSession {
     pub cancel_tx: watch::Sender<bool>,
 }
 
+impl CollectionSession {
+    /// Append a frame with its arrival time, evicting the oldest once the cap
+    /// is reached. Returns the stored value for the caller to emit.
+    fn push(&mut self, frame: Frame) -> Arc<Value> {
+        let value = Arc::clone(&frame.0);
+        self.frames.push_back(frame);
+        self.frame_times.push_back(crate::now_millis());
+        while self.frames.len() > MAX_FRAMES {
+            self.frames.pop_front();
+            self.frame_times.pop_front();
+        }
+        value
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct CollectionStore {
     inner: Mutex<Option<CollectionSession>>,
 }
 
 impl CollectionStore {
+    /// The full state, frame buffer included. For hydration and for loading a
+    /// collection from disk.
     pub fn snapshot(&self) -> CollectionStateSnapshot {
+        self.build(true)
+    }
+
+    /// The state without the frame buffer, for the events fired when only the
+    /// session's metadata changed.
+    pub(crate) fn state(&self) -> CollectionStateSnapshot {
+        self.build(false)
+    }
+
+    fn build(&self, with_frames: bool) -> CollectionStateSnapshot {
         let guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         match guard.as_ref() {
             Some(session) => CollectionStateSnapshot {
@@ -102,24 +135,15 @@ impl CollectionStore {
                 loaded: session.loaded,
                 saved: session.saved,
                 sample_count: session.frames.len(),
-                frames: session.frames.iter().cloned().collect(),
-                frame_timestamps: session.frame_times.iter().copied().collect(),
+                frames: with_frames.then(|| session.frames.iter().cloned().collect()),
+                frame_timestamps: with_frames
+                    .then(|| session.frame_times.iter().copied().collect()),
                 metadata: session.metadata.clone(),
             },
             None => CollectionStateSnapshot {
-                status: CollectionStatus::Idle,
-                profile_id: None,
-                profile_name: None,
-                profile_url: None,
-                mode: None,
-                started_at: None,
-                ended_at: None,
-                loaded: false,
-                saved: false,
-                sample_count: 0,
-                frames: Vec::new(),
-                frame_timestamps: Vec::new(),
-                metadata: None,
+                frames: with_frames.then(Vec::new),
+                frame_timestamps: with_frames.then(Vec::new),
+                ..Default::default()
             },
         }
     }
@@ -147,32 +171,36 @@ impl CollectionStore {
         guard.as_ref().map(|s| s.cancel_tx.clone())
     }
 
-    /// Push a merged frame into the active session, but only if the session
-    /// id still matches — guards against a stale worker writing into a
-    /// freshly-started session. Returns the new sample count, or `None`
-    /// when the worker should exit.
-    fn push_frame(&self, session_id: &str, frame: Frame) -> Option<usize> {
+    /// Store a frame in the active session, but only if the session id still
+    /// matches — guards against a stale worker writing into a freshly-started
+    /// session. Returns the stored frame so the caller can emit it without
+    /// cloning the JSON, or `None` when the worker should exit.
+    fn push_frame(&self, session_id: &str, frame: Value) -> Option<Arc<Value>> {
         let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
         let session = guard.as_mut()?;
         if session.session_id != session_id {
             return None;
         }
-        session.frames.push_back(frame);
-        session.frame_times.push_back(utils::now_millis());
-        while session.frames.len() > MAX_FRAMES {
-            session.frames.pop_front();
-            session.frame_times.pop_front();
-        }
-        Some(session.frames.len())
+        Some(session.push(Frame::from(frame)))
     }
 
-    fn last_frame_value(&self, session_id: &str) -> Option<Value> {
-        let guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
-        let session = guard.as_ref()?;
+    /// Merge `next` into the session's latest frame and store the result.
+    /// Same session-id guard and return value as [`Self::push_frame`], but
+    /// the lock is held across the merge so the previous frame can be read
+    /// and the merged one appended without racing a session swap.
+    fn merge_push(&self, session_id: &str, next: Value) -> Option<Arc<Value>> {
+        let mut guard = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        let session = guard.as_mut()?;
         if session.session_id != session_id {
             return None;
         }
-        session.frames.back().map(|f| f.0.clone())
+        // Always merge — even the first frame — so its histograms are
+        // normalised to dense `counts`.
+        let prev = session
+            .frames
+            .back()
+            .map_or(Value::Null, |f| f.0.as_ref().clone());
+        Some(session.push(Frame::from(merge_frame(prev, next))))
     }
 
     fn set_metadata(&self, session_id: &str, value: Value) -> bool {
@@ -197,7 +225,7 @@ impl CollectionStore {
         {
             session.status = CollectionStatus::Idle;
             if session.ended_at.is_none() {
-                session.ended_at = Some(utils::now_millis());
+                session.ended_at = Some(crate::now_millis());
             }
         }
     }
@@ -338,8 +366,13 @@ pub async fn stop_collection(app: AppHandle) -> Result<(), String> {
 #[specta::specta]
 pub async fn start_collection(app: AppHandle, profile_id: String) -> Result<(), String> {
     let profile = db::load_profile(&app, &profile_id).await?;
-    let client = AgentClient::connect(&profile.url, profile.token.as_deref(), profile.http_version)
-        .map_err(|e| e.to_string())?;
+    let client = AgentClient::connect(
+        &profile.url,
+        profile.token.as_deref(),
+        profile.http_version,
+        profile.allow_insecure_tls,
+    )
+    .map_err(|e| e.to_string())?;
 
     let (cancel_tx, cancel_rx) = watch::channel(false);
     let session_id = ulid::Ulid::generate().to_string();
@@ -350,7 +383,7 @@ pub async fn start_collection(app: AppHandle, profile_id: String) -> Result<(), 
         profile_name: profile.name.clone(),
         profile_url: profile.url.clone(),
         mode: profile.mode,
-        started_at: utils::now_millis(),
+        started_at: crate::now_millis(),
         ended_at: None,
         loaded: false,
         saved: false,
@@ -368,7 +401,7 @@ pub async fn start_collection(app: AppHandle, profile_id: String) -> Result<(), 
         let _ = prev_cancel.send(true);
     }
 
-    emit_state(&app, Some(state_arc.snapshot()));
+    emit_state(&app, state_arc.state());
 
     let app_for_task = app.clone();
     tokio::spawn(async move {
@@ -378,29 +411,14 @@ pub async fn start_collection(app: AppHandle, profile_id: String) -> Result<(), 
     Ok(())
 }
 
-pub(crate) fn emit_state(app: &AppHandle, snapshot: Option<CollectionStateSnapshot>) {
-    let payload = snapshot.unwrap_or_else(|| CollectionStateSnapshot {
-        status: CollectionStatus::Idle,
-        profile_id: None,
-        profile_name: None,
-        profile_url: None,
-        mode: None,
-        started_at: None,
-        ended_at: None,
-        loaded: false,
-        saved: false,
-        sample_count: 0,
-        frames: Vec::new(),
-        frame_timestamps: Vec::new(),
-        metadata: None,
-    });
-    let _ = app.emit(EVENT_STATE, &payload);
+pub(crate) fn emit_state(app: &AppHandle, snapshot: CollectionStateSnapshot) {
+    let _ = app.emit(EVENT_STATE, &snapshot);
 }
 
 async fn run_session(
     app: AppHandle,
     client: AgentClient,
-    profile: ProfileDescriptor,
+    profile: ProfileRow,
     session_id: String,
     mut cancel_rx: watch::Receiver<bool>,
 ) {
@@ -453,12 +471,14 @@ async fn run_session(
                             // Normalise histograms to dense `counts` for a
                             // consistent shape across snapshot and stream modes.
                             let value = merge_frame(Value::Null, value);
-                            if store.push_frame(&session_id, Frame(value.clone())).is_some() {
-                                let _ = app.emit(EVENT_FRAME, &value);
+                            if let Some(stored) = store.push_frame(&session_id, value) {
+                                let _ = app.emit(EVENT_FRAME, &stored);
                             }
                         }
                     }
-                    Err(e) => errors::report(&app, format!("snapshot failed: {e}")),
+                    Err(e) => {
+                        errors::report(&app, format!("snapshot failed: {e}"));
+                    }
                 }
             }
         }
@@ -499,15 +519,9 @@ async fn run_session(
                                         continue;
                                     }
                                 };
-                                // Always merge — even the first frame — so its
-                                // histograms are normalised to dense `counts`.
-                                let prev = store
-                                    .last_frame_value(&session_id)
-                                    .unwrap_or(Value::Null);
-                                let merged = merge_frame(prev, next);
-                                if store.push_frame(&session_id, Frame(merged.clone())).is_none() {
+                                let Some(merged) = store.merge_push(&session_id, next) else {
                                     break;
-                                }
+                                };
                                 let _ = app.emit(EVENT_FRAME, &merged);
                             }
                             Ok(None) => break,
@@ -521,7 +535,9 @@ async fn run_session(
                         }
                     }
                 },
-                Err(e) => errors::report(&app, format!("stream open failed: {e}")),
+                Err(e) => {
+                    errors::report(&app, format!("stream open failed: {e}"));
+                }
             }
         }
     }
@@ -535,7 +551,7 @@ async fn run_session(
 /// newer one (in which case there's nothing to mark idle).
 fn finish(app: &AppHandle, store: &CollectionStore, session_id: &str) {
     store.mark_idle(session_id);
-    emit_state(app, Some(store.snapshot()));
+    emit_state(app, store.state());
 }
 
 #[cfg(test)]

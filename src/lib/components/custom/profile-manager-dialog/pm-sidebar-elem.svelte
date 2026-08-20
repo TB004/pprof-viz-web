@@ -12,10 +12,9 @@ import {
 	PlusIcon,
 	Trash2Icon,
 } from "@lucide/svelte";
-import { get } from "svelte/store";
 import { Button } from "$lib/components/ui/button/index.js";
 import { ProfileService } from "$lib/services";
-import type { ProfileProject } from "$lib/services/profile_service";
+import type { ProfileProject } from "$lib/services/profile_service.svelte.js";
 import { CollectionType, HttpVersion } from "$lib/types";
 import { clearProfileForm, dialogState } from "./state.svelte.ts";
 
@@ -40,7 +39,7 @@ function startNewProfile(projectId: string) {
 }
 
 function openDeleteProjectDialog(projectId: string) {
-	const project = get(ProfileService.profileProjects).find(
+	const project = ProfileService.profileCatalog.projects.find(
 		(entry) => entry.id === projectId,
 	);
 	if (!project) {
@@ -89,6 +88,7 @@ async function handleProfileSelect(projectId: string, profileId: string) {
 	dialogState.profileMode = snapshot?.mode ?? CollectionType.Stream;
 	dialogState.profileHttpVersion = snapshot?.httpVersion ?? HttpVersion.Http2;
 	dialogState.profileToken = snapshot?.token ?? "";
+	dialogState.profileAllowInsecureTls = snapshot?.allowInsecureTls ?? false;
 	dialogState.profileIntervalSeconds = snapshot?.intervalSeconds ?? 1;
 	dialogState.profileNumberOfCycles = snapshot?.numberOfCycles ?? 0;
 
@@ -99,6 +99,7 @@ async function handleProfileSelect(projectId: string, profileId: string) {
 		mode: dialogState.profileMode,
 		httpVersion: dialogState.profileHttpVersion,
 		token: dialogState.profileToken,
+		allowInsecureTls: dialogState.profileAllowInsecureTls,
 		intervalSeconds: dialogState.profileIntervalSeconds,
 		numberOfCycles: dialogState.profileNumberOfCycles,
 	};

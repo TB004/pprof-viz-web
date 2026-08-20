@@ -15,7 +15,8 @@ pub struct UpdateStatus {
     pub available: bool,
     pub release_url: String,
     /// `https://api.github.com/repos/.../releases/assets/{id}`.
-    /// `None` when no update is available or no matching asset was found.
+    /// `None` when no update is available, no matching asset was found, or the
+    /// platform cannot install one itself (Linux — see `check_update`).
     pub asset_url: Option<String>,
     /// Original asset filename (e.g. `Pprof-Viz_0.1.2_aarch64.dmg`).
     /// Needed so the downloaded file gets the right name and extension.
@@ -63,13 +64,21 @@ pub async fn check_update(app: AppHandle) -> Result<UpdateStatus, String> {
 
     // Check if an update is available based on version diff
     let latest_version = release.tag_name.trim_start_matches('v').to_string();
-    let strip = |s: &str| semver::Version::parse(s.trim_start_matches('v')).ok();
-    let available = matches!((strip(&latest_version), strip(&current_version)), (Some(c), Some(cur)) if c > cur);
+    let parse = |s: &str| semver::Version::parse(s.trim_start_matches('v')).ok();
+    let available = matches!(
+        (parse(&latest_version), parse(&current_version)),
+        (Some(latest), Some(current)) if latest > current
+    );
 
     let os = std::env::consts::OS;
     let arch = std::env::consts::ARCH;
 
     // Returns `(api_url, filename)` for the asset matching the running OS/arch.
+    //
+    // Linux is deliberately absent. The release ships a single-file `.flatpak`
+    // bundle, which this app cannot install itself: under the Flatpak sandbox
+    // the download lands in a private /tmp that the host's installer cannot
+    // read, and that directory is torn down the moment this process exits.
     let assets = release
         .assets
         .iter()
@@ -79,8 +88,6 @@ pub async fn check_update(app: AppHandle) -> Result<UpdateStatus, String> {
                 ("macos", "aarch64") => n.ends_with(".dmg"),
                 ("windows", "x86_64") => n.contains("x64") && n.ends_with(".msi"),
                 ("windows", "aarch64") => n.contains("arm64") && n.ends_with(".msi"),
-                ("linux", "x86_64") => n.contains("x86_64") && n.ends_with(".flatpak"),
-                ("linux", "aarch64") => n.contains("aarch64") && n.ends_with(".flatpak"),
                 _ => false,
             }
         })
@@ -124,7 +131,7 @@ pub async fn install_update(app: AppHandle, url: String, filename: String) -> Re
     std::fs::write(&dest, &bytes).map_err(|e| e.to_string())?;
 
     // Open with the OS default handler.
-    crate::opener::open(dest.to_str().ok_or("non-UTF-8 temp path")?.to_owned())?;
+    crate::opener::open(dest.to_str().ok_or("non-UTF-8 temp path")?.to_owned()).await?;
 
     // Exit so the installer can overwrite the running binary.
     app.exit(0);

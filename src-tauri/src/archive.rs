@@ -3,19 +3,19 @@
 
 use std::collections::VecDeque;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use buffa::Message;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use sqlx::SqlitePool;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::watch;
 
+use crate::AppState;
 use crate::collection::{self, CollectionSession, CollectionStatus, Frame};
+use crate::db;
 use crate::proto::proto::{AllResponse, CollectionMeta, MetadataResponse, StoredCollection};
 use crate::settings::CollectionType;
-use crate::state::AppState;
-use crate::utils;
 
 /// Current on-disk `.ppvz` format version. Bump when the layout changes in a
 /// way that needs a migration on read.
@@ -45,23 +45,23 @@ fn read_stored(path: &std::path::Path) -> Result<StoredCollection, String> {
     StoredCollection::decode_from_slice(&bytes).map_err(|e| format!("decode .ppvz: {e}"))
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, specta::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionRow {
     pub id: String,
     pub name: String,
     pub description: Option<String>,
     pub filename: String,
-    #[specta(type = f64)]
+    #[specta(type = crate::TsNumber)]
     pub size_bytes: i64,
-    #[specta(type = f64)]
+    #[specta(type = crate::TsNumber)]
     pub duration_ms: i64,
-    #[specta(type = f64)]
+    #[specta(type = crate::TsNumber)]
     pub sample_count: i64,
     pub profile_name: Option<String>,
     pub profile_url: Option<String>,
     pub mode: Option<String>,
-    #[specta(type = f64)]
+    #[specta(type = crate::TsNumber)]
     pub created_at: i64,
 }
 
@@ -69,13 +69,13 @@ pub struct CollectionRow {
 #[serde(rename_all = "camelCase")]
 pub struct DiskUsage {
     /// Total bytes of all stored `.ppvz` files (from the metadata table).
-    #[specta(type = f64)]
+    #[specta(type = crate::TsNumber)]
     pub collections_bytes: i64,
     /// Free space on the volume that holds the collections folder.
-    #[specta(type = f64)]
+    #[specta(type = crate::TsNumber)]
     pub free_bytes: u64,
     /// Total size of that volume.
-    #[specta(type = f64)]
+    #[specta(type = crate::TsNumber)]
     pub total_bytes: u64,
 }
 
@@ -207,13 +207,13 @@ fn encode_stored(
     meta: CollectionMeta,
 ) -> Result<StoredCollection, String> {
     let mut proto_frames: Vec<AllResponse> = Vec::with_capacity(frames.len());
-    let mut prev = Value::Null;
+    let mut prev = Arc::new(Value::Null);
     for frame in frames {
         let sparse = diff_frame(&prev, &frame.0);
         let af: AllResponse =
             serde_json::from_value(sparse).map_err(|e| format!("encode frame: {e}"))?;
         proto_frames.push(af);
-        prev = frame.0.clone();
+        prev = Arc::clone(&frame.0);
     }
 
     let metadata = match metadata {
@@ -254,8 +254,8 @@ fn decode_stored(stored: StoredCollection) -> Result<DecodedCollection, String> 
     for af in &stored.frames {
         let v = serde_json::to_value(af).map_err(|e| e.to_string())?;
         let merged = collection::merge_frame(prev, v);
-        frames.push_back(Frame(merged.clone()));
-        prev = merged;
+        prev = merged.clone();
+        frames.push_back(Frame::from(merged));
     }
 
     let frame_times: VecDeque<i64> = stored.frame_timestamps.into_iter().collect();
@@ -303,7 +303,7 @@ fn install_loaded(
     if let Some(prev_cancel) = store.replace(session) {
         let _ = prev_cancel.send(true);
     }
-    collection::emit_state(app, Some(store.snapshot()));
+    collection::emit_state(app, store.snapshot());
 }
 
 // ---------- commands ----------
@@ -321,20 +321,18 @@ pub async fn save_collection(
     }
 
     let snapshot = app.state::<AppState>().collection.snapshot();
-    if snapshot.frames.is_empty() {
+    let frames = snapshot.frames.unwrap_or_default();
+    if frames.is_empty() {
         return Err("no collected data to save".into());
     }
     let started_at = snapshot
         .started_at
         .ok_or_else(|| "collection has no start time".to_string())?;
-    let duration_ms = (snapshot.ended_at.unwrap_or_else(utils::now_millis) - started_at).max(0);
-    let sample_count = snapshot.frames.len() as i64;
-    let created_at = utils::now_millis();
+    let duration_ms = (snapshot.ended_at.unwrap_or_else(crate::now_millis) - started_at).max(0);
+    let sample_count = frames.len() as i64;
+    let created_at = crate::now_millis();
 
-    let description = description.and_then(|d| {
-        let d = d.trim().to_string();
-        if d.is_empty() { None } else { Some(d) }
-    });
+    let description = crate::non_empty(description);
     let mode_str = snapshot.mode.map(|m| {
         match m {
             CollectionType::Snapshot => "snapshot",
@@ -357,8 +355,8 @@ pub async fn save_collection(
     };
 
     let stored = encode_stored(
-        &snapshot.frames,
-        snapshot.frame_timestamps.clone(),
+        &frames,
+        snapshot.frame_timestamps.clone().unwrap_or_default(),
         snapshot.metadata.clone(),
         meta,
     )?;
@@ -384,23 +382,23 @@ pub async fn save_collection(
         created_at,
     };
 
-    let pool = app.state::<SqlitePool>().inner().clone();
-    sqlx::query(
+    let pool = db::pool(&app);
+    sqlx::query!(
         "INSERT INTO collections (id, name, description, filename, size_bytes, duration_ms, \
          sample_count, profile_name, profile_url, mode, created_at) \
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        row.id,
+        row.name,
+        row.description,
+        row.filename,
+        row.size_bytes,
+        row.duration_ms,
+        row.sample_count,
+        row.profile_name,
+        row.profile_url,
+        row.mode,
+        row.created_at
     )
-    .bind(&row.id)
-    .bind(&row.name)
-    .bind(row.description.as_deref())
-    .bind(&row.filename)
-    .bind(row.size_bytes)
-    .bind(row.duration_ms)
-    .bind(row.sample_count)
-    .bind(row.profile_name.as_deref())
-    .bind(row.profile_url.as_deref())
-    .bind(row.mode.as_deref())
-    .bind(row.created_at)
     .execute(&pool)
     .await
     .map_err(|e| e.to_string())?;
@@ -408,7 +406,7 @@ pub async fn save_collection(
     // This exact session is now archived — disable further saves of it.
     let store = app.state::<AppState>().collection.clone();
     store.mark_saved();
-    collection::emit_state(&app, Some(store.snapshot()));
+    collection::emit_state(&app, store.state());
 
     Ok(row)
 }
@@ -416,31 +414,43 @@ pub async fn save_collection(
 #[tauri::command]
 #[specta::specta]
 pub async fn list_collections(app: AppHandle) -> Result<Vec<CollectionRow>, String> {
-    let pool = app.state::<SqlitePool>().inner().clone();
-    sqlx::query_as::<_, CollectionRow>("SELECT * FROM collections ORDER BY created_at DESC")
-        .fetch_all(&pool)
-        .await
-        .map_err(|e| e.to_string())
+    let pool = db::pool(&app);
+    sqlx::query_as!(
+        CollectionRow,
+        r#"SELECT
+            id AS "id!",
+            name,
+            description,
+            filename,
+            size_bytes,
+            duration_ms,
+            sample_count,
+            profile_name,
+            profile_url,
+            mode,
+            created_at
+        FROM collections ORDER BY created_at DESC"#
+    )
+    .fetch_all(&pool)
+    .await
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn delete_collection(app: AppHandle, id: String) -> Result<(), String> {
-    let pool = app.state::<SqlitePool>().inner().clone();
-    let filename: Option<(String,)> =
-        sqlx::query_as("SELECT filename FROM collections WHERE id = ?")
-            .bind(&id)
-            .fetch_optional(&pool)
-            .await
-            .map_err(|e| e.to_string())?;
+    let pool = db::pool(&app);
+    let filename = sqlx::query_scalar!("SELECT filename FROM collections WHERE id = ?", id)
+        .fetch_optional(&pool)
+        .await
+        .map_err(|e| e.to_string())?;
 
-    sqlx::query("DELETE FROM collections WHERE id = ?")
-        .bind(&id)
+    sqlx::query!("DELETE FROM collections WHERE id = ?", id)
         .execute(&pool)
         .await
         .map_err(|e| e.to_string())?;
 
-    if let Some((filename,)) = filename {
+    if let Some(filename) = filename {
         let _ = std::fs::remove_file(collections_dir(&app)?.join(filename));
     }
     Ok(())
@@ -458,32 +468,46 @@ pub async fn update_collection(
     if name.is_empty() {
         return Err("collection name must not be empty".into());
     }
-    let description = description.and_then(|d| {
-        let d = d.trim().to_string();
-        if d.is_empty() { None } else { Some(d) }
-    });
+    let description = crate::non_empty(description);
 
-    let pool = app.state::<SqlitePool>().inner().clone();
-    sqlx::query("UPDATE collections SET name = ?, description = ? WHERE id = ?")
-        .bind(&name)
-        .bind(description.as_deref())
-        .bind(&id)
-        .execute(&pool)
-        .await
-        .map_err(|e| e.to_string())?;
+    let pool = db::pool(&app);
+    sqlx::query!(
+        "UPDATE collections SET name = ?, description = ? WHERE id = ?",
+        name,
+        description,
+        id
+    )
+    .execute(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
     Ok(())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn load_collection(app: AppHandle, id: String) -> Result<(), String> {
-    let pool = app.state::<SqlitePool>().inner().clone();
-    let row = sqlx::query_as::<_, CollectionRow>("SELECT * FROM collections WHERE id = ?")
-        .bind(&id)
-        .fetch_optional(&pool)
-        .await
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| format!("collection '{id}' not found"))?;
+    let pool = db::pool(&app);
+    let row = sqlx::query_as!(
+        CollectionRow,
+        r#"SELECT
+            id AS "id!",
+            name,
+            description,
+            filename,
+            size_bytes,
+            duration_ms,
+            sample_count,
+            profile_name,
+            profile_url,
+            mode,
+            created_at
+        FROM collections WHERE id = ?"#,
+        id
+    )
+    .fetch_optional(&pool)
+    .await
+    .map_err(|e| e.to_string())?
+    .ok_or_else(|| format!("collection '{id}' not found"))?;
 
     let path = collections_dir(&app)?.join(&row.filename);
     let decoded = decode_stored(read_stored(&path)?)?;
@@ -508,17 +532,30 @@ pub async fn load_collection(app: AppHandle, id: String) -> Result<(), String> {
 pub async fn load_from_path(app: &AppHandle, path: &std::path::Path) -> Result<(), String> {
     let decoded = decode_stored(read_stored(path)?)?;
 
-    let pool = app.state::<SqlitePool>().inner().clone();
+    let pool = db::pool(app);
 
     // Prefer the archive row if this file lives in our collections folder.
     let db_row = match path.file_name().and_then(|n| n.to_str()) {
-        Some(filename) => {
-            sqlx::query_as::<_, CollectionRow>("SELECT * FROM collections WHERE filename = ?")
-                .bind(filename)
-                .fetch_optional(&pool)
-                .await
-                .map_err(|e| e.to_string())?
-        }
+        Some(filename) => sqlx::query_as!(
+            CollectionRow,
+            r#"SELECT
+            id AS "id!",
+            name,
+            description,
+            filename,
+            size_bytes,
+            duration_ms,
+            sample_count,
+            profile_name,
+            profile_url,
+            mode,
+            created_at
+        FROM collections WHERE filename = ?"#,
+            filename
+        )
+        .fetch_optional(&pool)
+        .await
+        .map_err(|e| e.to_string())?,
         None => None,
     };
 
@@ -539,7 +576,7 @@ pub async fn load_from_path(app: &AppHandle, path: &std::path::Path) -> Result<(
                 if m.created_at != 0 {
                     m.created_at
                 } else {
-                    utils::now_millis()
+                    crate::now_millis()
                 },
                 m.duration_ms,
             )
@@ -563,12 +600,13 @@ pub async fn load_from_path(app: &AppHandle, path: &std::path::Path) -> Result<(
 #[specta::specta]
 pub async fn disk_usage(app: AppHandle) -> Result<DiskUsage, String> {
     let dir = collections_dir(&app)?;
-    let pool = app.state::<SqlitePool>().inner().clone();
-    let collections_bytes: i64 =
-        sqlx::query_scalar("SELECT COALESCE(SUM(size_bytes), 0) FROM collections")
-            .fetch_one(&pool)
-            .await
-            .map_err(|e| e.to_string())?;
+    let pool = db::pool(&app);
+    let collections_bytes = sqlx::query_scalar!(
+        r#"SELECT COALESCE(SUM(size_bytes), 0) AS "total!: i64" FROM collections"#
+    )
+    .fetch_one(&pool)
+    .await
+    .map_err(|e| e.to_string())?;
     let free_bytes = fs4::free_space(&dir).map_err(|e| e.to_string())?;
     let total_bytes = fs4::total_space(&dir).map_err(|e| e.to_string())?;
     Ok(DiskUsage {
@@ -620,7 +658,7 @@ mod tests {
                 }
             }),
         );
-        let original = vec![Frame(f0.clone()), Frame(f1.clone())];
+        let original = vec![Frame::from(f0.clone()), Frame::from(f1.clone())];
         let metadata = Some(json!({
             "scheduler": { "latenciesSecondsBuckets": [0.1, 0.2, 0.3, 0.4, 0.5] }
         }));

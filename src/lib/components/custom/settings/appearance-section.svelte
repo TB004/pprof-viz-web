@@ -34,7 +34,7 @@ const settings = SettingsService.settings;
 			<p class="mb-3 text-sm font-medium text-foreground">Theme</p>
 			<div class="grid grid-cols-3 gap-3">
 				{#each themeOptions as option (option.value)}
-					{@const isSelected = $settings.theme === option.value}
+					{@const isSelected = settings.theme === option.value}
 					<button
 						type="button"
 						class={`relative flex flex-col items-center gap-3 rounded-xl border p-4 text-sm font-medium transition-colors ${isSelected ? "border-primary bg-primary/5 text-foreground" : "border-border/70 bg-muted/25 text-muted-foreground hover:border-primary/30 hover:text-foreground"}`}

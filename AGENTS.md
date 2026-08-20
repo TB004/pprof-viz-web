@@ -12,7 +12,7 @@ Run everything through `just` (see the [Justfile](Justfile) for the full list). 
 ## Architecture
 
 Rust owns business logic: persistence (SQLite + Tauri store), the ConnectRPC client to
-`pprof-viz-agent`, and the active collection session. Svelte is a thin presentation layer.
+`pprof-viz-collector`, and the active collection session. Svelte is a thin presentation layer.
 
 **Session state, metrics buffering, and elapsed timers live in Rust memory on purpose** —
 moving them into the frontend reintroduces browser tab throttling, which stalls collection

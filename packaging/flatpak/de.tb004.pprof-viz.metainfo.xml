@@ -23,7 +23,7 @@
     <p>
       A modern, real-time desktop dashboard for visualizing Go runtime telemetry.
       Pprof-Viz is a cross-platform desktop application built with Tauri v2 and Svelte 5.
-      It serves as the frontend for the pprof-viz-agent backend, providing a comprehensive,
+      It serves as the frontend for the pprof-viz-collector backend, providing a comprehensive,
       real-time visualization of Go's internal <code>runtime/metrics</code>.
     </p>
     <p>
@@ -41,8 +41,8 @@
       <li>Native desktop: distributed as .dmg (macOS), .msi (Windows), and Flatpak (Linux).</li>
     </ul>
     <p>
-      For a complete monitoring setup: embed <code>pprof-viz-agent</code> in your Go
-      application, install Pprof-Viz, then connect to your agent's endpoint.
+      For a complete monitoring setup: embed <code>pprof-viz-collector</code> in your Go
+      application, install Pprof-Viz, then connect to your collector's endpoint.
     </p>
   </description>
 

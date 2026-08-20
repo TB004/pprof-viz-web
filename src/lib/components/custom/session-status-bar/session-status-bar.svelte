@@ -56,7 +56,7 @@ const errorCount = $derived(errorState.length);
 </script>
 
 <footer
-	class="border-sidebar-border/70 bg-sidebar/90 text-sidebar-foreground supports-backdrop-filter:bg-sidebar/80 shrink-0 border-t backdrop-blur"
+	class="border-sidebar-border/70 bg-sidebar/90 text-sidebar-foreground shrink-0 border-t"
 >
 	<div
 		class="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 text-xs"

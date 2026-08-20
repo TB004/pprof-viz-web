@@ -88,6 +88,18 @@ fn make_builder() -> tauri_specta::Builder<tauri::Wry> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(target_os = "linux")]
+    {
+        // WebKitGTK only enables accelerated compositing when it decides the page
+        // needs it, and otherwise rasterizes on the CPU through Cairo. The dashboards
+        // repaint two dozen up to 500-vertex chart paths once per sample, which is
+        // slow enough to stall page switches on Linux.
+        const VAR: &str = "WEBKIT_FORCE_COMPOSITING_MODE";
+        if std::env::var_os(VAR).is_none() {
+            unsafe { std::env::set_var(VAR, "1") };
+        }
+    }
+
     let builder = make_builder();
 
     #[cfg(debug_assertions)]

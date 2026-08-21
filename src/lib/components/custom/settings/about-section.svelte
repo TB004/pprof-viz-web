@@ -7,14 +7,14 @@
 import { getVersion } from "@tauri-apps/api/app";
 import { onMount } from "svelte";
 import * as Card from "$lib/components/ui/card/index.js";
-import Ipc from "$lib/ipc";
+import { OpenerIpc, SettingsIpc } from "$lib/ipc";
 
 let version = $state(new Promise<string>(() => {}));
 let architecture = $state(new Promise<string>(() => {}));
 
 onMount(() => {
 	version = getVersion();
-	architecture = Ipc.getArch();
+	architecture = SettingsIpc.getArch();
 });
 </script>
 
@@ -57,7 +57,7 @@ onMount(() => {
 					type="button"
 					class="text-sm font-medium text-primary underline-offset-4 hover:underline"
 					onclick={() =>
-                        Ipc.open("https://github.com/TB004/pprof-viz")}
+                        OpenerIpc.open("https://github.com/TB004/pprof-viz")}
 				>
 					github.com/TB004/pprof-viz
 				</button>

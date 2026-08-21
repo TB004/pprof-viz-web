@@ -47,43 +47,102 @@ pub fn now_millis() -> i64 {
         .unwrap_or(0)
 }
 
-fn make_builder() -> tauri_specta::Builder<tauri::Wry> {
-    tauri_specta::Builder::new()
-        .constant("MAX_FRAMES", collection::MAX_FRAMES)
-        .constant("MAX_ERRORS", errors::MAX_ERRORS)
-        .commands(tauri_specta::collect_commands![
+/// The command list, grouped by the service each command belongs to.
+macro_rules! services {
+    ($(
+        $service:literal {
+            $(consts: [$($const_name:literal => $const_value:expr),* $(,)?],)?
+            commands: [$($module:ident :: $command:ident),* $(,)?] $(,)?
+        }
+    ),* $(,)?) => {
+        fn make_builder() -> tauri_specta::Builder<tauri::Wry> {
+            tauri_specta::Builder::new()
+                .commands(tauri_specta::collect_commands![$($($module::$command),*),*])
+        }
+
+        /// Write one TypeScript module per service into `src/lib/generated/`.
+        #[cfg(debug_assertions)]
+        fn export_service_bindings() {
+            $(
+                tauri_specta::Builder::<tauri::Wry>::new()
+                    $($(.constant($const_name, $const_value))*)?
+                    .commands(tauri_specta::collect_commands![$($module::$command),*])
+                    .export(
+                        specta_typescript::Typescript::default(),
+                        concat!("../src/lib/generated/", $service, ".ts"),
+                    )
+                    .expect(concat!("failed to export ", $service, " bindings"));
+            )*
+        }
+    };
+}
+
+services! {
+    "settings" {
+        commands: [
             settings::get_arch,
             settings::get_settings,
             settings::update_settings,
+        ],
+    },
+    "project" {
+        commands: [
             db::list_projects,
-            db::list_profiles,
             db::get_project_by_id,
-            db::get_profile_by_id,
             db::create_project,
             db::rename_project,
             db::delete_project,
+            db::reset_all_data,
+        ],
+    },
+    "profile" {
+        commands: [
+            db::list_profiles,
+            db::get_profile_by_id,
             db::create_profile,
             db::update_profile,
             db::delete_profile,
-            db::reset_all_data,
+        ],
+    },
+    "error" {
+        consts: ["MAX_ERRORS" => errors::MAX_ERRORS],
+        commands: [
             errors::register_error,
             errors::get_errors,
             errors::clear_errors,
             errors::remove_error,
+        ],
+    },
+    "collection" {
+        consts: ["MAX_FRAMES" => collection::MAX_FRAMES],
+        commands: [
             collection::start_collection,
             collection::stop_collection,
             collection::get_collection_snapshot,
+        ],
+    },
+    "archive" {
+        commands: [
             archive::save_collection,
             archive::list_collections,
             archive::delete_collection,
             archive::update_collection,
             archive::load_collection,
             archive::disk_usage,
-            rpc::agent_ping,
+        ],
+    },
+    "agent" {
+        commands: [rpc::agent_ping],
+    },
+    "update" {
+        commands: [
             update::check_update,
             update::install_update,
-            opener::open,
-        ])
+        ],
+    },
+    "opener" {
+        commands: [opener::open],
+    },
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -103,12 +162,7 @@ pub fn run() {
     let builder = make_builder();
 
     #[cfg(debug_assertions)]
-    builder
-        .export(
-            specta_typescript::Typescript::default(),
-            "../src/lib/bindings.ts",
-        )
-        .expect("failed to export typescript bindings");
+    export_service_bindings();
 
     tauri::Builder::default()
         .setup(|app| {

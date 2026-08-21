@@ -1,7 +1,7 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import Ipc from "$lib/ipc";
+import { ArchiveIpc } from "$lib/ipc";
 import type { CollectionRow, DiskUsage } from "$lib/types";
 import * as ErrorService from "./error_service.svelte.js";
 
@@ -11,7 +11,6 @@ export interface ArchiveState {
 	loading: boolean;
 }
 
-/** The archive listing. Treat as read-only outside this module. */
 export const archiveState: ArchiveState = $state({
 	collections: [],
 	loading: false,
@@ -22,8 +21,8 @@ export async function refresh(): Promise<void> {
 	archiveState.loading = true;
 	try {
 		const [collections, diskUsage] = await Promise.all([
-			Ipc.listCollections(),
-			Ipc.diskUsage(),
+			ArchiveIpc.listCollections(),
+			ArchiveIpc.diskUsage(),
 		]);
 
 		archiveState.collections = collections;
@@ -39,8 +38,7 @@ export async function refresh(): Promise<void> {
 
 /**
  * Run an archive operation and report any failure, returning whether it
- * succeeded. With `reload`, the collection list is refreshed afterwards — only
- * on success, since a failed operation changed nothing.
+ * succeeded.
  */
 async function withReporting(
 	label: string,
@@ -64,9 +62,13 @@ export async function save(
 	name: string,
 	description: string | null,
 ): Promise<boolean> {
-	return withReporting("save", () => Ipc.saveCollection(name, description), {
-		reload: true,
-	});
+	return withReporting(
+		"save",
+		() => ArchiveIpc.saveCollection(name, description),
+		{
+			reload: true,
+		},
+	);
 }
 
 /** Edit a stored collection's name/description, then refresh the list. */
@@ -77,19 +79,19 @@ export async function update(
 ): Promise<boolean> {
 	return withReporting(
 		"update",
-		() => Ipc.updateCollection(id, name, description),
+		() => ArchiveIpc.updateCollection(id, name, description),
 		{ reload: true },
 	);
 }
 
 /** Delete a stored collection (file + metadata), then refresh the list. */
 export async function remove(id: string): Promise<void> {
-	await withReporting("delete", () => Ipc.deleteCollection(id), {
+	await withReporting("delete", () => ArchiveIpc.deleteCollection(id), {
 		reload: true,
 	});
 }
 
 /** Load a stored collection back into memory for visualization. */
 export async function load(id: string): Promise<boolean> {
-	return withReporting("load", () => Ipc.loadCollection(id));
+	return withReporting("load", () => ArchiveIpc.loadCollection(id));
 }

@@ -7,8 +7,6 @@ node_modules
 .wrangler
 /.svelte-kit
 /build
-/target
-packaging/flatpak/pprof-viz.deb
 
 # OS
 .DS_Store

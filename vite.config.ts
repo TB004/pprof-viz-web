@@ -18,12 +18,4 @@ export default defineConfig({
 			},
 		},
 	},
-	server: {
-		watch: {
-			// `target/` holds cargo output and the flatpak-builder sandbox, whose
-			// staged /var/run/udev/watch entries are symlink loops that make the
-			// dev watcher crash with ELOOP.
-			ignored: ["**/target/**", "**/src-tauri/target/**"],
-		},
-	},
 });

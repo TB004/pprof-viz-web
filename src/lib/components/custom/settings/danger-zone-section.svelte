@@ -7,7 +7,7 @@
 import { TriangleAlertIcon } from "@lucide/svelte";
 import { ConfirmDialog } from "$lib/components/custom/confirm-dialog";
 import * as Card from "$lib/components/ui/card/index.js";
-import Ipc from "$lib/ipc";
+import { ProjectIpc } from "$lib/ipc";
 
 let dialogOpen = $state(false);
 let resetting = $state(false);
@@ -15,7 +15,7 @@ let resetting = $state(false);
 async function resetAllData() {
 	resetting = true;
 	try {
-		await Ipc.resetAllData();
+		await ProjectIpc.resetAllData();
 		try {
 			localStorage.removeItem("pprof-viz-settings");
 		} catch {}

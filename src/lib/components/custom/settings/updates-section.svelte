@@ -15,7 +15,7 @@ import { onMount } from "svelte";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 import type { UpdateStatus } from "$lib/ipc";
-import Ipc from "$lib/ipc";
+import { OpenerIpc, UpdateIpc } from "$lib/ipc";
 
 type UpdateState =
 	| { phase: "idle" }
@@ -32,7 +32,7 @@ onMount(() => void checkForUpdates());
 async function checkForUpdates() {
 	updateState = { phase: "checking" };
 	try {
-		const status = await Ipc.checkUpdate();
+		const status = await UpdateIpc.checkUpdate();
 		if (status.available) {
 			updateState = { phase: "available", status };
 		} else {
@@ -48,12 +48,12 @@ async function checkForUpdates() {
 
 async function installUpdate(status: UpdateStatus) {
 	if (!status.assetUrl || !status.assetFilename) {
-		await Ipc.open(status.releaseUrl);
+		await OpenerIpc.open(status.releaseUrl);
 		return;
 	}
 	updateState = { phase: "downloading" };
 	try {
-		await Ipc.installUpdate(status.assetUrl, status.assetFilename);
+		await UpdateIpc.installUpdate(status.assetUrl, status.assetFilename);
 	} catch (e) {
 		updateState = { phase: "error", message: String(e) };
 	}
@@ -106,7 +106,7 @@ async function installUpdate(status: UpdateStatus) {
 						<button
 							type="button"
 							class="text-xs text-muted-foreground underline underline-offset-4 cursor-pointer"
-							onclick={() => Ipc.open(s.releaseUrl)}
+							onclick={() => OpenerIpc.open(s.releaseUrl)}
 						>
 							View release notes
 						</button>

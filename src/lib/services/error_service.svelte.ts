@@ -3,32 +3,26 @@
 
 import { listen } from "@tauri-apps/api/event";
 import { browser } from "$app/environment";
-import { MAX_ERRORS } from "$lib/bindings";
-import Ipc from "$lib/ipc";
+import { MAX_ERRORS } from "$lib/generated/error";
+import { ErrorIpc } from "$lib/ipc";
 import type { AppError } from "$lib/types";
 
 export type { AppError };
 
 const EVENT_NEW_ERROR = "error://new";
 
-// Read-only projection of Rust's ErrorLog. Only ever grows by the entry an
-// error://new event carries; every other change re-fetches, so ErrorLog stays
-// the single source of truth.
 const errors = $state<AppError[]>([]);
 
 export const errorState: readonly AppError[] = errors;
 
 async function refresh() {
 	try {
-		// Replace in place: the exported array identity has to stay stable for
-		// consumers that alias it.
-		errors.splice(0, errors.length, ...(await Ipc.getErrors()));
+		errors.splice(0, errors.length, ...(await ErrorIpc.getErrors()));
 	} catch {
 		// ignore — the list keeps its last known state
 	}
 }
 
-/** Mirror `ErrorLog::push`: newest first, capped at the same bound. */
 function prepend(entry: AppError) {
 	if (errors.some((e) => e.id === entry.id)) return;
 	errors.unshift(entry);
@@ -66,22 +60,20 @@ export function formatErrorTimestamp(timestamp: number | null): string {
 }
 
 export async function registerError(message: string) {
-	// Rust pushes to ErrorLog and emits error://new, which appends the entry.
-	await Ipc.registerError(message);
+	await ErrorIpc.registerError(message);
 }
 
 export async function removeError(errorId: string) {
 	try {
-		await Ipc.removeError(errorId);
+		await ErrorIpc.removeError(errorId);
 	} finally {
-		// remove_error emits no event, so re-fetch explicitly.
 		await refresh();
 	}
 }
 
 export async function clearErrors() {
 	try {
-		await Ipc.clearErrors();
+		await ErrorIpc.clearErrors();
 	} finally {
 		await refresh();
 	}

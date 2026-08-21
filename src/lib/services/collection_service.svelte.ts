@@ -3,9 +3,8 @@
 
 import { listen } from "@tauri-apps/api/event";
 import { browser } from "$app/environment";
-import { goto } from "$app/navigation";
-import { MAX_FRAMES } from "$lib/bindings";
-import Ipc from "$lib/ipc";
+import { MAX_FRAMES } from "$lib/generated/collection";
+import { CollectionIpc } from "$lib/ipc";
 import { ErrorService, ProfileService } from "$lib/services";
 import {
 	type CollectionStateSnapshot,
@@ -13,7 +12,6 @@ import {
 	type CollectionType,
 	EVENT_FRAME,
 	EVENT_METADATA,
-	EVENT_OPENED,
 	EVENT_STATE,
 	type Frame,
 	type MetadataResponse,
@@ -108,19 +106,18 @@ function applySnapshot(snapshot: CollectionStateSnapshot) {
 	const state = collectionState;
 	const startedAt = snapshot.startedAt ?? undefined;
 	// A different startedAt means a different session — a fresh live run or a
-	// collection loaded from disk. Loaded collections carry no per-frame
-	// timestamps, so reuse of the previous session's would be misleading.
+	// collection loaded from disk.
 	const sessionChanged = startedAt !== state.startedAt;
 	// A state event without frames means "unchanged, you already have them";
 	// only a new session invalidates what we hold.
 	const frames = snapshot.frames ?? (sessionChanged ? [] : (state.data ?? []));
-	// Backend records per-frame arrival times; prefer them when present and
-	// aligned (covers loaded collections and survives a page reload).
+
 	const backendTimestamps =
 		snapshot.frameTimestamps &&
 		snapshot.frameTimestamps.length === frames.length
 			? snapshot.frameTimestamps
 			: undefined;
+
 	const next: CollectionState = {
 		...state,
 		status: asStatus(snapshot.status),
@@ -140,16 +137,17 @@ function applySnapshot(snapshot: CollectionStateSnapshot) {
 		mode: snapshot.mode ?? undefined,
 		url: asUrl(snapshot.profileUrl),
 	};
+
 	if (snapshot.profileId) {
 		next.selectedProfile = snapshot.profileId;
 		next.selectedProfileLabel = snapshot.profileName ?? undefined;
 	}
-	// A stopped or loaded session has an endedAt — freeze elapsed at its
-	// actual duration instead of counting wall-clock since startedAt.
+
 	const endTime = snapshot.endedAt ?? Date.now();
 	next.elapsedSeconds = startedAt
 		? Math.max(0, Math.floor((endTime - startedAt) / 1000))
 		: 0;
+
 	Object.assign(collectionState, next);
 	if (asStatus(snapshot.status) === CollectionStatus.Running) {
 		startElapsedTimer();
@@ -163,9 +161,7 @@ let unlisteners: Array<() => void> = [];
 if (browser) {
 	void (async () => {
 		try {
-			// Register listeners before fetching the initial snapshot so no
-			// events are missed between the two operations.
-			const [unlistenState, unlistenFrame, unlistenMetadata, unlistenOpened] =
+			const [unlistenState, unlistenFrame, unlistenMetadata] =
 				await Promise.all([
 					listen<CollectionStateSnapshot>(EVENT_STATE, (event) => {
 						applySnapshot(event.payload);
@@ -185,18 +181,8 @@ if (browser) {
 					listen<MetadataResponse>(EVENT_METADATA, (event) => {
 						collectionState.metadata = event.payload;
 					}),
-					// A double-clicked .ppvz file was loaded — jump to a metric page
-					// (warm start only; cold start lands on home with data hydrated).
-					listen(EVENT_OPENED, () => {
-						void goto("/cpu");
-					}),
 				]);
-			unlisteners.push(
-				unlistenState,
-				unlistenFrame,
-				unlistenMetadata,
-				unlistenOpened,
-			);
+			unlisteners.push(unlistenState, unlistenFrame, unlistenMetadata);
 		} catch (e) {
 			void ErrorService.registerError(
 				`Failed to register collection listeners: ${e}`,
@@ -207,7 +193,7 @@ if (browser) {
 		if (!hydrated) {
 			hydrated = true;
 			try {
-				const snapshot = await Ipc.getCollectionSnapshot();
+				const snapshot = await CollectionIpc.getCollectionSnapshot();
 				applySnapshot(snapshot);
 			} catch (e) {
 				hydrated = false;
@@ -247,7 +233,7 @@ export async function startCollection(): Promise<void> {
 	const { selectedProfile } = collectionState;
 	if (!selectedProfile) return;
 	try {
-		await Ipc.startCollection(selectedProfile);
+		await CollectionIpc.startCollection(selectedProfile);
 	} catch (e) {
 		await ErrorService.registerError(
 			e instanceof Error ? e.message : `Failed to start collection: ${e}`,
@@ -257,7 +243,7 @@ export async function startCollection(): Promise<void> {
 
 export async function stopCollection(): Promise<void> {
 	try {
-		await Ipc.stopCollection();
+		await CollectionIpc.stopCollection();
 	} catch (e) {
 		await ErrorService.registerError(
 			e instanceof Error ? e.message : `Failed to stop collection: ${e}`,

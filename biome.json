@@ -46,7 +46,7 @@
   },
   "overrides": [
     {
-      "includes": ["src/lib/bindings.ts"],
+      "includes": ["src/lib/generated/**"],
       "linter": { "enabled": false },
       "formatter": { "enabled": false }
     },

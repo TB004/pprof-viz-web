@@ -11,7 +11,7 @@ import {
 	PlugZapIcon,
 } from "@lucide/svelte";
 import { Button } from "$lib/components/ui/button/index.js";
-import Ipc from "$lib/ipc";
+import { AgentIpc } from "$lib/ipc";
 import { assembleUrl, dialogState } from "./state.svelte.ts";
 
 type PingStatus = "idle" | "pending" | "success" | "error";
@@ -52,7 +52,7 @@ async function testConnection() {
 	pingError = "";
 
 	try {
-		await Ipc.agentPing(
+		await AgentIpc.agentPing(
 			url,
 			token || null,
 			dialogState.profileHttpVersion,

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { browser } from "$app/environment";
-import Ipc from "$lib/ipc";
+import { ProfileIpc, ProjectIpc } from "$lib/ipc";
 import type {
 	CollectionType,
 	ProfileInput,
@@ -29,10 +29,6 @@ export interface ProfileCatalogState {
 	projects: ProfileProject[];
 }
 
-/**
- * Projects with their profiles, plus the flattened `options` view the profile
- * pickers bind to. Treat as read-only outside this module.
- */
 export const profileCatalog: ProfileCatalogState = $state({
 	loaded: false,
 	projects: [],
@@ -47,8 +43,8 @@ function reportInvokeError(action: string, e: unknown) {
 
 async function reload() {
 	const [projects, profiles] = await Promise.all([
-		Ipc.listProjects(),
-		Ipc.listProfiles(),
+		ProjectIpc.listProjects(),
+		ProfileIpc.listProfiles(),
 	]);
 
 	const profilesByProjectId = new Map<string, ProfileRow[]>();
@@ -67,13 +63,7 @@ async function reload() {
 	profileCatalog.projects = catalog;
 }
 
-/**
- * Run a catalog mutation and refresh the catalog afterwards.
- *
- * Returns `undefined` when the mutation itself failed. A failed *reload* is
- * reported but does not discard the result — the mutation already went
- * through, only our view of it is stale.
- */
+/** Run a catalog mutation and refresh the catalog afterwards. */
 async function mutate<T>(
 	verb: string,
 	gerund: string,
@@ -133,7 +123,7 @@ export async function getProjectById(
 	projectId: string,
 ): Promise<ProjectRow | undefined> {
 	try {
-		const row = await Ipc.getProjectById(projectId);
+		const row = await ProjectIpc.getProjectById(projectId);
 		return row ?? undefined;
 	} catch (e) {
 		reportInvokeError("Failed to get project", e);
@@ -145,7 +135,7 @@ export async function getProfileById(
 	profileId: string,
 ): Promise<ProfileRow | undefined> {
 	try {
-		const row = await Ipc.getProfileById(profileId);
+		const row = await ProfileIpc.getProfileById(profileId);
 		return row ?? undefined;
 	} catch (e) {
 		reportInvokeError("Failed to get profile", e);
@@ -170,7 +160,7 @@ export async function createProject(name: string): Promise<string | undefined> {
 	const trimmed = name.trim();
 	if (!trimmed) return undefined;
 	const project = await mutate("create project", "creating project", () =>
-		Ipc.createProject(trimmed),
+		ProjectIpc.createProject(trimmed),
 	);
 	return project?.id;
 }
@@ -179,13 +169,13 @@ export async function renameProject(projectId: string, name: string) {
 	const trimmed = name.trim();
 	if (!trimmed) return;
 	await mutate("rename project", "renaming project", () =>
-		Ipc.renameProject(projectId, trimmed),
+		ProjectIpc.renameProject(projectId, trimmed),
 	);
 }
 
 export async function deleteProject(projectId: string) {
 	await mutate("delete project", "deleting project", () =>
-		Ipc.deleteProject(projectId),
+		ProjectIpc.deleteProject(projectId),
 	);
 }
 
@@ -202,7 +192,7 @@ export async function createProfile(
 		return undefined;
 	}
 	const created = await mutate("create profile", "creating profile", () =>
-		Ipc.createProfile(projectId, trimmed),
+		ProfileIpc.createProfile(projectId, trimmed),
 	);
 	return created?.id;
 }
@@ -217,13 +207,13 @@ export async function updateProfile(profileId: string, input: ProfileInput) {
 		return;
 	}
 	await mutate("update profile", "updating profile", () =>
-		Ipc.updateProfile(profileId, trimmed),
+		ProfileIpc.updateProfile(profileId, trimmed),
 	);
 }
 
 export async function deleteProfile(profileId: string) {
 	await mutate("delete profile", "deleting profile", () =>
-		Ipc.deleteProfile(profileId),
+		ProfileIpc.deleteProfile(profileId),
 	);
 }
 

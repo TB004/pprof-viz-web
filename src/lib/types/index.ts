@@ -1,41 +1,21 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Frontend view of the Rust types.
-//
-// Anything Rust can describe to specta lives in the generated `$lib/bindings`
-// and is re-exported from here — this file must not restate those shapes.
-// What it does add is the part specta cannot express:
-//
-//   - the proto DTOs, which cross the boundary as `unknown` because the frames
-//     are `serde_json::Value` on the Rust side
-//   - value-level constants for the generated string-union enums, so app code
-//     can say `CollectionType.Stream` instead of a bare "stream" literal
-
 import type {
 	CollectionStatus as CollectionStatusUnion,
 	CollectionType as CollectionTypeUnion,
 	CollectionStateSnapshot as GeneratedSnapshot,
-	HttpVersion as HttpVersionUnion,
-	ThemeMode as ThemeModeUnion,
-} from "$lib/bindings";
+} from "$lib/generated/collection";
+import type { HttpVersion as HttpVersionUnion } from "$lib/generated/profile";
+import type { ThemeMode as ThemeModeUnion } from "$lib/generated/settings";
 
-export type {
-	AppError,
-	AppSettings,
-	CollectionRow,
-	DiskUsage,
-	ProfileInput,
-	ProfileRow,
-	ProjectRow,
-} from "$lib/bindings";
+export type { CollectionRow, DiskUsage } from "$lib/generated/archive";
+export type { AppError } from "$lib/generated/error";
+export type { ProfileInput, ProfileRow } from "$lib/generated/profile";
+export type { ProjectRow } from "$lib/generated/project";
+export type { AppSettings } from "$lib/generated/settings";
 
 // --- enums ---
-//
-// specta emits Rust unit enums as string unions, which are types only. These
-// constants give the same variants a value form. `satisfies` ties them to the
-// generated union, so renaming or removing a variant in Rust fails the build
-// here. (Adding one does not — the union simply grows.)
 
 export const ThemeMode = {
 	Light: "light",
@@ -68,10 +48,6 @@ export type CollectionStatus = CollectionStatusUnion;
 // The chart pages wrap accesses with `Number(... ?? 0)` so accepting both
 // shapes here is enough — no need to normalize at the boundary.
 type Numeric = number | string;
-
-// Mirror of `proto::AllResponse` (and its sub-messages) as serialized to
-// JSON by buffa. All fields are optional — proto3 omits unset values, and
-// the streaming endpoint sends delta-encoded frames merged in Rust.
 
 export interface CPUResponse {
 	gcAssistSeconds?: number;
@@ -206,4 +182,3 @@ export type CollectionStateSnapshot = Omit<
 export const EVENT_FRAME = "collection://frame";
 export const EVENT_STATE = "collection://state";
 export const EVENT_METADATA = "collection://metadata";
-export const EVENT_OPENED = "archive://opened";

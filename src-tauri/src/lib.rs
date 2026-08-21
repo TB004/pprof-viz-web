@@ -187,23 +187,6 @@ pub fn run() {
             app.manage(pool);
             app.manage(settings::SettingsState::load(&data_dir));
 
-            // Cold-start file open (Windows/Linux pass the path as an argv;
-            // macOS delivers it via RunEvent::Opened below instead).
-            if let Some(path) = std::env::args_os()
-                .skip(1)
-                .map(std::path::PathBuf::from)
-                .find(|p| {
-                    p.extension()
-                        .is_some_and(|e| e.eq_ignore_ascii_case("ppvz"))
-                })
-            {
-                let handle = app.handle().clone();
-                tauri::async_runtime::spawn(async move {
-                    if let Err(e) = archive::load_from_path(&handle, &path).await {
-                        errors::report(&handle, format!("failed to open {path:?}: {e}"));
-                    }
-                });
-            }
             Ok(())
         })
         .manage(AppState::default())
@@ -213,24 +196,5 @@ pub fn run() {
             eprintln!("error while building tauri application: {e}");
             std::process::exit(1);
         })
-        .run(|_app_handle, _event| {
-            // macOS delivers "Open With" / double-clicked files here.
-            #[cfg(target_os = "macos")]
-            if let tauri::RunEvent::Opened { urls } = &_event {
-                for url in urls {
-                    if let Ok(path) = url.to_file_path()
-                        && path
-                            .extension()
-                            .is_some_and(|e| e.eq_ignore_ascii_case("ppvz"))
-                    {
-                        let handle = _app_handle.clone();
-                        tauri::async_runtime::spawn(async move {
-                            if let Err(e) = archive::load_from_path(&handle, &path).await {
-                                errors::report(&handle, format!("failed to open {path:?}: {e}"));
-                            }
-                        });
-                    }
-                }
-            }
-        });
+        .run(|_app_handle, _event| {});
 }

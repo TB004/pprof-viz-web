@@ -182,4 +182,3 @@ export type CollectionStateSnapshot = Omit<
 export const EVENT_FRAME = "collection://frame";
 export const EVENT_STATE = "collection://state";
 export const EVENT_METADATA = "collection://metadata";
-export const EVENT_OPENED = "archive://opened";

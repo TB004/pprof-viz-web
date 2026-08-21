@@ -3,7 +3,6 @@
 
 import { listen } from "@tauri-apps/api/event";
 import { browser } from "$app/environment";
-import { goto } from "$app/navigation";
 import { MAX_FRAMES } from "$lib/generated/collection";
 import { CollectionIpc } from "$lib/ipc";
 import { ErrorService, ProfileService } from "$lib/services";
@@ -13,7 +12,6 @@ import {
 	type CollectionType,
 	EVENT_FRAME,
 	EVENT_METADATA,
-	EVENT_OPENED,
 	EVENT_STATE,
 	type Frame,
 	type MetadataResponse,
@@ -112,7 +110,7 @@ function applySnapshot(snapshot: CollectionStateSnapshot) {
 	const sessionChanged = startedAt !== state.startedAt;
 	// A state event without frames means "unchanged, you already have them";
 	// only a new session invalidates what we hold.
-  const frames = snapshot.frames ?? (sessionChanged ? [] : (state.data ?? []));
+	const frames = snapshot.frames ?? (sessionChanged ? [] : (state.data ?? []));
 
 	const backendTimestamps =
 		snapshot.frameTimestamps &&
@@ -120,7 +118,7 @@ function applySnapshot(snapshot: CollectionStateSnapshot) {
 			? snapshot.frameTimestamps
 			: undefined;
 
-  const next: CollectionState = {
+	const next: CollectionState = {
 		...state,
 		status: asStatus(snapshot.status),
 		loaded: snapshot.loaded,
@@ -138,7 +136,7 @@ function applySnapshot(snapshot: CollectionStateSnapshot) {
 		startedAt,
 		mode: snapshot.mode ?? undefined,
 		url: asUrl(snapshot.profileUrl),
-  };
+	};
 
 	if (snapshot.profileId) {
 		next.selectedProfile = snapshot.profileId;
@@ -150,7 +148,7 @@ function applySnapshot(snapshot: CollectionStateSnapshot) {
 		? Math.max(0, Math.floor((endTime - startedAt) / 1000))
 		: 0;
 
-  Object.assign(collectionState, next);
+	Object.assign(collectionState, next);
 	if (asStatus(snapshot.status) === CollectionStatus.Running) {
 		startElapsedTimer();
 	} else {
@@ -163,7 +161,7 @@ let unlisteners: Array<() => void> = [];
 if (browser) {
 	void (async () => {
 		try {
-			const [unlistenState, unlistenFrame, unlistenMetadata, unlistenOpened] =
+			const [unlistenState, unlistenFrame, unlistenMetadata] =
 				await Promise.all([
 					listen<CollectionStateSnapshot>(EVENT_STATE, (event) => {
 						applySnapshot(event.payload);
@@ -183,18 +181,8 @@ if (browser) {
 					listen<MetadataResponse>(EVENT_METADATA, (event) => {
 						collectionState.metadata = event.payload;
 					}),
-					// A double-clicked .ppvz file was loaded — jump to a metric page
-					// (warm start only; cold start lands on home with data hydrated).
-					listen(EVENT_OPENED, () => {
-						void goto("/cpu");
-					}),
 				]);
-			unlisteners.push(
-				unlistenState,
-				unlistenFrame,
-				unlistenMetadata,
-				unlistenOpened,
-			);
+			unlisteners.push(unlistenState, unlistenFrame, unlistenMetadata);
 		} catch (e) {
 			void ErrorService.registerError(
 				`Failed to register collection listeners: ${e}`,

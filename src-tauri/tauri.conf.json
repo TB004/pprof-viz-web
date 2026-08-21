@@ -45,15 +45,6 @@
   "bundle": {
     "active": true,
     "targets": ["dmg", "msi", "deb"],
-    "fileAssociations": [
-      {
-        "ext": ["ppvz"],
-        "name": "Pprof-Viz Collection",
-        "description": "Pprof-Viz metrics collection",
-        "role": "Viewer",
-        "mimeType": "application/x-pprof-viz"
-      }
-    ],
     "publisher": "Tizian Bahr",
     "homepage": "https://github.com/TB004/pprof-viz",
     "copyright": "Copyright (c) 2026 Tizian Bahr",

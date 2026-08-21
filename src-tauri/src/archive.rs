@@ -8,7 +8,7 @@ use std::sync::Arc;
 use buffa::Message;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Manager};
 use tokio::sync::watch;
 
 use crate::AppState;
@@ -20,11 +20,6 @@ use crate::settings::CollectionType;
 /// Current on-disk `.ppvz` format version. Bump when the layout changes in a
 /// way that needs a migration on read.
 const FORMAT_VERSION: u32 = 1;
-
-/// Emitted after a collection is loaded via a double-clicked file, so the
-/// frontend can navigate to a metric page (warm-start only — cold start relies
-/// on snapshot hydration).
-pub const EVENT_OPENED: &str = "archive://opened";
 
 /// zstd compression level for `.ppvz` payloads. The delta-encoded protobuf is
 /// already compact; zstd squeezes the repeated count arrays further. Saving is
@@ -239,7 +234,6 @@ struct DecodedCollection {
     frames: VecDeque<Frame>,
     frame_times: VecDeque<i64>,
     metadata: Option<Value>,
-    meta: CollectionMeta,
 }
 
 /// Replay a decoded `StoredCollection` back into dense merged frames.
@@ -259,12 +253,10 @@ fn decode_stored(stored: StoredCollection) -> Result<DecodedCollection, String> 
     }
 
     let frame_times: VecDeque<i64> = stored.frame_timestamps.into_iter().collect();
-    let meta = stored.meta.into_option().unwrap_or_default();
     Ok(DecodedCollection {
         frames,
         frame_times,
         metadata,
-        meta,
     })
 }
 
@@ -525,77 +517,6 @@ pub async fn load_collection(app: AppHandle, id: String) -> Result<(), String> {
     Ok(())
 }
 
-/// Load a `.ppvz` directly from a filesystem path (e.g. a double-clicked file).
-/// If the file is one of ours (matching filename in the archive), the database
-/// row wins; otherwise the embedded metadata is used. Loads ephemerally — an
-/// external file is not imported into the archive.
-pub async fn load_from_path(app: &AppHandle, path: &std::path::Path) -> Result<(), String> {
-    let decoded = decode_stored(read_stored(path)?)?;
-
-    let pool = db::pool(app);
-
-    // Prefer the archive row if this file lives in our collections folder.
-    let db_row = match path.file_name().and_then(|n| n.to_str()) {
-        Some(filename) => sqlx::query_as!(
-            CollectionRow,
-            r#"SELECT
-            id AS "id!",
-            name,
-            description,
-            filename,
-            size_bytes,
-            duration_ms,
-            sample_count,
-            profile_name,
-            profile_url,
-            mode,
-            created_at
-        FROM collections WHERE filename = ?"#,
-            filename
-        )
-        .fetch_optional(&pool)
-        .await
-        .map_err(|e| e.to_string())?,
-        None => None,
-    };
-
-    let (profile_name, profile_url, mode, started_at, duration_ms) = match db_row {
-        Some(row) => (
-            row.profile_name.unwrap_or_default(),
-            row.profile_url.unwrap_or_default(),
-            mode_from_str(row.mode.as_deref()),
-            row.created_at,
-            row.duration_ms,
-        ),
-        None => {
-            let m = &decoded.meta;
-            (
-                m.profile_name.clone(),
-                m.profile_url.clone(),
-                mode_from_str(Some(m.mode.as_str())),
-                if m.created_at != 0 {
-                    m.created_at
-                } else {
-                    crate::now_millis()
-                },
-                m.duration_ms,
-            )
-        }
-    };
-
-    install_loaded(
-        app,
-        decoded,
-        profile_name,
-        profile_url,
-        mode,
-        started_at,
-        duration_ms,
-    );
-    app.emit(EVENT_OPENED, ()).ok();
-    Ok(())
-}
-
 #[tauri::command]
 #[specta::specta]
 pub async fn disk_usage(app: AppHandle) -> Result<DiskUsage, String> {
@@ -673,6 +594,10 @@ mod tests {
             encode_stored(&original, vec![100, 200], metadata.clone(), meta).expect("encode");
         let bytes = stored.encode_to_vec();
         let decoded = StoredCollection::decode_from_slice(&bytes).expect("decode");
+        // Embedded meta survives the round-trip.
+        let decoded_meta = decoded.meta.clone().into_option().unwrap_or_default();
+        assert_eq!(decoded_meta.name, "test");
+        assert_eq!(decoded_meta.sample_count, 2);
         let out = decode_stored(decoded).expect("decode_stored");
         let frames = out.frames;
 
@@ -691,10 +616,8 @@ mod tests {
             frames[1].0["scheduler"]["liveGoroutines"].as_u64(),
             Some(25)
         );
-        // Frame timestamps and embedded meta survive the round-trip.
+        // Frame timestamps survive the round-trip.
         assert_eq!(out.frame_times, vec![100, 200]);
-        assert_eq!(out.meta.name, "test");
-        assert_eq!(out.meta.sample_count, 2);
         // Metadata buckets survive the round-trip.
         assert!(out.metadata.is_some());
         assert_eq!(

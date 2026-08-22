@@ -5,6 +5,11 @@
 default:
     @just --list
 
+# Generate the protobuf types from the .proto files
+[group('Build')]
+proto:
+    bun run proto:gen
+
 # Run the app in development mode
 [group('Build')]
 dev:

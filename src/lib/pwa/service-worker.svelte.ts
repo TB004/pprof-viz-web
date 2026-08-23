@@ -37,7 +37,7 @@ async function observe(): Promise<void> {
 	serviceWorkerState.ready = true;
 	if (registration.waiting) serviceWorkerState.updateReady = true;
 
-  watchInstalling(registration.installing);
+	watchInstalling(registration.installing);
 
 	registration.addEventListener("updatefound", () =>
 		watchInstalling(registration?.installing ?? null),

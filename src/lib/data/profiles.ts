@@ -1,25 +1,24 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { ulid } from "$lib/core/ids.js";
-import { requireText, trimToNull } from "$lib/core/text.js";
 import type { DBStore } from "$lib/storage/idb.js";
 import type { ProfileInput, ProfileRow } from "$lib/types";
+import { TextUtils, ulid } from "$lib/utils";
 import { Store } from "./database.js";
 
 /** Trim the user-supplied fields and reject anything the RPC layer can't use. */
 function normalize(input: ProfileInput): ProfileInput {
-	const url = requireText(input.url, "profile url");
+	const url = TextUtils.requireText(input.url, "profile url");
 	try {
 		new URL(url);
 	} catch {
 		throw new Error(`invalid url: ${url}`);
 	}
 	return {
-		name: requireText(input.name, "profile name"),
+		name: TextUtils.requireText(input.name, "profile name"),
 		url,
 		mode: input.mode,
-		token: trimToNull(input.token),
+		token: TextUtils.trimToNull(input.token),
 		intervalSeconds: input.intervalSeconds ?? null,
 		numberOfCycles: input.numberOfCycles ?? null,
 	};

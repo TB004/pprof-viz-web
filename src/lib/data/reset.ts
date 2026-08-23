@@ -6,12 +6,12 @@ import type { FileStore } from "$lib/storage/opfs.js";
 import { ALL_STORES } from "./database.js";
 
 export class Reset {
-  readonly #db: DBStore;
-  readonly #fs: FileStore;
+	readonly #db: DBStore;
+	readonly #fs: FileStore;
 
 	constructor(db: DBStore, fs: FileStore) {
-    this.#db = db;
-    this.#fs = fs;
+		this.#db = db;
+		this.#fs = fs;
 	}
 
 	/**

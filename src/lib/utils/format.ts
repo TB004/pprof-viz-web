@@ -1,8 +1,6 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Shared formatting helpers for metric pages.
-
 export function fmtBytes(b: number): string {
 	if (b === 0) return "0 B";
 	const units = ["B", "KB", "MB", "GB", "TB"];
@@ -20,9 +18,7 @@ export function fmtBytesAxis(b: number): string {
 	return `${(b / 1024 ** 4).toFixed(1)}TB`;
 }
 
-/**
- * Compact count for axis ticks, e.g. `12.5K`, `3.4M`.
- */
+/** Compact count for axis ticks, e.g. `12.5K`, `3.4M`. */
 export function fmtCountAxis(n: number): string {
 	if (n !== Math.floor(n)) return "";
 	if (n < 1_000) return String(n);

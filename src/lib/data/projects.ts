@@ -1,10 +1,9 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { ulid } from "$lib/core/ids.js";
-import { requireText } from "$lib/core/text.js";
 import type { DBStore } from "$lib/storage/idb.js";
 import type { ProjectRow } from "$lib/types";
+import { TextUtils, ulid } from "$lib/utils"
 import { ProfileIndex, Store } from "./database.js";
 
 export class Projects {
@@ -12,6 +11,10 @@ export class Projects {
 
 	constructor(db: DBStore) {
 		this.#db = db;
+	}
+
+	list(): Promise<ProjectRow[]> {
+		return this.#db.getAll<ProjectRow>(Store.Projects);
 	}
 
 	get(id: string): Promise<ProjectRow | undefined> {
@@ -22,7 +25,7 @@ export class Projects {
 		const now = Date.now();
 		const row: ProjectRow = {
 			id: ulid(now),
-			name: requireText(name, "project name"),
+			name: TextUtils.requireText(name, "project name"),
 			createdAt: now,
 			updatedAt: now,
 		};
@@ -31,7 +34,7 @@ export class Projects {
 	}
 
 	rename(id: string, name: string): Promise<void> {
-		const trimmed = requireText(name, "project name");
+		const trimmed = TextUtils.requireText(name, "project name");
 		return this.#db.update<ProjectRow>(Store.Projects, id, (row) => ({
 			...row,
 			name: trimmed,

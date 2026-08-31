@@ -1,0 +1,19 @@
+# Copyright (C) 2026 Tizian Bahr
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Serves an already-built site. Same result as `packaging/Containerfile`,
+# minus the build stage — run `just build` first, then:
+#
+#   podman build -t pprof-viz-web -f packaging/Containerfile.dist .
+#
+# CI uses this one: the static output is architecture-independent, so building
+# it once and reusing it makes the multi-arch image a pure file copy with no
+# emulation involved.
+
+FROM docker.io/library/caddy:2.9.1-alpine
+COPY packaging/Caddyfile /etc/caddy/Caddyfile
+COPY build /srv
+
+EXPOSE 80 443
+HEALTHCHECK --interval=30s --timeout=3s \
+	CMD wget --spider -q http://127.0.0.1/ || exit 1

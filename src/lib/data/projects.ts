@@ -3,7 +3,7 @@
 
 import type { DBStore } from "$lib/storage/idb.js";
 import type { ProjectRow } from "$lib/types";
-import { TextUtils, ulid } from "$lib/utils"
+import { TextUtils, ulid } from "$lib/utils";
 import { ProfileIndex, Store } from "./database.js";
 
 export class Projects {

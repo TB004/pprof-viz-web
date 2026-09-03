@@ -29,8 +29,9 @@ export class Archive {
 	readonly #compressor: ZstdCompressor;
 
 	constructor() {
+		// The wasm module loads on the first encode/decode: the archive service is
+		// constructed at startup, and no page but the archive needs zstd.
 		this.#compressor = new ZstdCompressor();
-		this.#compressor.init();
 	}
 
 	/** Serialize an in-memory collection into `.ppvz` bytes. */

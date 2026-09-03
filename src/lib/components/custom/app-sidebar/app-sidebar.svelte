@@ -16,7 +16,7 @@ let profileManagerOpen = $state(false);
 	<Sidebar.Header>
 		<div class="flex items-center gap-2 px-2 py-1">
 			<img src="/icons/icon-512.png" alt="" class="size-10 shrink-0">
-			<span class="truncate text-lg font-semibold">Pprof-Viz</span>
+			<span class="truncate text-xl font-semibold pl-4">Pprof-Viz</span>
 		</div>
 	</Sidebar.Header>
 	<Sidebar.Content>

@@ -1,7 +1,7 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { CollectionType, HttpVersion } from "$lib/types";
+import { CollectionType } from "$lib/types";
 
 export type Scheme = "http" | "https";
 
@@ -25,15 +25,6 @@ export const modeOptions: Array<{
 export const schemeOptions: Array<{ value: Scheme; label: string }> = [
 	{ value: "http", label: "http://" },
 	{ value: "https", label: "https://" },
-];
-
-export const httpVersionOptions: Array<{
-	value: HttpVersion;
-	label: string;
-	requiresHttps: boolean;
-}> = [
-	{ value: HttpVersion.Http2, label: "HTTP/2", requiresHttps: false },
-	{ value: HttpVersion.Http3, label: "HTTP/3", requiresHttps: true },
 ];
 
 /** Split a stored URL into the parts the URL field edits. */

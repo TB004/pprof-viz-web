@@ -4,7 +4,6 @@
 export { default as ModePicker } from "./mode-picker.svelte";
 export {
 	buildUrl,
-	httpVersionOptions,
 	modeOptions,
 	parseUrl,
 	type Scheme,

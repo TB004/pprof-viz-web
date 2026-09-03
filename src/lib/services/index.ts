@@ -34,8 +34,4 @@ export {
 	type ProfileProject,
 	ProfileService,
 } from "./profile_service.svelte.js";
-export {
-	defaultSettings,
-	SETTINGS_KEY,
-	SettingsService,
-} from "./settings_service.svelte.js";
+export { defaultSettings, SettingsService } from "./settings_service.svelte.js";

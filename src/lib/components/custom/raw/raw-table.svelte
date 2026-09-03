@@ -8,13 +8,14 @@ import { ChevronDownIcon, ChevronRightIcon } from "@lucide/svelte";
 import * as Card from "$lib/components/ui/card";
 import { ScrollArea } from "$lib/components/ui/scroll-area";
 import * as Table from "$lib/components/ui/table";
-import { CollectionService } from "$lib/services";
+import { collectionService } from "$lib/services";
 import {
 	CollectionStatus,
 	type Frame,
-	type Histogram,
+	type FrameGroup,
 	type MetadataResponse,
 } from "$lib/types";
+import { FrameUtils } from "$lib/utils";
 
 export type RowEntry = {
 	sample: number;
@@ -26,7 +27,7 @@ type ColDef = {
 	label: string;
 	/** Frame field to render. For `gc`/`scheduler` this also names the
 	 * metadata category that holds the matching histogram bucket boundaries. */
-	field: keyof Frame;
+	field: FrameGroup;
 };
 
 let {
@@ -41,7 +42,7 @@ let {
 	totalRows: number;
 } = $props();
 
-const collectionState = CollectionService.collectionState;
+const collectionState = collectionService.getState();
 
 // ── internal state ─────────────────────────────────────────────────────────
 
@@ -61,22 +62,29 @@ function buildJson(
 	const cleaned: Record<string, unknown> = {};
 	for (const [k, v] of Object.entries(raw)) {
 		if (v === undefined || v === null) continue;
-		if (typeof v === "object" && ("counts" in v || "buckets" in v)) {
-			const h = v as Histogram;
-			const buckets = h.buckets?.length
-				? h.buckets
+		// Protobuf messages carry a `$typeName` marker that is not payload.
+		if (k.startsWith("$")) continue;
+		if (FrameUtils.isHistogram(v)) {
+			const buckets = v.buckets.length
+				? v.buckets
 				: metaCategory?.[`${k}Buckets`];
-			cleaned[k] = { counts: h.counts ?? [], buckets: buckets ?? [] };
+			cleaned[k] = { counts: v.counts, buckets: buckets ?? [] };
 		} else {
 			cleaned[k] = v;
 		}
 	}
 	if (Object.keys(cleaned).length === 0) return "—";
-	return JSON.stringify(cleaned, null, 2);
+	// `uint64` fields are bigint, which `JSON.stringify` refuses to serialize.
+	// Rendering them as strings matches proto3 JSON.
+	return JSON.stringify(
+		cleaned,
+		(_key, value) => (typeof value === "bigint" ? value.toString() : value),
+		2,
+	);
 }
 
 // Render one frame field, pairing any histograms with their metadata buckets.
-function cellJson(frame: Frame, field: keyof Frame): string {
+function cellJson(frame: Frame, field: FrameGroup): string {
 	const raw = frame[field] as Record<string, unknown> | undefined;
 	const metaCategory = (metadata as Record<string, unknown> | undefined)?.[
 		field

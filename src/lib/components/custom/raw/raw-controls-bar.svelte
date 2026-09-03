@@ -13,7 +13,7 @@ import {
 } from "@lucide/svelte";
 import { Button } from "$lib/components/ui/button";
 import * as Select from "$lib/components/ui/select/index.js";
-import { CollectionService } from "$lib/services";
+import { collectionService } from "$lib/services";
 import { CollectionStatus } from "$lib/types";
 
 let {
@@ -28,7 +28,7 @@ let {
 	rowsPerPage: number;
 } = $props();
 
-const collectionState = CollectionService.collectionState;
+const collectionState = collectionService.getState();
 
 const ROWS_OPTIONS = [25, 50, 100, 200] as const;
 

@@ -2,8 +2,40 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 export * as AgentService from "./agent_service.js";
-export * as ArchiveService from "./archive_service.svelte.js";
-export * as CollectionService from "./collection_service.svelte.js";
-export * as ErrorService from "./error_service.svelte.js";
-export * as ProfileService from "./profile_service.svelte.js";
-export * as SettingsService from "./settings_service.svelte.js";
+export {
+	archiveService,
+	COLLECTIONS_DIRECTORY,
+	collectionService,
+	errorService,
+	profileService,
+	settingsService,
+} from "./app.svelte.js";
+export {
+	ArchiveService,
+	type ArchiveState,
+} from "./archive_service.svelte.js";
+export {
+	CollectionService,
+	type CollectionSnapshot,
+	type CollectionState,
+	formatElapsedTime,
+	type LoadedCollection,
+	MAX_FRAMES,
+} from "./collection_service.svelte.js";
+export {
+	type AppError,
+	ErrorService,
+	formatErrorTimestamp,
+	MAX_ERRORS,
+} from "./error_service.svelte.js";
+export {
+	type CollectionProfile,
+	type ProfileCatalogState,
+	type ProfileProject,
+	ProfileService,
+} from "./profile_service.svelte.js";
+export {
+	defaultSettings,
+	SETTINGS_KEY,
+	SettingsService,
+} from "./settings_service.svelte.js";

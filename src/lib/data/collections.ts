@@ -1,9 +1,9 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { requireText, trimToNull } from "$lib/core/text.js";
 import type { DBStore } from "$lib/storage/idb.js";
 import type { CollectionRow } from "$lib/types";
+import { requireText, trimToNull } from "$lib/utils/text.js";
 import { Store } from "./database.js";
 
 export class Collections {

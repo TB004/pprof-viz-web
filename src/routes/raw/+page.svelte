@@ -7,9 +7,9 @@
 import { BracesIcon } from "@lucide/svelte";
 import { EmptyState, PageShell } from "$lib/components/custom/page";
 import { RawControlsBar, RawTable } from "$lib/components/custom/raw";
-import { CollectionService } from "$lib/services";
+import { collectionService } from "$lib/services";
 
-const collectionState = CollectionService.collectionState;
+const collectionState = collectionService.getState();
 
 let paused = $state(false);
 let currentPage = $state(1);

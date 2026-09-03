@@ -20,10 +20,10 @@ import {
 import { EmptyState, PageShell } from "$lib/components/custom/page";
 import { StatGrid } from "$lib/components/custom/stat-card";
 import * as Card from "$lib/components/ui/card";
-import { fmtSecsAxis } from "$lib/format";
-import { CollectionService } from "$lib/services";
+import { collectionService } from "$lib/services";
+import { FormatUtils } from "$lib/utils";
 
-const collectionState = CollectionService.collectionState;
+const collectionState = collectionService.getState();
 
 const frames = $derived(collectionState.data ?? []);
 const metadata = $derived(collectionState.metadata);
@@ -151,7 +151,7 @@ const schedMeta = $derived(metadata?.scheduler);
 			<Card.Content>
 				<HistogramChart
 					buckets={schedMeta?.latenciesSecondsBuckets}
-					format={fmtSecsAxis}
+					format={FormatUtils.fmtSecsAxis}
 					series={[
 						{
 							key: "count",
@@ -174,7 +174,7 @@ const schedMeta = $derived(metadata?.scheduler);
 			<Card.Content>
 				<HistogramChart
 					buckets={schedMeta?.totalGcPauseSecondsBuckets}
-					format={fmtSecsAxis}
+					format={FormatUtils.fmtSecsAxis}
 					series={[
 						{
 							key: "count",
@@ -197,7 +197,7 @@ const schedMeta = $derived(metadata?.scheduler);
 			<Card.Content>
 				<HistogramChart
 					buckets={schedMeta?.stoppingGcSecondsBuckets}
-					format={fmtSecsAxis}
+					format={FormatUtils.fmtSecsAxis}
 					series={[
 						{
 							key: "count",

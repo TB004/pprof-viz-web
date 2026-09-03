@@ -15,14 +15,14 @@ import {
 } from "$lib/components/custom/archive";
 import { EmptyState, PageShell } from "$lib/components/custom/page";
 import * as Card from "$lib/components/ui/card";
-import { fmtBytes } from "$lib/format";
-import { ArchiveService } from "$lib/services";
+import { archiveService } from "$lib/services";
 import type { CollectionRow } from "$lib/types";
+import { FormatUtils } from "$lib/utils";
 
-const archiveState = ArchiveService.archiveState;
+const archiveState = archiveService.getState();
 
 onMount(() => {
-	void ArchiveService.refresh();
+	void archiveService.refresh();
 });
 
 const collections = $derived(archiveState.collections);
@@ -109,7 +109,7 @@ let editTarget = $state<CollectionRow | null>(null);
 		>
 			<HardDriveIcon class="size-4 text-muted-foreground" />
 			<span class="font-medium tabular-nums">
-				{fmtBytes(disk?.collectionsBytes ?? 0)}
+				{FormatUtils.fmtBytes(disk?.collectionsBytes ?? 0)}
 			</span>
 			<span class="text-muted-foreground"
 				>used by

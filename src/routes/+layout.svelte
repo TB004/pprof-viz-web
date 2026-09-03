@@ -8,13 +8,13 @@ import { onDestroy } from "svelte";
 import "./layout.css";
 import { AppSidebar } from "$lib/components/custom/app-sidebar";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-import { CollectionService } from "$lib/services";
+import { collectionService } from "$lib/services";
 import MainShell from "./main-shell.svelte";
 
 let { children } = $props();
 
 onDestroy(() => {
-	CollectionService.cleanup();
+	collectionService.cleanup();
 });
 </script>
 

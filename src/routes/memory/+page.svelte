@@ -15,11 +15,10 @@ import {
 import { CompositionChart, MetricChart } from "$lib/components/custom/charts";
 import { EmptyState, PageShell } from "$lib/components/custom/page";
 import { StatGrid } from "$lib/components/custom/stat-card";
-import * as Card from "$lib/components/ui/card";
-import { fmtBytes, fmtBytesAxis } from "$lib/format";
-import { CollectionService } from "$lib/services";
+import { collectionService } from "$lib/services";
+import { FormatUtils } from "$lib/utils";
 
-const collectionState = CollectionService.collectionState;
+const collectionState = collectionService.getState();
 
 const chartData = $derived(
 	(collectionState.data ?? []).map((frame, i) => {
@@ -84,37 +83,37 @@ const composition = $derived([
 const stats = $derived([
 	{
 		label: "Total",
-		value: fmtBytes(latest?.total ?? 0),
+		value: FormatUtils.fmtBytes(latest?.total ?? 0),
 		description: "Total memory mapped by the runtime",
 		Icon: MemoryStickIcon,
 	},
 	{
 		label: "Heap In-Use",
-		value: fmtBytes(latest?.heapObject ?? 0),
+		value: FormatUtils.fmtBytes(latest?.heapObject ?? 0),
 		description: "Memory occupied by live objects",
 		Icon: BoxesIcon,
 	},
 	{
 		label: "Heap Idle",
-		value: fmtBytes(latest?.heapIdle ?? 0),
+		value: FormatUtils.fmtBytes(latest?.heapIdle ?? 0),
 		description: "Allocated heap not holding objects",
 		Icon: HardDriveIcon,
 	},
 	{
 		label: "Released",
-		value: fmtBytes(latest?.heapReleased ?? 0),
+		value: FormatUtils.fmtBytes(latest?.heapReleased ?? 0),
 		description: "Heap returned to the OS",
 		Icon: RecycleIcon,
 	},
 	{
 		label: "Stacks",
-		value: fmtBytes(latest?.stacks ?? 0),
+		value: FormatUtils.fmtBytes(latest?.stacks ?? 0),
 		description: "Goroutine and OS thread stacks",
 		Icon: LayersIcon,
 	},
 	{
 		label: "Off-Heap",
-		value: fmtBytes(latest?.offHeap ?? 0),
+		value: FormatUtils.fmtBytes(latest?.offHeap ?? 0),
 		description: "Runtime structures and metadata",
 		Icon: WrenchIcon,
 	},
@@ -143,7 +142,7 @@ const stats = $derived([
 				title="Heap Breakdown"
 				description="In-use, unused, free, and released heap over time"
 				data={chartData}
-				format={fmtBytesAxis}
+				format={FormatUtils.fmtBytesAxis}
 				stacked
 				height="h-64"
 				series={[
@@ -159,7 +158,7 @@ const stats = $derived([
 			title="Total Footprint"
 			description="Total mapped memory and live heap over time"
 			data={chartData}
-			format={fmtBytesAxis}
+			format={FormatUtils.fmtBytesAxis}
 			series={[
 				{ key: "total", label: "Total" },
 				{ key: "heapObject", label: "Heap In-Use" },
@@ -171,7 +170,7 @@ const stats = $derived([
 			description="Stacks, span/cache allocators, and metadata over time"
 			type="line"
 			data={chartData}
-			format={fmtBytesAxis}
+			format={FormatUtils.fmtBytesAxis}
 			series={[
 				{ key: "stacks", label: "Stacks" },
 				{ key: "mspan", label: "MSpan" },

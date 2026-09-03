@@ -10,9 +10,13 @@ import {
 	PauseIcon,
 	SaveIcon,
 } from "@lucide/svelte";
-import { CollectionService, ErrorService } from "$lib/services";
+import {
+	collectionService,
+	errorService,
+	formatElapsedTime,
+} from "$lib/services";
 import { CollectionStatus, CollectionType } from "$lib/types";
-import { cn } from "$lib/utils.js";
+import { cn } from "$lib/utils";
 import ErrorView from "./error-view.svelte";
 import SaveDialog from "./save-dialog.svelte";
 import StatusElement from "./status-element.svelte";
@@ -20,8 +24,8 @@ import StatusElement from "./status-element.svelte";
 let showErrors = $state(false);
 let saveOpen = $state(false);
 
-const collectionState = CollectionService.collectionState;
-const errorState = ErrorService.errorState;
+const collectionState = collectionService.getState();
+const errorState = errorService.getErrorLog();
 
 // Only offer to save freshly collected data — not a session loaded from disk,
 // and only once it has stopped (Idle) with samples in hand.
@@ -96,7 +100,7 @@ const errorCount = $derived(errorState.length);
 		<StatusElement>
 			<span class="text-muted-foreground">Time</span>
 			<span class="font-medium"
-				>{CollectionService.formatElapsedTime(
+				>{formatElapsedTime(
                     collectionState.elapsedSeconds,
                 )}</span
 			>

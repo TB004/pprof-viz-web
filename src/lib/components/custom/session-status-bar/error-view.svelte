@@ -10,7 +10,7 @@ import { Button } from "$lib/components/ui/button/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
 import * as Item from "$lib/components/ui/item/index.js";
 import * as ScrollArea from "$lib/components/ui/scroll-area/index.js";
-import { ErrorService } from "$lib/services";
+import { errorService, formatErrorTimestamp } from "$lib/services";
 
 type Props = {
 	showErrors: boolean;
@@ -18,7 +18,7 @@ type Props = {
 
 let { showErrors = $bindable() }: Props = $props();
 
-const errorState = ErrorService.errorState;
+const errorState = errorService.getErrorLog();
 </script>
 
 <div
@@ -69,7 +69,7 @@ const errorState = ErrorService.errorState;
 											{error.message}
 										</Item.Title>
 										<Item.Description class="line-clamp-none text-xs">
-											{ErrorService.formatErrorTimestamp(
+											{formatErrorTimestamp(
                                                 error.timestamp,
                                             )}
 										</Item.Description>
@@ -80,7 +80,7 @@ const errorState = ErrorService.errorState;
 											size="icon-sm"
 											class="text-red-500 hover:bg-red-500/10 hover:text-red-600"
 											onclick={() =>
-                                                ErrorService.removeError(
+                                                errorService.removeError(
                                                     error.id,
                                                 )}
 										>

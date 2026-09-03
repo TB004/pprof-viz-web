@@ -9,13 +9,12 @@ import type { Snippet } from "svelte";
 import { page } from "$app/state";
 import { SessionStatusBar } from "$lib/components/custom/session-status-bar";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-import {
-	applyUpdate,
-	serviceWorkerState,
-} from "$lib/pwa/service-worker.svelte.js";
+import { serviceWorkerService } from "$lib/services";
 
 type Props = { children: Snippet };
 const { children }: Props = $props();
+
+const swState = serviceWorkerService.getState();
 
 const routeLabel = $derived.by(() => {
 	const routeSegment = page.url.pathname.split("/").filter(Boolean)[0];
@@ -35,11 +34,11 @@ const routeLabel = $derived.by(() => {
 			<span>{routeLabel}</span>
 			<span class="text-muted-foreground">&gt;</span>
 		</div>
-		{#if serviceWorkerState.updateReady}
+		{#if swState.updateReady}
 			<button
 				type="button"
 				class="ml-auto inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
-				onclick={applyUpdate}
+				onclick={() => serviceWorkerService.applyUpdate()}
 			>
 				<CloudDownloadIcon class="size-4" />
 				Update available

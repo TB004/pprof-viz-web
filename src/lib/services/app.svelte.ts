@@ -8,6 +8,7 @@ import { ArchiveService } from "./archive_service.svelte.js";
 import { CollectionService } from "./collection_service.svelte.js";
 import { ErrorService } from "./error_service.svelte.js";
 import { ProfileService } from "./profile_service.svelte.js";
+import { ServiceWorkerService } from "./service_worker_service.svelte.js";
 import { defaultSettings, SettingsService } from "./settings_service.svelte.js";
 
 export const COLLECTIONS_DIRECTORY = "collections";
@@ -29,3 +30,4 @@ export const archiveService = new ArchiveService(
 	errorService,
 );
 export const settingsService = new SettingsService(settingsStore, DB.db, files);
+export const serviceWorkerService = new ServiceWorkerService();

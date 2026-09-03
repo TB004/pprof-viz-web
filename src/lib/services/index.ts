@@ -8,6 +8,7 @@ export {
 	collectionService,
 	errorService,
 	profileService,
+	serviceWorkerService,
 	settingsService,
 } from "./app.svelte.js";
 export {
@@ -34,4 +35,8 @@ export {
 	type ProfileProject,
 	ProfileService,
 } from "./profile_service.svelte.js";
+export {
+	ServiceWorkerService,
+	type ServiceWorkerState,
+} from "./service_worker_service.svelte.js";
 export { defaultSettings, SettingsService } from "./settings_service.svelte.js";

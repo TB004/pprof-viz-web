@@ -13,9 +13,9 @@ import {
 	Trash2Icon,
 } from "@lucide/svelte";
 import { Button } from "$lib/components/ui/button/index.js";
-import { ProfileService } from "$lib/services";
+import { profileService } from "$lib/services";
 import type { ProfileProject } from "$lib/services/profile_service.svelte.js";
-import { CollectionType, HttpVersion } from "$lib/types";
+import { CollectionType } from "$lib/types";
 import { clearProfileForm, dialogState } from "./state.svelte.ts";
 
 type Props = {
@@ -39,9 +39,9 @@ function startNewProfile(projectId: string) {
 }
 
 function openDeleteProjectDialog(projectId: string) {
-	const project = ProfileService.profileCatalog.projects.find(
-		(entry) => entry.id === projectId,
-	);
+	const project = profileService
+		.getCatalog()
+		.projects.find((entry) => entry.id === projectId);
 	if (!project) {
 		return;
 	}
@@ -63,7 +63,7 @@ async function handleProfileSelect(projectId: string, profileId: string) {
 	// Clear form fields before the await to avoid showing stale data while loading.
 	clearProfileForm();
 
-	const snapshot = await ProfileService.getProfileById(profileId);
+	const snapshot = await profileService.getProfileById(profileId);
 
 	// Discard the result if the user selected a different profile while we were awaiting.
 	if (
@@ -86,9 +86,7 @@ async function handleProfileSelect(projectId: string, profileId: string) {
 		dialogState.profileUrlHost = snapshot?.url ?? "";
 	}
 	dialogState.profileMode = snapshot?.mode ?? CollectionType.Stream;
-	dialogState.profileHttpVersion = snapshot?.httpVersion ?? HttpVersion.Http2;
 	dialogState.profileToken = snapshot?.token ?? "";
-	dialogState.profileAllowInsecureTls = snapshot?.allowInsecureTls ?? false;
 	dialogState.profileIntervalSeconds = snapshot?.intervalSeconds ?? 1;
 	dialogState.profileNumberOfCycles = snapshot?.numberOfCycles ?? 0;
 
@@ -97,9 +95,7 @@ async function handleProfileSelect(projectId: string, profileId: string) {
 		scheme: dialogState.profileScheme,
 		urlHost: dialogState.profileUrlHost,
 		mode: dialogState.profileMode,
-		httpVersion: dialogState.profileHttpVersion,
 		token: dialogState.profileToken,
-		allowInsecureTls: dialogState.profileAllowInsecureTls,
 		intervalSeconds: dialogState.profileIntervalSeconds,
 		numberOfCycles: dialogState.profileNumberOfCycles,
 	};

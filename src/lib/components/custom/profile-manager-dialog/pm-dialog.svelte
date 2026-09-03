@@ -8,8 +8,8 @@ import { CheckIcon, Trash2Icon } from "@lucide/svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import * as ScrollArea from "$lib/components/ui/scroll-area/index.js";
-import { ProfileService } from "$lib/services";
-import { CollectionType, HttpVersion } from "$lib/types";
+import { profileService } from "$lib/services";
+import { CollectionType } from "$lib/types";
 import ConnectionTester from "./connection-tester.svelte";
 import PMDeleteDialog from "./pm-delete-dialog.svelte";
 import PMProjectDialog from "./pm-project-dialog.svelte";
@@ -22,13 +22,6 @@ type Props = {
 };
 
 let { open = $bindable(false) }: Props = $props();
-
-// When HTTP/3 is selected, force the scheme to https.
-$effect(() => {
-	if (dialogState.profileHttpVersion === HttpVersion.Http3) {
-		dialogState.profileScheme = "https";
-	}
-});
 
 // Reset dialog state when opened
 $effect(() => {
@@ -47,7 +40,7 @@ async function openDeleteProfileDialog(profileId?: string) {
 	if (!profileId) {
 		return;
 	}
-	const profile = await ProfileService.getProfileById(profileId);
+	const profile = await profileService.getProfileById(profileId);
 	if (!profile) {
 		return;
 	}
@@ -70,15 +63,13 @@ async function saveProfile() {
 		name: dialogState.profileName,
 		url: assembleUrl(),
 		mode: dialogState.profileMode,
-		httpVersion: dialogState.profileHttpVersion,
 		token: dialogState.profileToken || null,
-		allowInsecureTls: dialogState.profileAllowInsecureTls,
 		intervalSeconds: isStream ? dialogState.profileIntervalSeconds : null,
 		numberOfCycles: isStream ? dialogState.profileNumberOfCycles : null,
 	};
 
 	if (dialogState.editorMode === "new-profile") {
-		const createdProfileId = await ProfileService.createProfile(
+		const createdProfileId = await profileService.createProfile(
 			dialogState.selectedProjectId,
 			payload,
 		);
@@ -94,16 +85,14 @@ async function saveProfile() {
 		return;
 	}
 
-	await ProfileService.updateProfile(dialogState.selectedProfileId, payload);
+	await profileService.updateProfile(dialogState.selectedProfileId, payload);
 
 	dialogState.originalProfile = {
 		name: dialogState.profileName,
 		scheme: dialogState.profileScheme,
 		urlHost: dialogState.profileUrlHost,
 		mode: dialogState.profileMode,
-		httpVersion: dialogState.profileHttpVersion,
 		token: dialogState.profileToken,
-		allowInsecureTls: dialogState.profileAllowInsecureTls,
 		intervalSeconds: dialogState.profileIntervalSeconds,
 		numberOfCycles: dialogState.profileNumberOfCycles,
 	};
@@ -116,11 +105,7 @@ const hasChanges = $derived(
 		dialogState.profileScheme !== dialogState.originalProfile.scheme ||
 		dialogState.profileUrlHost !== dialogState.originalProfile.urlHost ||
 		dialogState.profileMode !== dialogState.originalProfile.mode ||
-		dialogState.profileHttpVersion !==
-			dialogState.originalProfile.httpVersion ||
 		dialogState.profileToken !== dialogState.originalProfile.token ||
-		dialogState.profileAllowInsecureTls !==
-			dialogState.originalProfile.allowInsecureTls ||
 		dialogState.profileIntervalSeconds !==
 			dialogState.originalProfile.intervalSeconds ||
 		dialogState.profileNumberOfCycles !==

@@ -5,7 +5,7 @@
 
 <script lang="ts">
 import { ConfirmDialog } from "$lib/components/custom/confirm-dialog";
-import { ProfileService } from "$lib/services";
+import { profileService } from "$lib/services";
 import { clearProfileForm, dialogState } from "./state.svelte.ts";
 
 const isProject = $derived(dialogState.deleteDialogType === "project");
@@ -14,7 +14,7 @@ const isProject = $derived(dialogState.deleteDialogType === "project");
 // is currently selected and clears the selection if necessary.
 async function confirm() {
 	if (isProject && dialogState.deleteDialogProjectId) {
-		await ProfileService.deleteProject(dialogState.deleteDialogProjectId);
+		await profileService.deleteProject(dialogState.deleteDialogProjectId);
 
 		if (dialogState.selectedProjectId === dialogState.deleteDialogProjectId) {
 			dialogState.selectedProjectId = undefined;
@@ -23,7 +23,7 @@ async function confirm() {
 			clearProfileForm();
 		}
 	} else if (!isProject && dialogState.deleteDialogProfileId) {
-		await ProfileService.deleteProfile(dialogState.deleteDialogProfileId);
+		await profileService.deleteProfile(dialogState.deleteDialogProfileId);
 
 		if (dialogState.selectedProfileId === dialogState.deleteDialogProfileId) {
 			dialogState.selectedProfileId = undefined;

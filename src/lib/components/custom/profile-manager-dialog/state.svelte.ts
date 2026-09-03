@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { buildUrl, parseUrl } from "$lib/components/custom/profile-form";
-import { SettingsService } from "$lib/services";
-import { CollectionType, HttpVersion } from "$lib/types";
+import { settingsService } from "$lib/services";
+import { CollectionType } from "$lib/types";
 
 export type EditorMode = "profile" | "new-profile";
 
@@ -12,9 +12,7 @@ export type ProfileSnapshot = {
 	scheme: "http" | "https";
 	urlHost: string;
 	mode: CollectionType;
-	httpVersion: HttpVersion;
 	token: string;
-	allowInsecureTls: boolean;
 	intervalSeconds: number;
 	numberOfCycles: number;
 };
@@ -27,9 +25,7 @@ export const dialogState = $state({
 	profileScheme: "http" as "http" | "https",
 	profileUrlHost: "",
 	profileMode: CollectionType.Stream as CollectionType,
-	profileHttpVersion: HttpVersion.Http2 as HttpVersion,
 	profileToken: "",
-	profileAllowInsecureTls: false,
 	profileIntervalSeconds: 1,
 	profileNumberOfCycles: 0,
 	originalProfile: null as ProfileSnapshot | null,
@@ -44,16 +40,13 @@ export const dialogState = $state({
 });
 
 export function clearProfileForm() {
-	const settings = SettingsService.settings;
+	const settings = settingsService.getSettings();
 	dialogState.profileName = settings.defaultName;
 	const { scheme, host } = parseUrl(settings.defaultUrl);
 	dialogState.profileScheme = scheme;
 	dialogState.profileUrlHost = host;
 	dialogState.profileMode = settings.defaultMode as CollectionType;
-	dialogState.profileHttpVersion =
-		settings.defaultHttpVersion ?? HttpVersion.Http2;
 	dialogState.profileToken = "";
-	dialogState.profileAllowInsecureTls = false;
 	dialogState.profileIntervalSeconds = settings.defaultIntervalSeconds;
 	dialogState.profileNumberOfCycles = settings.defaultNumberOfCycles;
 }

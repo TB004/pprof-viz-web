@@ -38,7 +38,7 @@ import {
 	cn,
 	type WithElementRef,
 	type WithoutChildrenOrChild,
-} from "$lib/utils.js";
+} from "$lib/utils";
 import { useSidebar } from "./context.svelte.js";
 
 let {

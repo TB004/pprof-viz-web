@@ -1,20 +1,25 @@
 import {
-	createTable,
+	constructTable,
 	type RowData,
+	type Table,
+	type TableFeatures,
 	type TableOptions,
-	type TableOptionsResolved,
-	type TableState,
-	type Updater,
 } from "@tanstack/table-core";
 
 /**
  * Creates a reactive TanStack table object for Svelte.
+ *
+ * The table is rebuilt whenever a reactive option it reads changes, so pass
+ * `data` (and any other changing option) as a getter. The returned value is a
+ * proxy onto the current table: reading from it in a template or a `$derived`
+ * subscribes to those options.
+ *
  * @param options Table options to create the table with.
  * @returns A reactive table object.
  * @example
  * ```svelte
  * <script>
- *   const table = createSvelteTable({ ... })
+ *   const table = createSvelteTable({ features, columns, get data() { return rows } })
  * </script>
  *
  * <table>
@@ -33,114 +38,21 @@ import {
  * </table>
  * ```
  */
-export function createSvelteTable<TData extends RowData>(
-	options: TableOptions<TData>,
-) {
-	const resolvedOptions: TableOptionsResolved<TData> = mergeObjects(
-		{
-			state: {},
-			onStateChange() {},
-			renderFallbackValue: null,
-			mergeOptions: (
-				defaultOptions: TableOptions<TData>,
-				options: Partial<TableOptions<TData>>,
-			) => {
-				return mergeObjects(defaultOptions, options);
-			},
-		},
-		options,
-	);
+export function createSvelteTable<
+	TFeatures extends TableFeatures,
+	TData extends RowData,
+>(options: TableOptions<TFeatures, TData>): Table<TFeatures, TData> {
+	const table = $derived(constructTable(options));
 
-	const table = createTable(resolvedOptions);
-	let state = $state<TableState>(table.initialState);
-
-	function updateOptions() {
-		table.setOptions(() => {
-			return mergeObjects(resolvedOptions, options, {
-				state: mergeObjects(state, options.state || {}),
-
-				onStateChange: (updater: Updater<TableState>) => {
-					if (updater instanceof Function) state = updater(state);
-					else state = mergeObjects(state, updater);
-
-					options.onStateChange?.(updater);
-				},
-			});
-		});
-	}
-
-	updateOptions();
-
-	$effect.pre(() => {
-		updateOptions();
-	});
-
-	return table;
-}
-
-type MaybeThunk<T extends object> = T | (() => T | null | undefined);
-type Intersection<T extends readonly unknown[]> = (T extends [
-	infer H,
-	...infer R,
-]
-	? H & Intersection<R>
-	: unknown) & {};
-
-/**
- * Lazily merges several objects (or thunks) while preserving
- * getter semantics from every source.
- *
- * Proxy-based to avoid known WebKit recursion issue.
- */
-// biome-ignore lint/suspicious/noExplicitAny: generic constraint must accept any thunk source
-export function mergeObjects<Sources extends readonly MaybeThunk<any>[]>(
-	...sources: Sources
-): Intersection<{ [K in keyof Sources]: Sources[K] }> {
-	const resolve = <T extends object>(src: MaybeThunk<T>): T | undefined =>
-		typeof src === "function" ? (src() ?? undefined) : src;
-
-	const findSourceWithKey = (key: PropertyKey) => {
-		for (let i = sources.length - 1; i >= 0; i--) {
-			const obj = resolve(sources[i]);
-			if (obj && key in obj) return obj;
-		}
-		return undefined;
-	};
-
-	return new Proxy(Object.create(null), {
+	return new Proxy({} as Table<TFeatures, TData>, {
 		get(_, key) {
-			const src = findSourceWithKey(key);
-
-			return src?.[key as never];
+			const value = Reflect.get(table, key, table) as unknown;
+			// Table APIs live on a shared prototype and need their instance back.
+			return typeof value === "function" ? value.bind(table) : value;
 		},
-
-		has(_, key) {
-			return !!findSourceWithKey(key);
-		},
-
-		ownKeys(): (string | symbol)[] {
-			// eslint-disable-next-line svelte/prefer-svelte-reactivity
-			const all = new Set<string | symbol>();
-			for (const s of sources) {
-				const obj = resolve(s);
-				if (obj) {
-					for (const k of Reflect.ownKeys(obj) as (string | symbol)[]) {
-						all.add(k);
-					}
-				}
-			}
-			return [...all];
-		},
-
-		getOwnPropertyDescriptor(_, key) {
-			const src = findSourceWithKey(key);
-			if (!src) return undefined;
-			return {
-				configurable: true,
-				enumerable: true,
-				value: (src as Record<PropertyKey, unknown>)[key],
-				writable: true,
-			};
-		},
-	}) as Intersection<{ [K in keyof Sources]: Sources[K] }>;
+		has: (_, key) => key in table,
+		ownKeys: () => Reflect.ownKeys(table),
+		getOwnPropertyDescriptor: (_, key) =>
+			Reflect.getOwnPropertyDescriptor(table, key),
+	});
 }

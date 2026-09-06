@@ -2,5 +2,4 @@
 .github
 .svelte-kit
 node_modules
-packaging
 *.md

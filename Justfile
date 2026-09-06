@@ -30,12 +30,12 @@ preview:
 # Build the self-hosted container image from source
 [group('Container')]
 image TAG="pprof-viz-web":
-    podman build -t {{ TAG }} -f packaging/web/Containerfile .
+    podman build -t {{ TAG }} -f packaging/Containerfile .
 
 # Package an already-built `build/` directory into the container image
 [group('Container')]
 image-dist TAG="pprof-viz-web": build
-    podman build -t {{ TAG }} -f packaging/web/Containerfile.dist .
+    podman build -t {{ TAG }} -f packaging/Containerfile.dist .
 
 # Run the container image locally
 [group('Container')]

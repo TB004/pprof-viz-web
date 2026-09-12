@@ -5,6 +5,11 @@ import {
 	type TableFeatures,
 	type TableOptions,
 } from "@tanstack/table-core";
+import { storeReactivityBindings } from "@tanstack/table-core/store-reactivity-bindings";
+
+// table-core has no reactivity of its own: every table needs an adapter that
+// creates the atoms its state and row models are built from.
+const reactivity = storeReactivityBindings();
 
 /**
  * Creates a reactive TanStack table object for Svelte.
@@ -42,7 +47,12 @@ export function createSvelteTable<
 	TFeatures extends TableFeatures,
 	TData extends RowData,
 >(options: TableOptions<TFeatures, TData>): Table<TFeatures, TData> {
-	const table = $derived(constructTable(options));
+	const table = $derived(
+		constructTable({
+			...options,
+			features: { coreReactivityFeature: reactivity, ...options.features },
+		}),
+	);
 
 	return new Proxy({} as Table<TFeatures, TData>, {
 		get(_, key) {

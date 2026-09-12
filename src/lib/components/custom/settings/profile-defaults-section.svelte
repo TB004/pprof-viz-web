@@ -13,30 +13,19 @@ import {
 } from "$lib/components/custom/profile-form";
 import * as Card from "$lib/components/ui/card/index.js";
 import Input from "$lib/components/ui/input/input.svelte";
-import { SettingsService } from "$lib/services";
-import { CollectionType, HttpVersion } from "$lib/types";
+import { settingsService } from "$lib/services";
+import { CollectionType } from "$lib/types";
 
-const settings = SettingsService.settings;
+const settings = settingsService.getSettings();
 
 const url = $derived(parseUrl(settings.defaultUrl));
 
 function setScheme(scheme: Scheme) {
-	SettingsService.updateSettings({ defaultUrl: buildUrl(scheme, url.host) });
+	settingsService.updateSettings({ defaultUrl: buildUrl(scheme, url.host) });
 }
 
 function setHost(host: string) {
-	SettingsService.updateSettings({ defaultUrl: buildUrl(url.scheme, host) });
-}
-
-// HTTP/3 implies https, so both fields go out in one patch — two sequential
-// `updateSettings` calls would race, the second overwriting the first.
-function setHttpVersion(httpVersion: HttpVersion) {
-	SettingsService.updateSettings({
-		defaultHttpVersion: httpVersion,
-		...(httpVersion === HttpVersion.Http3
-			? { defaultUrl: buildUrl("https", url.host) }
-			: {}),
-	});
+	settingsService.updateSettings({ defaultUrl: buildUrl(url.scheme, host) });
 }
 </script>
 
@@ -57,7 +46,7 @@ function setHttpVersion(httpVersion: HttpVersion) {
 				value={settings.defaultName}
 				placeholder="Production pprof"
 				oninput={(e) =>
-                    SettingsService.updateSettings({
+                    settingsService.updateSettings({
                         defaultName: e.currentTarget.value,
                     })}
 			/>
@@ -68,16 +57,14 @@ function setHttpVersion(httpVersion: HttpVersion) {
 			optional
 			scheme={url.scheme}
 			host={url.host}
-			httpVersion={settings.defaultHttpVersion}
 			onSchemeChange={setScheme}
 			onHostChange={setHost}
-			onHttpVersionChange={setHttpVersion}
 		/>
 
 		<ModePicker
 			label="Collection mode"
 			value={settings.defaultMode}
-			onChange={(v) => SettingsService.updateSettings({ defaultMode: v })}
+			onChange={(v) => settingsService.updateSettings({ defaultMode: v })}
 		/>
 
 		{#if settings.defaultMode === CollectionType.Stream}
@@ -100,7 +87,7 @@ function setHttpVersion(httpVersion: HttpVersion) {
                                 10,
                             );
                             if (v >= 1)
-                                SettingsService.updateSettings({
+                                settingsService.updateSettings({
                                     defaultIntervalSeconds: v,
                                 });
                         }}
@@ -124,7 +111,7 @@ function setHttpVersion(httpVersion: HttpVersion) {
                                 10,
                             );
                             if (v >= 0)
-                                SettingsService.updateSettings({
+                                settingsService.updateSettings({
                                     defaultNumberOfCycles: v,
                                 });
                         }}

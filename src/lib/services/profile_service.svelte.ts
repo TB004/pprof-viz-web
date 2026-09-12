@@ -2,14 +2,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { browser } from "$app/environment";
-import { ProfileIpc, ProjectIpc } from "$lib/ipc";
+import { Profiles, Projects } from "$lib/data";
+import type { DBStore } from "$lib/storage";
 import type {
 	CollectionType,
 	ProfileInput,
 	ProfileRow,
 	ProjectRow,
 } from "$lib/types";
-import * as ErrorService from "./error_service.svelte.js";
+import type { ErrorService } from "./error_service.svelte.js";
 
 export interface CollectionProfile {
 	value: string;
@@ -29,194 +30,165 @@ export interface ProfileCatalogState {
 	projects: ProfileProject[];
 }
 
-export const profileCatalog: ProfileCatalogState = $state({
-	loaded: false,
-	projects: [],
-});
+export class ProfileService {
+	readonly #state: ProfileCatalogState;
+	readonly #projects: Projects;
+	readonly #profiles: Profiles;
+	readonly #errors: ErrorService;
+	#hydrated = false;
 
-let hydrated = false;
+	constructor(db: DBStore, errors: ErrorService) {
+		this.#projects = new Projects(db);
+		this.#profiles = new Profiles(db);
+		this.#errors = errors;
+		this.#state = $state<ProfileCatalogState>({
+			loaded: false,
+			projects: [],
+		});
 
-function reportInvokeError(action: string, e: unknown) {
-	const message = e instanceof Error ? e.message : String(e);
-	void ErrorService.registerError(`${action}: ${message}`);
-}
-
-async function reload() {
-	const [projects, profiles] = await Promise.all([
-		ProjectIpc.listProjects(),
-		ProfileIpc.listProfiles(),
-	]);
-
-	const profilesByProjectId = new Map<string, ProfileRow[]>();
-	for (const row of profiles) {
-		const list = profilesByProjectId.get(row.projectId);
-		if (list) list.push(row);
-		else profilesByProjectId.set(row.projectId, [row]);
+		if (browser) {
+			void this.#ensureHydrated();
+		}
 	}
 
-	const catalog = projects.map((project) => ({
-		...project,
-		profiles: profilesByProjectId.get(project.id) ?? [],
-	}));
-
-	profileCatalog.loaded = true;
-	profileCatalog.projects = catalog;
-}
-
-/** Run a catalog mutation and refresh the catalog afterwards. */
-async function mutate<T>(
-	verb: string,
-	gerund: string,
-	op: () => Promise<T>,
-): Promise<T | undefined> {
-	let result: T;
-	try {
-		result = await op();
-	} catch (e) {
-		reportInvokeError(`Failed to ${verb}`, e);
-		return undefined;
+	/** Projects with their profiles attached. Reactive; read-only outside here. */
+	getCatalog(): ProfileCatalogState {
+		return this.#state;
 	}
-	try {
-		await reload();
-	} catch (e) {
-		reportInvokeError(`Failed to reload after ${gerund}`, e);
+
+	/** Every profile as a picker option, skipping any with an unparseable URL. */
+	profileOptions(): CollectionProfile[] {
+		return this.#state.projects.flatMap((project) =>
+			project.profiles.flatMap((profile) => {
+				try {
+					return [
+						{
+							value: profile.id,
+							label: profile.name,
+							projectId: project.id,
+							projectName: project.name,
+							url: new URL(profile.url),
+							mode: profile.mode,
+						},
+					];
+				} catch {
+					return [];
+				}
+			}),
+		);
 	}
-	return result;
-}
 
-async function ensureHydrated() {
-	if (hydrated) return;
-	hydrated = true;
-	try {
-		await reload();
-	} catch (e) {
-		profileCatalog.loaded = true;
-		profileCatalog.projects = [];
-		hydrated = false;
-		reportInvokeError("Failed to load projects/profiles", e);
+	async getProjectById(projectId: string): Promise<ProjectRow | undefined> {
+		try {
+			return await this.#projects.get(projectId);
+		} catch (error) {
+			this.#errors.reportFailure("Failed to get project", error);
+			return undefined;
+		}
 	}
-}
 
-/** Every profile as a picker option, skipping any with an unparseable URL. */
-export function profileOptions(): CollectionProfile[] {
-	return profileCatalog.projects.flatMap((project) =>
-		project.profiles.flatMap((profile) => {
-			try {
-				return [
-					{
-						value: profile.id,
-						label: profile.name,
-						projectId: project.id,
-						projectName: project.name,
-						url: new URL(profile.url),
-						mode: profile.mode,
-					},
-				];
-			} catch {
-				return [];
-			}
-		}),
-	);
-}
-
-export async function getProjectById(
-	projectId: string,
-): Promise<ProjectRow | undefined> {
-	try {
-		const row = await ProjectIpc.getProjectById(projectId);
-		return row ?? undefined;
-	} catch (e) {
-		reportInvokeError("Failed to get project", e);
-		return undefined;
+	async getProfileById(profileId: string): Promise<ProfileRow | undefined> {
+		try {
+			return await this.#profiles.get(profileId);
+		} catch (error) {
+			this.#errors.reportFailure("Failed to get profile", error);
+			return undefined;
+		}
 	}
-}
 
-export async function getProfileById(
-	profileId: string,
-): Promise<ProfileRow | undefined> {
-	try {
-		const row = await ProfileIpc.getProfileById(profileId);
-		return row ?? undefined;
-	} catch (e) {
-		reportInvokeError("Failed to get profile", e);
-		return undefined;
+	async createProject(name: string): Promise<string | undefined> {
+		if (!name.trim()) return undefined;
+		const project = await this.#mutate("create project", () =>
+			this.#projects.create(name),
+		);
+		return project?.id;
 	}
-}
 
-function toInput(input: ProfileInput): ProfileInput {
-	return {
-		name: input.name.trim(),
-		url: input.url.trim(),
-		mode: input.mode,
-		httpVersion: input.httpVersion,
-		token: input.token?.trim() || null,
-		allowInsecureTls: input.allowInsecureTls,
-		intervalSeconds: input.intervalSeconds ?? null,
-		numberOfCycles: input.numberOfCycles ?? null,
-	};
-}
-
-export async function createProject(name: string): Promise<string | undefined> {
-	const trimmed = name.trim();
-	if (!trimmed) return undefined;
-	const project = await mutate("create project", "creating project", () =>
-		ProjectIpc.createProject(trimmed),
-	);
-	return project?.id;
-}
-
-export async function renameProject(projectId: string, name: string) {
-	const trimmed = name.trim();
-	if (!trimmed) return;
-	await mutate("rename project", "renaming project", () =>
-		ProjectIpc.renameProject(projectId, trimmed),
-	);
-}
-
-export async function deleteProject(projectId: string) {
-	await mutate("delete project", "deleting project", () =>
-		ProjectIpc.deleteProject(projectId),
-	);
-}
-
-export async function createProfile(
-	projectId: string,
-	input: ProfileInput,
-): Promise<string | undefined> {
-	const trimmed = toInput(input);
-	if (!trimmed.name || !trimmed.url) return undefined;
-	try {
-		new URL(trimmed.url);
-	} catch {
-		reportInvokeError("Failed to create profile", new Error("Invalid URL"));
-		return undefined;
+	async renameProject(projectId: string, name: string): Promise<void> {
+		if (!name.trim()) return;
+		await this.#mutate("rename project", () =>
+			this.#projects.rename(projectId, name),
+		);
 	}
-	const created = await mutate("create profile", "creating profile", () =>
-		ProfileIpc.createProfile(projectId, trimmed),
-	);
-	return created?.id;
-}
 
-export async function updateProfile(profileId: string, input: ProfileInput) {
-	const trimmed = toInput(input);
-	if (!trimmed.name || !trimmed.url) return;
-	try {
-		new URL(trimmed.url);
-	} catch {
-		reportInvokeError("Failed to update profile", new Error("Invalid URL"));
-		return;
+	async deleteProject(projectId: string): Promise<void> {
+		await this.#mutate("delete project", () =>
+			this.#projects.remove(projectId),
+		);
 	}
-	await mutate("update profile", "updating profile", () =>
-		ProfileIpc.updateProfile(profileId, trimmed),
-	);
-}
 
-export async function deleteProfile(profileId: string) {
-	await mutate("delete profile", "deleting profile", () =>
-		ProfileIpc.deleteProfile(profileId),
-	);
-}
+	async createProfile(
+		projectId: string,
+		input: ProfileInput,
+	): Promise<string | undefined> {
+		const created = await this.#mutate("create profile", () =>
+			this.#profiles.create(projectId, input),
+		);
+		return created?.id;
+	}
 
-if (browser) {
-	void ensureHydrated();
+	async updateProfile(profileId: string, input: ProfileInput): Promise<void> {
+		await this.#mutate("update profile", () =>
+			this.#profiles.update(profileId, input),
+		);
+	}
+
+	async deleteProfile(profileId: string): Promise<void> {
+		await this.#mutate("delete profile", () =>
+			this.#profiles.remove(profileId),
+		);
+	}
+
+	async #reload(): Promise<void> {
+		const [projects, profiles] = await Promise.all([
+			this.#projects.list(),
+			this.#profiles.list(),
+		]);
+
+		const byProject = new Map<string, ProfileRow[]>();
+		for (const row of profiles) {
+			const list = byProject.get(row.projectId);
+			if (list) list.push(row);
+			else byProject.set(row.projectId, [row]);
+		}
+
+		this.#state.projects = projects.map((project) => ({
+			...project,
+			profiles: byProject.get(project.id) ?? [],
+		}));
+		this.#state.loaded = true;
+	}
+
+	/** Run a catalog mutation, then refresh the catalog. */
+	async #mutate<T>(
+		verb: string,
+		operation: () => Promise<T>,
+	): Promise<T | undefined> {
+		let result: T;
+		try {
+			result = await operation();
+		} catch (error) {
+			this.#errors.reportFailure(`Failed to ${verb}`, error);
+			return undefined;
+		}
+		try {
+			await this.#reload();
+		} catch (error) {
+			this.#errors.reportFailure(`Failed to reload after ${verb}`, error);
+		}
+		return result;
+	}
+
+	async #ensureHydrated(): Promise<void> {
+		if (this.#hydrated) return;
+		this.#hydrated = true;
+		try {
+			await this.#reload();
+		} catch (error) {
+			this.#state.loaded = true;
+			this.#state.projects = [];
+			this.#hydrated = false;
+			this.#errors.reportFailure("Failed to load projects and profiles", error);
+		}
+	}
 }

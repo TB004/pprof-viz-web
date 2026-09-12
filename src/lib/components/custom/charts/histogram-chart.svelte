@@ -11,11 +11,9 @@ import {
 	Tooltip,
 } from "$lib/components/ui/chart";
 
-type Numeric = number | string;
-
 type HistSeries = {
 	key: string;
-	counts?: Numeric[];
+	counts?: bigint[];
 	label: string;
 	color: string;
 };
@@ -40,12 +38,7 @@ let {
 	class?: string;
 } = $props();
 
-// Label a bucket by its upper bound; the topmost bound is +Inf in Go's
-// runtime histograms, which we render as "∞".
-// Label bucket `i` by its upper bound from metadata; the topmost bound is
-// +Inf in Go's runtime histograms, rendered as "∞". When bucket boundaries
-// are unavailable (metadata missing), fall back to the bucket index so the
-// distribution still renders.
+// Label a bucket by its upper bound.
 function label(i: number): string {
 	const hi = buckets?.[i + 1];
 	if (hi === undefined) return `#${i}`;

@@ -5,7 +5,7 @@
 
 <script lang="ts">
 import { NameDescriptionDialog } from "$lib/components/custom/name-description-dialog";
-import { ArchiveService, CollectionService } from "$lib/services";
+import { archiveService, collectionService } from "$lib/services";
 
 let { open: dialogOpen = $bindable(false) }: { open: boolean } = $props();
 
@@ -13,7 +13,7 @@ let saveName = $state("");
 let saveDescription = $state("");
 let saving = $state(false);
 
-const collectionState = CollectionService.collectionState;
+const collectionState = collectionService.getState();
 
 const subtitle = $derived(
 	`Store the current ${collectionState.collectedSamples} sample${
@@ -24,7 +24,7 @@ const subtitle = $derived(
 async function confirmSave() {
 	if (!saveName.trim() || saving) return;
 	saving = true;
-	const ok = await ArchiveService.save(
+	const ok = await archiveService.save(
 		saveName,
 		saveDescription.trim() || null,
 	);

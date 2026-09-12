@@ -5,7 +5,7 @@
 
 <script lang="ts">
 import { DownloadIcon, PencilIcon, Trash2Icon } from "@lucide/svelte";
-import { type ColumnDef, getCoreRowModel } from "@tanstack/table-core";
+import { createColumnHelper, tableFeatures } from "@tanstack/table-core";
 import { goto } from "$app/navigation";
 import { Button } from "$lib/components/ui/button";
 import {
@@ -14,9 +14,9 @@ import {
 	renderSnippet,
 } from "$lib/components/ui/data-table";
 import * as Table from "$lib/components/ui/table";
-import { fmtBytes } from "$lib/format";
-import { ArchiveService, CollectionService } from "$lib/services";
+import { archiveService, formatElapsedTime } from "$lib/services";
 import type { CollectionRow } from "$lib/types";
+import { FormatUtils } from "$lib/utils";
 
 let {
 	collections,
@@ -32,15 +32,13 @@ let loadingId = $state<string | null>(null);
 
 async function load(row: CollectionRow) {
 	loadingId = row.id;
-	const ok = await ArchiveService.load(row.id);
+	const ok = await archiveService.load(row.id);
 	loadingId = null;
 	if (ok) await goto("/cpu");
 }
 
 function fmtDuration(ms: number): string {
-	return CollectionService.formatElapsedTime(
-		Math.max(0, Math.floor(ms / 1000)),
-	);
+	return formatElapsedTime(Math.max(0, Math.floor(ms / 1000)));
 }
 
 function fmtDate(ms: number): string {
@@ -53,46 +51,46 @@ function fmtDate(ms: number): string {
 	});
 }
 
-const columns: ColumnDef<CollectionRow>[] = [
-	{ accessorKey: "name", header: "Name" },
-	{
-		accessorKey: "description",
+// The listing only renders rows, so the core row model — which every table
+// gets — is the whole feature set.
+const features = tableFeatures({});
+const column = createColumnHelper<typeof features, CollectionRow>();
+
+const columns = column.columns([
+	column.accessor("name", { header: "Name" }),
+	column.accessor("description", {
 		header: "Description",
 		cell: ({ row }) => renderSnippet(descCell, row.original),
-	},
-	{
-		accessorKey: "sizeBytes",
+	}),
+	column.accessor("sizeBytes", {
 		header: "Size",
 		cell: ({ row }) => renderSnippet(sizeCell, row.original),
-	},
-	{
-		accessorKey: "durationMs",
+	}),
+	column.accessor("durationMs", {
 		header: "Duration",
 		cell: ({ row }) => renderSnippet(durationCell, row.original),
-	},
-	{
-		accessorKey: "sampleCount",
+	}),
+	column.accessor("sampleCount", {
 		header: "Samples",
 		cell: ({ row }) => renderSnippet(samplesCell, row.original),
-	},
-	{
-		accessorKey: "createdAt",
+	}),
+	column.accessor("createdAt", {
 		header: "Date",
 		cell: ({ row }) => renderSnippet(dateCell, row.original),
-	},
-	{
+	}),
+	column.display({
 		id: "actions",
 		header: "",
 		cell: ({ row }) => renderSnippet(actionsCell, row.original),
-	},
-];
+	}),
+]);
 
 const table = createSvelteTable({
+	features,
+	columns,
 	get data() {
 		return collections;
 	},
-	columns,
-	getCoreRowModel: getCoreRowModel(),
 });
 </script>
 
@@ -101,7 +99,7 @@ const table = createSvelteTable({
 {/snippet}
 
 {#snippet sizeCell(row: CollectionRow)}
-	<span class="tabular-nums">{fmtBytes(row.sizeBytes)}</span>
+	<span class="tabular-nums">{FormatUtils.fmtBytes(row.sizeBytes)}</span>
 {/snippet}
 
 {#snippet durationCell(row: CollectionRow)}
@@ -164,7 +162,7 @@ const table = createSvelteTable({
 		<Table.Body>
 			{#each table.getRowModel().rows as row (row.id)}
 				<Table.Row>
-					{#each row.getVisibleCells() as cell (cell.id)}
+					{#each row.getAllCells() as cell (cell.id)}
 						<Table.Cell>
 							<FlexRender
 								content={cell.column.columnDef.cell}

@@ -12,10 +12,10 @@ import { StatGrid } from "$lib/components/custom/stat-card";
 import * as Card from "$lib/components/ui/card";
 import { Tooltip } from "$lib/components/ui/chart";
 import * as Table from "$lib/components/ui/table";
-import { fmtCountAxis, fmtSecs, fmtSecsAxis } from "$lib/format";
-import { CollectionService } from "$lib/services";
+import { collectionService } from "$lib/services";
+import { FormatUtils } from "$lib/utils";
 
-const collectionState = CollectionService.collectionState;
+const collectionState = collectionService.getState();
 
 const GO_DEBUG_KEYS = [
 	"cacheHashEvents",
@@ -168,7 +168,7 @@ const summaryStats = $derived([
 			description="Cumulative C function calls from Go over samples"
 			type="line"
 			data={cgoChartData}
-			format={fmtCountAxis}
+			format={FormatUtils.fmtCountAxis}
 			series={[{ key: "cgoCalls", label: "CGo Calls" }]}
 		/>
 
@@ -176,7 +176,7 @@ const summaryStats = $derived([
 			title="Mutex Wait Duration"
 			description="Total accumulated mutex contention time per sample"
 			data={syncChartData}
-			format={fmtSecsAxis}
+			format={FormatUtils.fmtSecsAxis}
 			series={[
 				{ key: "mutexWait", label: "Mutex Wait", color: "var(--chart-2)" },
 			]}
@@ -188,7 +188,7 @@ const summaryStats = $derived([
 			description="Total GODEBUG event count accumulated across all event types per sample"
 			type="line"
 			data={debugChartData}
-			format={fmtCountAxis}
+			format={FormatUtils.fmtCountAxis}
 			series={[
 				{ key: "total", label: "Total Events", color: "var(--chart-3)" },
 			]}
@@ -272,7 +272,7 @@ const summaryStats = $derived([
 				<div class="flex flex-1 items-center justify-between leading-none">
 					<span class="text-muted-foreground">{name}</span>
 					<span class="text-foreground font-mono font-medium tabular-nums">
-						{fmtSecs(Number(value))}
+						{FormatUtils.fmtSecs(Number(value))}
 					</span>
 				</div>
 			</div>

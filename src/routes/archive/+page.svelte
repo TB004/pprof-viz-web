@@ -15,14 +15,14 @@ import {
 } from "$lib/components/custom/archive";
 import { EmptyState, PageShell } from "$lib/components/custom/page";
 import * as Card from "$lib/components/ui/card";
-import { fmtBytes } from "$lib/format";
-import { ArchiveService } from "$lib/services";
+import { archiveService } from "$lib/services";
 import type { CollectionRow } from "$lib/types";
+import { FormatUtils } from "$lib/utils";
 
-const archiveState = ArchiveService.archiveState;
+const archiveState = archiveService.getState();
 
 onMount(() => {
-	void ArchiveService.refresh();
+	void archiveService.refresh();
 });
 
 const collections = $derived(archiveState.collections);
@@ -49,7 +49,9 @@ function withColors(
 		}));
 }
 
-// Used-vs-free disk, with our collections broken out as their own slice.
+// How the browser's storage quota for this origin is spent, with our
+// collections broken out from whatever else the app keeps (settings, the
+// database, the cached app shell).
 const diskSlices = $derived<Slice[]>(
 	disk
 		? withColors([
@@ -66,7 +68,11 @@ const diskSlices = $derived<Slice[]>(
 						disk.totalBytes - disk.freeBytes - disk.collectionsBytes,
 					),
 				},
-				{ id: "free", label: "Free", value: Math.max(0, disk.freeBytes) },
+				{
+					id: "free",
+					label: "Available",
+					value: Math.max(0, disk.freeBytes),
+				},
 			])
 		: [],
 );
@@ -95,7 +101,7 @@ let editTarget = $state<CollectionRow | null>(null);
 
 <PageShell
 	title="Archive"
-	description="Saved collections stored locally as .ppvz files"
+	description="Saved collections stored in this browser as .ppvz files"
 >
 	{#snippet actions()}
 		<div
@@ -103,7 +109,7 @@ let editTarget = $state<CollectionRow | null>(null);
 		>
 			<HardDriveIcon class="size-4 text-muted-foreground" />
 			<span class="font-medium tabular-nums">
-				{fmtBytes(disk?.collectionsBytes ?? 0)}
+				{FormatUtils.fmtBytes(disk?.collectionsBytes ?? 0)}
 			</span>
 			<span class="text-muted-foreground"
 				>used by
@@ -115,14 +121,14 @@ let editTarget = $state<CollectionRow | null>(null);
 
 	<div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
 		<ChartCard
-			title="Disk usage"
-			description="Collections vs other used vs free space"
+			title="Storage quota"
+			description="Collections vs other app data vs available quota"
 			slices={diskSlices}
 			donut
 		/>
 		<ChartCard
 			title="By collection"
-			description="Disk footprint of each saved collection"
+			description="Storage footprint of each saved collection"
 			slices={perCollectionSlices}
 		/>
 		<ChartCard

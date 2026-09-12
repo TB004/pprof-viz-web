@@ -18,7 +18,7 @@ import {
 	Tooltip,
 } from "$lib/components/ui/chart";
 import { ScrollArea } from "$lib/components/ui/scroll-area";
-import { fmtBytes } from "$lib/format";
+import { FormatUtils } from "$lib/utils";
 
 let {
 	title,
@@ -48,7 +48,9 @@ const sliceLabels = $derived(new Map(slices.map((s) => [s.id, s.label])));
 {#snippet byteTooltip({ name, value }: { name: string; value: unknown })}
 	<div class="flex w-full items-center justify-between gap-4">
 		<span class="text-muted-foreground">{sliceLabels.get(name) ?? name}</span>
-		<span class="font-mono font-medium">{fmtBytes(Number(value))}</span>
+		<span class="font-mono font-medium"
+			>{FormatUtils.fmtBytes(Number(value))}</span
+		>
 	</div>
 {/snippet}
 
@@ -88,7 +90,7 @@ const sliceLabels = $derived(new Map(slices.map((s) => [s.id, s.label])));
 							></span>
 							<span class="truncate">{slice.label}</span>
 							<span class="ml-auto tabular-nums text-muted-foreground">
-								{fmtBytes(slice.value)}
+								{FormatUtils.fmtBytes(slice.value)}
 							</span>
 						</li>
 					{/each}

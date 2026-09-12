@@ -46,9 +46,10 @@
   },
   "overrides": [
     {
-      "includes": ["src/lib/generated/**"],
+      "includes": ["src/lib/proto/gen/**"],
       "linter": { "enabled": false },
-      "formatter": { "enabled": false }
+      "formatter": { "enabled": false },
+      "assist": { "enabled": false }
     },
     {
       "includes": ["**/*.svelte"],

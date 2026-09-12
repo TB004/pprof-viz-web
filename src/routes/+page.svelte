@@ -17,12 +17,12 @@ import { PMDialog } from "$lib/components/custom/profile-manager-dialog";
 import { Button } from "$lib/components/ui/button";
 import * as Card from "$lib/components/ui/card";
 import { dataRoutes } from "$lib/routes";
-import { CollectionService, ProfileService } from "$lib/services";
+import { collectionService, profileService } from "$lib/services";
 import { CollectionStatus } from "$lib/types";
 
-const collectionState = CollectionService.collectionState;
+const collectionState = collectionService.getState();
 
-const hasProfiles = $derived(ProfileService.profileOptions().length > 0);
+const hasProfiles = $derived(profileService.profileOptions().length > 0);
 const hasSelectedProfile = $derived(!!collectionState.selectedProfile);
 const isRunning = $derived(collectionState.status === CollectionStatus.Running);
 

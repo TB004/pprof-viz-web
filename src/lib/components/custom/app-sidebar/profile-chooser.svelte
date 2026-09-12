@@ -8,7 +8,7 @@ import { PlayIcon, Settings2Icon, SquareIcon } from "@lucide/svelte";
 import { Button } from "$lib/components/ui/button";
 import { ScrollArea } from "$lib/components/ui/scroll-area";
 import * as Select from "$lib/components/ui/select";
-import { CollectionService, ProfileService } from "$lib/services";
+import { collectionService, profileService } from "$lib/services";
 import { CollectionStatus } from "$lib/types";
 
 type Props = {
@@ -17,8 +17,8 @@ type Props = {
 
 let { profileManagerOpen = $bindable() }: Props = $props();
 
-const collectionState = CollectionService.collectionState;
-const profileOptions = $derived(ProfileService.profileOptions());
+const collectionState = collectionService.getState();
+const profileOptions = $derived(profileService.profileOptions());
 
 const isRunning = $derived(collectionState.status === CollectionStatus.Running);
 
@@ -28,7 +28,7 @@ const triggerContent = $derived(
 );
 
 async function handleProfileChange(value?: string) {
-	await CollectionService.selectProfile(value);
+	await collectionService.selectProfile(value);
 }
 </script>
 
@@ -86,7 +86,7 @@ async function handleProfileChange(value?: string) {
 		<Button
 			variant="destructive"
 			class="w-full"
-			onclick={() => CollectionService.stopCollection()}
+			onclick={() => collectionService.stopCollection()}
 		>
 			<SquareIcon class="size-3.5" />
 			<span>Stop collecting</span>
@@ -96,7 +96,7 @@ async function handleProfileChange(value?: string) {
 			variant="default"
 			class="w-full"
 			disabled={!collectionState.selectedProfile}
-			onclick={() => CollectionService.startCollection()}
+			onclick={() => collectionService.startCollection()}
 		>
 			<PlayIcon class="size-3.5" />
 			<span>Start collecting</span>

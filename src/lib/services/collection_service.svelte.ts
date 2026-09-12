@@ -1,29 +1,29 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { listen } from "@tauri-apps/api/event";
-import { browser } from "$app/environment";
-import { MAX_FRAMES } from "$lib/generated/collection";
-import { CollectionIpc } from "$lib/ipc";
-import { ErrorService, ProfileService } from "$lib/services";
+import { CollectionWorkerHandle } from "$lib/collection/client.js";
+import type { SessionProfile, WorkerEvent } from "$lib/collection/protocol.js";
 import {
-	type CollectionStateSnapshot,
-	CollectionStatus,
+	type CollectionStatus,
 	type CollectionType,
-	EVENT_FRAME,
-	EVENT_METADATA,
-	EVENT_STATE,
 	type Frame,
 	type MetadataResponse,
+	CollectionStatus as Status,
 } from "$lib/types";
+import { ulid } from "$lib/utils";
+import type { ErrorService } from "./error_service.svelte.js";
+import type { ProfileService } from "./profile_service.svelte.js";
+
+/** Rolling window of samples kept in memory; the oldest are evicted. */
+export const MAX_FRAMES = 500;
 
 export interface CollectionState {
 	status: CollectionStatus;
 	collectedSamples: number;
 	elapsedSeconds: number;
-	/** True when the current data was loaded from disk, not collected live. */
+	/** True when the current data was loaded from the archive, not collected. */
 	loaded: boolean;
-	/** True once the current session has been saved to the archive. */
+	/** True once the current session has been written to the archive. */
 	saved: boolean;
 	selectedProfile?: string;
 	selectedProfileLabel?: string;
@@ -33,22 +33,260 @@ export interface CollectionState {
 	dataTimestamps?: number[];
 	metadata?: MetadataResponse;
 	startedAt?: number;
+	endedAt?: number;
+}
+
+/** Everything the archive needs to persist the current session. */
+export interface CollectionSnapshot {
+	frames: Frame[];
+	frameTimestamps: number[];
+	metadata: MetadataResponse | null;
+	profileName: string | null;
+	profileUrl: string | null;
+	mode: CollectionType | null;
+	startedAt: number | undefined;
+	endedAt: number | undefined;
+}
+
+export interface LoadedCollection {
+	frames: Frame[];
+	frameTimestamps: number[];
+	metadata: MetadataResponse | null;
+	profileUrl: string | null;
+	mode: CollectionType | null;
+	startedAt: number;
+	durationMs: number;
 }
 
 /**
- * The live session state. Reactive: reads inside components re-run as frames
- * arrive. Treat as read-only outside this module.
+ * A once-a-second ticker. The caller derives the figure from wall-clock rather
+ * than counted ticks, so it stays right even when a backgrounded tab throttles
+ * the interval down to once a minute.
  */
-export const collectionState: CollectionState = $state({
-	status: CollectionStatus.Idle,
-	collectedSamples: 0,
-	elapsedSeconds: 0,
-	loaded: false,
-	saved: false,
-});
+class ElapsedTimer {
+	readonly #onTick: () => void;
+	#handle: ReturnType<typeof setInterval> | undefined;
 
-let hydrated = false;
-let timerHandle: ReturnType<typeof setInterval> | undefined;
+	constructor(onTick: () => void) {
+		this.#onTick = onTick;
+	}
+
+	start(): void {
+		if (this.#handle !== undefined) return;
+		this.#onTick();
+		this.#handle = setInterval(this.#onTick, 1000);
+	}
+
+	stop(): void {
+		if (this.#handle === undefined) return;
+		clearInterval(this.#handle);
+		this.#handle = undefined;
+	}
+}
+
+export class CollectionService {
+	readonly #state: CollectionState;
+	readonly #profiles: ProfileService;
+	readonly #errors: ErrorService;
+	readonly #worker: CollectionWorkerHandle;
+	readonly #timer: ElapsedTimer;
+	/** Identifies the session frames are accepted for; anything else is stale. */
+	#sessionId: string | null = null;
+
+	constructor(profiles: ProfileService, errors: ErrorService) {
+		this.#profiles = profiles;
+		this.#errors = errors;
+		this.#state = $state<CollectionState>({
+			status: Status.Idle,
+			collectedSamples: 0,
+			elapsedSeconds: 0,
+			loaded: false,
+			saved: false,
+		});
+		this.#worker = new CollectionWorkerHandle((event) =>
+			this.#onWorkerEvent(event),
+		);
+		this.#timer = new ElapsedTimer(() => this.#tick());
+	}
+
+	/**
+	 * The live session state. Reactive: reads inside components re-run as frames
+	 * arrive. Treat as read-only outside this class.
+	 */
+	getState(): CollectionState {
+		return this.#state;
+	}
+
+	async selectProfile(profileId?: string): Promise<void> {
+		if (!profileId) {
+			this.#state.selectedProfile = undefined;
+			this.#state.selectedProfileLabel = undefined;
+			this.#state.url = undefined;
+			this.#state.mode = undefined;
+			return;
+		}
+
+		const profile = await this.#profiles.getProfileById(profileId);
+		if (!profile) return;
+
+		this.#state.selectedProfile = profile.id;
+		this.#state.selectedProfileLabel = profile.name;
+		this.#state.url = parseUrl(profile.url);
+		this.#state.mode = profile.mode;
+	}
+
+	async startCollection(): Promise<void> {
+		const { selectedProfile } = this.#state;
+		if (!selectedProfile) return;
+
+		const profile = await this.#profiles.getProfileById(selectedProfile);
+		if (!profile) {
+			this.#errors.registerError(
+				`Profile "${selectedProfile}" no longer exists`,
+			);
+			return;
+		}
+
+		const session: SessionProfile = {
+			url: profile.url,
+			token: profile.token,
+			mode: profile.mode,
+			intervalSeconds: profile.intervalSeconds,
+			numberOfCycles: profile.numberOfCycles,
+		};
+
+		// A fresh start clears the dashboards; the previous session's frames go
+		// with it, which is why saving is offered before starting another run.
+		const sessionId = ulid();
+		this.#sessionId = sessionId;
+		Object.assign(this.#state, {
+			status: Status.Running,
+			collectedSamples: 0,
+			elapsedSeconds: 0,
+			loaded: false,
+			saved: false,
+			selectedProfile: profile.id,
+			selectedProfileLabel: profile.name,
+			url: parseUrl(profile.url),
+			mode: profile.mode,
+			data: [],
+			dataTimestamps: [],
+			metadata: undefined,
+			startedAt: Date.now(),
+			endedAt: undefined,
+		} satisfies CollectionState);
+
+		try {
+			this.#worker.start(sessionId, session);
+			this.#timer.start();
+		} catch (error) {
+			this.#state.status = Status.Idle;
+			this.#timer.stop();
+			this.#errors.reportFailure("Failed to start collection", error);
+		}
+	}
+
+	stopCollection(): void {
+		if (this.#sessionId) this.#worker.stop(this.#sessionId);
+	}
+
+	snapshot(): CollectionSnapshot {
+		const state = this.#state;
+		return {
+			frames: state.data ?? [],
+			frameTimestamps: state.dataTimestamps ?? [],
+			metadata: state.metadata ?? null,
+			profileName: state.selectedProfileLabel ?? null,
+			profileUrl: state.url?.toString() ?? null,
+			mode: state.mode ?? null,
+			startedAt: state.startedAt,
+			endedAt: state.endedAt,
+		};
+	}
+
+	/** This exact session is archived — a collection's data never changes. */
+	markSaved(): void {
+		this.#state.saved = true;
+	}
+
+	/** Install an archived collection as the current, idle session. */
+	installLoaded(loaded: LoadedCollection): void {
+		// Retire any running session so its frames cannot land on top of these.
+		if (this.#sessionId) this.#worker.stop(this.#sessionId);
+		this.#sessionId = null;
+		this.#timer.stop();
+
+		Object.assign(this.#state, {
+			status: Status.Idle,
+			collectedSamples: loaded.frames.length,
+			elapsedSeconds: Math.max(0, Math.floor(loaded.durationMs / 1000)),
+			loaded: true,
+			saved: false,
+			data: loaded.frames,
+			dataTimestamps: loaded.frameTimestamps,
+			metadata: loaded.metadata ?? undefined,
+			url: parseUrl(loaded.profileUrl),
+			mode: loaded.mode ?? undefined,
+			startedAt: loaded.startedAt,
+			endedAt: loaded.startedAt + loaded.durationMs,
+		});
+	}
+
+	cleanup(): void {
+		this.#timer.stop();
+		this.#worker.dispose();
+		this.#sessionId = null;
+	}
+
+	#tick(): void {
+		const { status, startedAt } = this.#state;
+		if (status !== Status.Running || !startedAt) return;
+		this.#state.elapsedSeconds = Math.max(
+			0,
+			Math.floor((Date.now() - startedAt) / 1000),
+		);
+	}
+
+	#onWorkerEvent(event: WorkerEvent): void {
+		// An empty session id marks a worker-level failure, which is never stale.
+		if (event.sessionId && event.sessionId !== this.#sessionId) return;
+
+		switch (event.type) {
+			case "metadata":
+				this.#state.metadata = event.metadata;
+				break;
+			case "frame":
+				this.#appendFrame(event.frame, event.timestamp);
+				break;
+			case "failed":
+				this.#errors.registerError(event.message);
+				break;
+			case "ended":
+				this.#endSession(event.endedAt);
+				break;
+		}
+	}
+
+	#appendFrame(frame: Frame, timestamp: number): void {
+		const data = evictOldest([...(this.#state.data ?? []), frame]);
+		this.#state.data = data;
+		this.#state.dataTimestamps = evictOldest([
+			...(this.#state.dataTimestamps ?? []),
+			timestamp,
+		]);
+		this.#state.collectedSamples = data.length;
+	}
+
+	#endSession(endedAt: number): void {
+		// Keep the frames — the dashboards stay inspectable after a run.
+		this.#state.status = Status.Idle;
+		this.#state.endedAt = endedAt;
+		this.#state.elapsedSeconds = this.#state.startedAt
+			? Math.max(0, Math.floor((endedAt - this.#state.startedAt) / 1000))
+			: 0;
+		this.#timer.stop();
+	}
+}
 
 export function formatElapsedTime(totalSeconds: number): string {
 	const hours = Math.floor(totalSeconds / 3600);
@@ -57,22 +295,7 @@ export function formatElapsedTime(totalSeconds: number): string {
 	return `${hours}h ${minutes}m ${seconds}s`;
 }
 
-function asStatus(raw: CollectionStateSnapshot["status"]): CollectionStatus {
-	return raw === "running" ? CollectionStatus.Running : CollectionStatus.Idle;
-}
-
-/**
- * Drop the oldest entries in place so at most `MAX_FRAMES` remain, mirroring
- * the eviction Rust performs on its own buffer.
- */
-function evictOldest<T>(entries: T[]): T[] {
-	if (entries.length > MAX_FRAMES) {
-		entries.splice(0, entries.length - MAX_FRAMES);
-	}
-	return entries;
-}
-
-function asUrl(raw: string | null | undefined): URL | undefined {
+function parseUrl(raw: string | null | undefined): URL | undefined {
 	if (!raw) return undefined;
 	try {
 		return new URL(raw);
@@ -81,172 +304,9 @@ function asUrl(raw: string | null | undefined): URL | undefined {
 	}
 }
 
-function startElapsedTimer() {
-	if (timerHandle !== undefined) return;
-	const tick = () => {
-		const { status, startedAt } = collectionState;
-		if (status !== CollectionStatus.Running || !startedAt) return;
-		collectionState.elapsedSeconds = Math.max(
-			0,
-			Math.floor((Date.now() - startedAt) / 1000),
-		);
-	};
-	tick();
-	timerHandle = setInterval(tick, 1000);
-}
-
-function stopElapsedTimer() {
-	if (timerHandle !== undefined) {
-		clearInterval(timerHandle);
-		timerHandle = undefined;
-	}
-}
-
-function applySnapshot(snapshot: CollectionStateSnapshot) {
-	const state = collectionState;
-	const startedAt = snapshot.startedAt ?? undefined;
-	// A different startedAt means a different session — a fresh live run or a
-	// collection loaded from disk.
-	const sessionChanged = startedAt !== state.startedAt;
-	// A state event without frames means "unchanged, you already have them";
-	// only a new session invalidates what we hold.
-	const frames = snapshot.frames ?? (sessionChanged ? [] : (state.data ?? []));
-
-	const backendTimestamps =
-		snapshot.frameTimestamps &&
-		snapshot.frameTimestamps.length === frames.length
-			? snapshot.frameTimestamps
-			: undefined;
-
-	const next: CollectionState = {
-		...state,
-		status: asStatus(snapshot.status),
-		loaded: snapshot.loaded,
-		saved: snapshot.saved,
-		collectedSamples: snapshot.sampleCount ?? 0,
-		data: frames,
-		// Prefer backend timestamps; otherwise preserve live ones for the same
-		// session and clear when frames reset or the session changed.
-		dataTimestamps:
-			backendTimestamps ??
-			(frames.length === 0 || sessionChanged
-				? undefined
-				: state.dataTimestamps),
-		metadata: snapshot.metadata ?? undefined,
-		startedAt,
-		mode: snapshot.mode ?? undefined,
-		url: asUrl(snapshot.profileUrl),
-	};
-
-	if (snapshot.profileId) {
-		next.selectedProfile = snapshot.profileId;
-		next.selectedProfileLabel = snapshot.profileName ?? undefined;
-	}
-
-	const endTime = snapshot.endedAt ?? Date.now();
-	next.elapsedSeconds = startedAt
-		? Math.max(0, Math.floor((endTime - startedAt) / 1000))
-		: 0;
-
-	Object.assign(collectionState, next);
-	if (asStatus(snapshot.status) === CollectionStatus.Running) {
-		startElapsedTimer();
-	} else {
-		stopElapsedTimer();
-	}
-}
-
-let unlisteners: Array<() => void> = [];
-
-if (browser) {
-	void (async () => {
-		try {
-			const [unlistenState, unlistenFrame, unlistenMetadata] =
-				await Promise.all([
-					listen<CollectionStateSnapshot>(EVENT_STATE, (event) => {
-						applySnapshot(event.payload);
-					}),
-					listen<Frame>(EVENT_FRAME, (event) => {
-						const data = evictOldest([
-							...(collectionState.data ?? []),
-							event.payload,
-						]);
-						collectionState.data = data;
-						collectionState.dataTimestamps = evictOldest([
-							...(collectionState.dataTimestamps ?? []),
-							Date.now(),
-						]);
-						collectionState.collectedSamples = data.length;
-					}),
-					listen<MetadataResponse>(EVENT_METADATA, (event) => {
-						collectionState.metadata = event.payload;
-					}),
-				]);
-			unlisteners.push(unlistenState, unlistenFrame, unlistenMetadata);
-		} catch (e) {
-			void ErrorService.registerError(
-				`Failed to register collection listeners: ${e}`,
-			);
-			return;
-		}
-
-		if (!hydrated) {
-			hydrated = true;
-			try {
-				const snapshot = await CollectionIpc.getCollectionSnapshot();
-				applySnapshot(snapshot);
-			} catch (e) {
-				hydrated = false;
-				void ErrorService.registerError(
-					`Failed to load collection state: ${e}`,
-				);
-			}
-		}
-	})();
-}
-
-export function cleanup() {
-	for (const unlisten of unlisteners) unlisten();
-	unlisteners = [];
-	stopElapsedTimer();
-}
-
-export async function selectProfile(profileId?: string): Promise<void> {
-	if (!profileId) {
-		collectionState.selectedProfile = undefined;
-		collectionState.selectedProfileLabel = undefined;
-		collectionState.url = undefined;
-		collectionState.mode = undefined;
-		return;
-	}
-
-	const located = await ProfileService.getProfileById(profileId);
-	if (!located) return;
-
-	collectionState.selectedProfile = located.id;
-	collectionState.selectedProfileLabel = located.name;
-	collectionState.url = asUrl(located.url);
-	collectionState.mode = located.mode;
-}
-
-export async function startCollection(): Promise<void> {
-	const { selectedProfile } = collectionState;
-	if (!selectedProfile) return;
-	try {
-		await CollectionIpc.startCollection(selectedProfile);
-	} catch (e) {
-		await ErrorService.registerError(
-			e instanceof Error ? e.message : `Failed to start collection: ${e}`,
-		);
-	}
-}
-
-export async function stopCollection(): Promise<void> {
-	try {
-		await CollectionIpc.stopCollection();
-	} catch (e) {
-		await ErrorService.registerError(
-			e instanceof Error ? e.message : `Failed to stop collection: ${e}`,
-		);
-	}
+/** Drop the oldest entries in place so at most `MAX_FRAMES` remain. */
+function evictOldest<T>(entries: T[]): T[] {
+	if (entries.length > MAX_FRAMES)
+		entries.splice(0, entries.length - MAX_FRAMES);
+	return entries;
 }

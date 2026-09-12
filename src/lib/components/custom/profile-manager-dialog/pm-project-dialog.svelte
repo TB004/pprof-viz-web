@@ -7,7 +7,7 @@
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import Input from "$lib/components/ui/input/input.svelte";
-import { ProfileService } from "$lib/services";
+import { profileService } from "$lib/services";
 import { clearProfileForm, dialogState } from "./state.svelte.ts";
 
 let name = $state("");
@@ -19,9 +19,9 @@ $effect(() => {
 			dialogState.projectDialogMode === "rename" &&
 			dialogState.projectDialogProjectId
 		) {
-			const project = ProfileService.profileCatalog.projects.find(
-				(p) => p.id === dialogState.projectDialogProjectId,
-			);
+			const project = profileService
+				.getCatalog()
+				.projects.find((p) => p.id === dialogState.projectDialogProjectId);
 			name = project?.name ?? "";
 		} else {
 			name = "";
@@ -37,7 +37,7 @@ async function confirm() {
 	}
 
 	if (dialogState.projectDialogMode === "create") {
-		const createdProjectId = await ProfileService.createProject(trimmedName);
+		const createdProjectId = await profileService.createProject(trimmedName);
 		if (createdProjectId) {
 			dialogState.selectedProjectId = createdProjectId;
 			dialogState.selectedProfileId = undefined;
@@ -45,7 +45,7 @@ async function confirm() {
 			clearProfileForm();
 		}
 	} else if (dialogState.projectDialogProjectId) {
-		await ProfileService.renameProject(
+		await profileService.renameProject(
 			dialogState.projectDialogProjectId,
 			trimmedName,
 		);

@@ -5,7 +5,7 @@
 
 <script lang="ts">
 import { NameDescriptionDialog } from "$lib/components/custom/name-description-dialog";
-import { ArchiveService } from "$lib/services";
+import { archiveService } from "$lib/services";
 import type { CollectionRow } from "$lib/types";
 
 let { target = $bindable(null) }: { target: CollectionRow | null } = $props();
@@ -25,7 +25,7 @@ $effect(() => {
 async function confirmEdit() {
 	if (!target || !editName.trim() || saving) return;
 	saving = true;
-	const ok = await ArchiveService.update(
+	const ok = await archiveService.update(
 		target.id,
 		editName,
 		editDescription.trim() || null,
@@ -36,9 +36,12 @@ async function confirmEdit() {
 </script>
 
 <NameDescriptionDialog
-	bind:open={() => target !== null, (open) => {
+	bind:open={
+		() => target !== null,
+		(open) => {
 			if (!open) target = null;
-		}}
+		}
+	}
 	title="Edit collection"
 	subtitle="Update the name and description of this saved collection."
 	bind:name={editName}

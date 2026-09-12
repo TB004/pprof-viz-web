@@ -11,6 +11,14 @@ declare global {
 		// interface PageState {}
 		// interface Platform {}
 	}
+
+	// The File System Access API's directory iteration is not in lib.dom yet,
+	// but every browser with an Origin Private File System implements it.
+	interface FileSystemDirectoryHandle {
+		keys(): AsyncIterableIterator<string>;
+		values(): AsyncIterableIterator<FileSystemHandle>;
+		entries(): AsyncIterableIterator<[string, FileSystemHandle]>;
+	}
 }
 
 export {};

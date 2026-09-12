@@ -14,10 +14,10 @@ import { HistogramChart, MetricChart } from "$lib/components/custom/charts";
 import { EmptyState, PageShell } from "$lib/components/custom/page";
 import { StatGrid } from "$lib/components/custom/stat-card";
 import * as Card from "$lib/components/ui/card";
-import { fmtBytes, fmtBytesAxis, fmtCountAxis } from "$lib/format";
-import { CollectionService } from "$lib/services";
+import { collectionService } from "$lib/services";
+import { FormatUtils } from "$lib/utils";
 
-const collectionState = CollectionService.collectionState;
+const collectionState = collectionService.getState();
 
 const latestGc = $derived(collectionState.data?.at(-1)?.gc);
 const gcMeta = $derived(collectionState.metadata?.gc);
@@ -65,13 +65,13 @@ const stats = $derived([
 	},
 	{
 		label: "Live Heap",
-		value: fmtBytes(latest?.liveOccupiedBytes ?? 0),
+		value: FormatUtils.fmtBytes(latest?.liveOccupiedBytes ?? 0),
 		description: "Currently live heap memory",
 		Icon: DatabaseIcon,
 	},
 	{
 		label: "Heap Goal",
-		value: fmtBytes(latest?.goalHeapSizeBytes ?? 0),
+		value: FormatUtils.fmtBytes(latest?.goalHeapSizeBytes ?? 0),
 		description: "Target heap size for next GC",
 		Icon: DatabaseIcon,
 	},
@@ -99,7 +99,7 @@ const stats = $derived([
 			title="Heap Size"
 			description="Live heap and GC goal size over time"
 			data={chartData}
-			format={fmtBytesAxis}
+			format={FormatUtils.fmtBytesAxis}
 			series={[
 				{ key: "liveOccupiedBytes", label: "Live Heap" },
 				{ key: "goalHeapSizeBytes", label: "Heap Goal" },
@@ -110,7 +110,7 @@ const stats = $derived([
 			title="Allocation Activity"
 			description="Cumulative bytes allocated and freed over time"
 			data={chartData}
-			format={fmtBytesAxis}
+			format={FormatUtils.fmtBytesAxis}
 			series={[
 				{ key: "bytesAllocs", label: "Allocated" },
 				{ key: "bytesFrees", label: "Freed" },
@@ -122,7 +122,7 @@ const stats = $derived([
 			description="Cumulative automatic and forced GC cycles over time"
 			type="line"
 			data={chartData}
-			format={fmtCountAxis}
+			format={FormatUtils.fmtCountAxis}
 			series={[
 				{ key: "automaticCycles", label: "Automatic" },
 				{ key: "forcedCycles", label: "Forced" },
@@ -139,7 +139,7 @@ const stats = $derived([
 			<Card.Content>
 				<HistogramChart
 					buckets={gcMeta?.bytesAllocsBySizeBuckets}
-					format={fmtBytesAxis}
+					format={FormatUtils.fmtBytesAxis}
 					grouped
 					series={[
 						{

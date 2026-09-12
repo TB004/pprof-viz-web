@@ -7,7 +7,7 @@
 import { TriangleAlertIcon } from "@lucide/svelte";
 import { ConfirmDialog } from "$lib/components/custom/confirm-dialog";
 import * as Card from "$lib/components/ui/card/index.js";
-import { ProjectIpc } from "$lib/ipc";
+import { settingsService } from "$lib/services";
 
 let dialogOpen = $state(false);
 let resetting = $state(false);
@@ -15,11 +15,8 @@ let resetting = $state(false);
 async function resetAllData() {
 	resetting = true;
 	try {
-		await ProjectIpc.resetAllData();
-		try {
-			localStorage.removeItem("pprof-viz-settings");
-		} catch {}
-		window.location.reload();
+		// Reloads the page on success, so `resetting` is only reset on failure.
+		await settingsService.resetAllData();
 	} finally {
 		resetting = false;
 	}
@@ -38,8 +35,8 @@ async function resetAllData() {
 			<div>
 				<p class="text-sm font-medium text-foreground">Delete all data</p>
 				<p class="mt-0.5 text-sm text-muted-foreground">
-					Permanently removes all projects, profiles, and resets settings to
-					defaults.
+					Permanently removes all projects, profiles and saved collections, and
+					resets settings to their defaults.
 				</p>
 			</div>
 			<button
@@ -57,7 +54,7 @@ async function resetAllData() {
 <ConfirmDialog
 	bind:open={dialogOpen}
 	title="Delete all data?"
-	description="This will permanently delete all projects and profiles, and reset all settings to their defaults. This action cannot be undone."
+	description="This will permanently delete all projects, profiles and saved collections stored in this browser, and reset all settings to their defaults. This action cannot be undone."
 	confirmLabel="Delete all data"
 	pending={resetting}
 	pendingLabel="Deleting…"

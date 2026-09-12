@@ -8,10 +8,10 @@ import { ActivityIcon, CpuIcon, TimerIcon, ZapIcon } from "@lucide/svelte";
 import { MetricChart } from "$lib/components/custom/charts";
 import { EmptyState, PageShell } from "$lib/components/custom/page";
 import { StatGrid } from "$lib/components/custom/stat-card";
-import { fmtCountAxis, fmtSecs, fmtSecsAxis } from "$lib/format";
-import { CollectionService } from "$lib/services";
+import { collectionService } from "$lib/services";
+import { FormatUtils } from "$lib/utils";
 
-const collectionState = CollectionService.collectionState;
+const collectionState = collectionService.getState();
 
 const chartData = $derived(
 	(collectionState.data ?? []).map((frame, i) => ({
@@ -38,19 +38,19 @@ const hasData = $derived(chartData.length > 0);
 const stats = $derived([
 	{
 		label: "User CPU",
-		value: fmtSecs(latest?.user ?? 0),
+		value: FormatUtils.fmtSecs(latest?.user ?? 0),
 		description: "CPU time in user code",
 		Icon: CpuIcon,
 	},
 	{
 		label: "Total CPU",
-		value: fmtSecs(latest?.total ?? 0),
+		value: FormatUtils.fmtSecs(latest?.total ?? 0),
 		description: "Total measured CPU time",
 		Icon: TimerIcon,
 	},
 	{
 		label: "GC CPU",
-		value: fmtSecs(latest?.gcTotal ?? 0),
+		value: FormatUtils.fmtSecs(latest?.gcTotal ?? 0),
 		description: "CPU time in garbage collection",
 		Icon: ZapIcon,
 	},
@@ -90,7 +90,7 @@ const stats = $derived([
 			title="CPU Time Distribution"
 			description="User, idle, GC, and scavenge CPU seconds per sample"
 			data={chartData}
-			format={fmtSecsAxis}
+			format={FormatUtils.fmtSecsAxis}
 			series={[
 				{ key: "user", label: "User" },
 				{ key: "idle", label: "Idle" },
@@ -103,7 +103,7 @@ const stats = $derived([
 			title="GC CPU Breakdown"
 			description="CPU seconds consumed by each GC phase per sample"
 			data={chartData}
-			format={fmtSecsAxis}
+			format={FormatUtils.fmtSecsAxis}
 			series={[
 				{ key: "gcAssist", label: "GC Assist" },
 				{ key: "gcDedicated", label: "GC Dedicated" },
@@ -116,7 +116,7 @@ const stats = $derived([
 			description="Running, runnable, and waiting goroutines over time"
 			type="line"
 			data={chartData}
-			format={fmtCountAxis}
+			format={FormatUtils.fmtCountAxis}
 			series={[
 				{ key: "goroutinesRunning", label: "Running" },
 				{ key: "goroutinesRunnable", label: "Runnable" },

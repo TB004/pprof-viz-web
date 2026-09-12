@@ -11,7 +11,7 @@ import {
 	PlugZapIcon,
 } from "@lucide/svelte";
 import { Button } from "$lib/components/ui/button/index.js";
-import { AgentIpc } from "$lib/ipc";
+import { pingAgent } from "$lib/services/agent_service.js";
 import { assembleUrl, dialogState } from "./state.svelte.ts";
 
 type PingStatus = "idle" | "pending" | "success" | "error";
@@ -20,12 +20,10 @@ let pingStatus = $state<PingStatus>("idle");
 let pingError = $state("");
 let pingResetTimer: ReturnType<typeof setTimeout> | undefined;
 
-// Reset the ping result whenever the URL or version changes so stale indicators don't persist.
+// Reset the ping result whenever the URL changes so stale indicators don't persist.
 $effect(() => {
 	const _host = dialogState.profileUrlHost;
 	const _scheme = dialogState.profileScheme;
-	const _version = dialogState.profileHttpVersion;
-	const _insecure = dialogState.profileAllowInsecureTls;
 	pingStatus = "idle";
 	pingError = "";
 });
@@ -52,12 +50,7 @@ async function testConnection() {
 	pingError = "";
 
 	try {
-		await AgentIpc.agentPing(
-			url,
-			token || null,
-			dialogState.profileHttpVersion,
-			dialogState.profileAllowInsecureTls,
-		);
+		await pingAgent(url, token || null);
 		pingStatus = "success";
 	} catch (err) {
 		pingStatus = "error";

@@ -7,11 +7,11 @@
 import { FolderPlusIcon } from "@lucide/svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import { ScrollArea } from "$lib/components/ui/scroll-area";
-import { ProfileService } from "$lib/services";
+import { profileService } from "$lib/services";
 import PMSidebarElem from "./pm-sidebar-elem.svelte";
 import { dialogState } from "./state.svelte";
 
-const profileCatalog = ProfileService.profileCatalog;
+const profileCatalog = profileService.getCatalog();
 
 function openCreateProjectDialog() {
 	dialogState.projectDialogMode = "create";

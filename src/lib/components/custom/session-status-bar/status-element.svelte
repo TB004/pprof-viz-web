@@ -5,7 +5,7 @@
 
 <script lang="ts">
 import type { HTMLAttributes } from "svelte/elements";
-import type { WithElementRef } from "$lib/utils.js";
+import type { WithElementRef } from "$lib/utils";
 
 let { children }: WithElementRef<HTMLAttributes<HTMLDivElement>> = $props();
 </script>

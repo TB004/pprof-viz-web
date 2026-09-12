@@ -1,0 +1,56 @@
+# Copyright (C) 2026 Tizian Bahr
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# The app is a static SvelteKit build (SSG), so this only ever serves files. Two
+# things matter beyond that: the cache headers, which have to keep the service
+# worker and the entry HTML fresh while the content-hashed chunks stay immutable
+# forever, and the origin being a secure context — service workers, the Origin
+# Private File System and IndexedDB persistence all require HTTPS or localhost.
+#
+# Set SITE_ADDRESS to a hostname to have Caddy provision a certificate:
+#   podman run -e SITE_ADDRESS=ppvz.example.com ...
+# It defaults to :80, which is right when this sits behind another proxy or is
+# reached over localhost.
+
+{
+	admin off
+}
+
+{$SITE_ADDRESS::80} {
+	root * {$SITE_ROOT:/srv}
+	encode zstd gzip
+
+	header {
+		-Server
+		# Default for HTML, the service worker and the version manifest: always
+		# revalidate, so a deploy is picked up on the next visit.
+		Cache-Control "no-cache"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		Cross-Origin-Opener-Policy "same-origin"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Permissions-Policy "geolocation=(), camera=(), microphone=(), payment=()"
+		# `connect-src` has to reach whatever collector the user configures, so it
+		# is wide by default; narrow it by setting COLLECTOR_ORIGINS to a
+		# space-separated list, e.g. "https://agent.internal:9090".
+		# `unsafe-inline` covers the pre-paint theme script in app.html.
+		# `wasm-unsafe-eval` is required to instantiate the zstd codec that
+		# reads and writes `.ppvz` archives; it permits WebAssembly only, not
+		# `eval`. Without it, saving and loading collections fails.
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; worker-src 'self' blob:; manifest-src 'self'; connect-src 'self' {$COLLECTOR_ORIGINS:*}; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
+	}
+
+	# Content-hashed filenames: the URL changes whenever the bytes do.
+	@immutable path /_app/immutable/*
+	header @immutable Cache-Control "public, max-age=31536000, immutable"
+
+	# Icons are referenced by stable names, so cache them for a day only.
+	@icons path /icons/* /favicon.ico
+	header @icons Cache-Control "public, max-age=86400"
+
+	# Prerendered routes are written as `<route>.html`; the final fallback keeps
+	# a deep link working if a route is ever added without a rebuild here.
+	try_files {path} {path}.html {path}/index.html /index.html
+	file_server
+}

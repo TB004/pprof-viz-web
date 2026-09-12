@@ -59,7 +59,7 @@ export class Archive {
 		let body: Uint8Array;
 		try {
 			body = ZstdCompressor.checkMagic(bytes)
-				? await this.#compressor.compress(bytes)
+				? await this.#compressor.decompress(bytes)
 				: bytes;
 		} catch (error) {
 			throw new Error(

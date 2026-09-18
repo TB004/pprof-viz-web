@@ -75,7 +75,7 @@ jobs:
 
       - name: Derive image tags
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/${{ github.repository_owner }}/pprof-viz-web
           # `latest` only for a final release — a prerelease tag must not become

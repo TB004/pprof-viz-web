@@ -29,12 +29,12 @@ import * as Card from "$lib/components/ui/card/index.js";
 			<span class="text-muted-foreground">Repository</span>
 			<span>
 				<a
-					href="https://github.com/TB004/pprof-viz"
+					href="https://github.com/TB004/pprof-viz-web"
 					target="_blank"
 					rel="noreferrer noopener"
 					class="text-sm font-medium text-primary underline-offset-4 hover:underline"
 				>
-					github.com/TB004/pprof-viz
+					github.com/TB004/pprof-viz-web
 				</a>
 			</span>
 

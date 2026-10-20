@@ -3,7 +3,7 @@
 
 import { create } from "@bufbuild/protobuf";
 import {
-	Archive,
+	type Archive,
 	Utils as ArchiveUtils,
 	CollectionMetaSchema,
 } from "#lib/archive";
@@ -31,11 +31,12 @@ export class ArchiveService {
 	constructor(
 		db: DBStore,
 		fs: FileStore,
+		archive: Archive,
 		session: CollectionService,
 		errors: ErrorService,
 	) {
 		this.#collections = new Collections(db);
-		this.#archive = new Archive();
+		this.#archive = archive;
 		this.#fs = fs;
 		this.#session = session;
 		this.#errors = errors;

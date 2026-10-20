@@ -61,6 +61,12 @@ Components must not reach past `services` into `data`/`rpc`/`storage`.
   `StoredCollection`, with no wrapper header of ours. Do not add one. zstd has no browser
   API, so it is carried as WebAssembly (`src/lib/archive/zstd.ts`), which is why the CSP in
   `packaging/Caddyfile` needs `wasm-unsafe-eval`.
+- **The zstd wasm module is per-document, and its results are views into its
+  heap.** `ZstdCompressor` therefore shares one loaded module across the tab and
+  copies every result: calling the module's `init()` again re-instantiates it
+  underneath whatever is already using it, and a result held across the next
+  compress or decompress reads back as zeroes. For the same reason there is one
+  `Archive` for the tab, built in `services/app.svelte.ts` and injected.
 - **The browser owns TLS and the HTTP version.** There is no per-profile "allow invalid
   certificates" or HTTP/3 toggle here, and there cannot be. A collector must present a trusted
   certificate and send CORS headers.

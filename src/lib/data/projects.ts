@@ -1,9 +1,9 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import type { DBStore } from "$lib/storage/idb.js";
-import type { ProjectRow } from "$lib/types";
-import { TextUtils, ulid } from "$lib/utils";
+import type { DBStore } from "#lib/storage/idb.js";
+import type { ProjectRow } from "#lib/types";
+import { TextUtils, ulid } from "#lib/utils";
 import { ProfileIndex, Store } from "./database.js";
 
 export class Projects {

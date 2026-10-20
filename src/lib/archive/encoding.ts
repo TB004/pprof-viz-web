@@ -6,9 +6,9 @@ import {
 	type CollectionMeta,
 	CollectionMetaSchema,
 	StoredCollectionSchema,
-} from "$lib/proto/gen/collector_pb.js";
-import type { Frame, MetadataResponse } from "$lib/types";
-import { FrameUtils } from "$lib/utils";
+} from "#lib/proto/gen/collector_pb.js";
+import type { Frame, MetadataResponse } from "#lib/types";
+import { FrameUtils } from "#lib/utils";
 import { ZstdCompressor } from "./zstd.js";
 
 /** Bump when the payload layout changes in a way that needs a read migration. */
@@ -23,6 +23,14 @@ export interface CollectionPayload {
 	frameTimestamps: number[];
 	metadata: MetadataResponse | null;
 	meta: CollectionMeta;
+}
+
+/** Protobuf encoding is deterministic here, so bytes are a fair comparison. */
+function sameMeta(a: CollectionMeta, b: CollectionMeta): boolean {
+	const left = toBinary(CollectionMetaSchema, a);
+	const right = toBinary(CollectionMetaSchema, b);
+	if (left.length !== right.length) return false;
+	return left.every((byte, index) => byte === right[index]);
 }
 
 export class Archive {
@@ -94,5 +102,27 @@ export class Archive {
 			metadata: stored.metadata ?? null,
 			meta: stored.meta ?? create(CollectionMetaSchema, {}),
 		};
+	}
+
+	/**
+	 * Return bytes whose embedded `meta` matches `meta`, re-encoding only when it
+	 * differs. Collections are renamed through the metadata row, which never
+	 * rewrites the file, so an exported copy would otherwise carry a stale name.
+	 * Frames are left as the sparse deltas they already are — no replay.
+	 */
+	async rewriteMeta(
+		bytes: Uint8Array,
+		meta: CollectionMeta,
+	): Promise<Uint8Array> {
+		const compressed = ZstdCompressor.checkMagic(bytes);
+		const body = compressed ? await this.#compressor.decompress(bytes) : bytes;
+		const stored = fromBinary(StoredCollectionSchema, body);
+
+		const current = stored.meta ?? create(CollectionMetaSchema, {});
+		if (sameMeta(current, meta)) return bytes;
+
+		stored.meta = meta;
+		const rewritten = toBinary(StoredCollectionSchema, stored);
+		return compressed ? this.#compressor.compress(rewritten) : rewritten;
 	}
 }

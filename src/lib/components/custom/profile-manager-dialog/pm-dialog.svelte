@@ -4,18 +4,24 @@
 -->
 
 <script lang="ts">
-import { CheckIcon, Trash2Icon } from "@lucide/svelte";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
-import * as ScrollArea from "$lib/components/ui/scroll-area/index.js";
-import { profileService } from "$lib/services";
-import { CollectionType } from "$lib/types";
+import { CheckIcon, TrashIcon, UploadIcon } from "@lucide/svelte";
+import { ExportDialog } from "#lib/components/custom/transfer";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
+import * as ScrollArea from "#lib/components/ui/scroll-area/index.js";
+import { profileService } from "#lib/services";
+import { CollectionType } from "#lib/types";
 import ConnectionTester from "./connection-tester.svelte";
 import PMDeleteDialog from "./pm-delete-dialog.svelte";
 import PMProjectDialog from "./pm-project-dialog.svelte";
 import PMSidebar from "./pm-sidebar.svelte";
 import ProfileForm from "./profile-form.svelte";
-import { assembleUrl, clearProfileForm, dialogState } from "./state.svelte.ts";
+import {
+	assembleUrl,
+	clearProfileForm,
+	dialogState,
+	openProfileExport,
+} from "./state.svelte.ts";
 
 type Props = {
 	open?: boolean;
@@ -135,7 +141,8 @@ const hasChanges = $derived(
 
 					<ScrollArea.Root class="min-h-0 flex-1 mr-1">
 						<div class="px-6 py-6">
-							{#if dialogState.editorMode === "new-profile" || dialogState.selectedProfileId}
+							{#if dialogState.editorMode === "new-profile" ||
+								dialogState.selectedProfileId}
 								<div class="mx-auto max-w-xl space-y-6">
 									<div>
 										<p class="text-sm font-medium text-muted-foreground">
@@ -149,8 +156,7 @@ const hasChanges = $derived(
 											{#if dialogState.editorMode === "new-profile"}
 												Create profile
 											{:else}
-												{dialogState.profileName ||
-                                                    "Untitled profile"}
+												{dialogState.profileName || "Untitled profile"}
 											{/if}
 										</h3>
 									</div>
@@ -174,11 +180,24 @@ const hasChanges = $derived(
 											<ConnectionTester />
 											{#if dialogState.selectedProfileId}
 												<Button
+													variant="outline"
+													onclick={() =>
+														openProfileExport(
+															dialogState.profileName,
+															dialogState.selectedProfileId ?? "",
+														)}
+												>
+													<UploadIcon class="size-4" />
+													<span>Export</span>
+												</Button>
+												<Button
 													variant="destructive"
 													onclick={() =>
-														openDeleteProfileDialog(dialogState.selectedProfileId)}
+														openDeleteProfileDialog(
+															dialogState.selectedProfileId,
+														)}
 												>
-													<Trash2Icon class="size-4" />
+													<TrashIcon class="size-4" />
 													<span>Delete</span>
 												</Button>
 											{/if}
@@ -209,3 +228,12 @@ const hasChanges = $derived(
 
 <PMProjectDialog />
 <PMDeleteDialog />
+
+<ExportDialog
+	bind:open={dialogState.exportDialogOpen}
+	title={dialogState.exportDialogTitle}
+	subtitle={dialogState.exportDialogSubtitle}
+	exportScope={dialogState.exportDialogScope}
+	suggestedName={dialogState.exportDialogName}
+	profileCount={dialogState.exportDialogProfileCount}
+/>

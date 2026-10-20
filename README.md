@@ -63,7 +63,7 @@ podman run --rm -p 8080:80 ghcr.io/tb004/pprof-viz-web:latest
 Or build it yourself:
 
 ```bash
-just image          # podman build -t pprof-viz-web -f packaging/Containerfile .
+just image          # podman build --format docker -t pprof-viz-web -f packaging/Containerfile .
 just serve          # podman run --rm -p 8080:80 pprof-viz-web
 ```
 

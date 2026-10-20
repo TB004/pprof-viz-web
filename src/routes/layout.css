@@ -29,7 +29,7 @@
 	--chart-3: oklch(0.588 0.158 241.966);
 	--chart-4: oklch(0.5 0.134 242.749);
 	--chart-5: oklch(0.443 0.11 240.79);
-	--radius: 0.875rem;
+	--radius: 0.625rem;
 	--sidebar: oklch(0.987 0.002 197.1);
 	--sidebar-foreground: oklch(0.148 0.004 228.8);
 	--sidebar-primary: oklch(0.588 0.158 241.966);
@@ -62,11 +62,11 @@
 	/* The light ramp's hues and chroma, re-stepped for the dark card
 	   (oklch(0.218 0.008 223.9)). Reusing the light lightnesses here put
 	   chart-4 and chart-5 at 2.3:1 against the card, close enough to vanish. */
-	--chart-1: oklch(0.67 0.111 230.318);
-	--chart-2: oklch(0.62 0.169 237.323);
-	--chart-3: oklch(0.57 0.158 241.966);
-	--chart-4: oklch(0.525 0.134 242.749);
-	--chart-5: oklch(0.48 0.11 240.79);
+	--chart-1: oklch(0.828 0.111 230.318);
+	--chart-2: oklch(0.685 0.169 237.323);
+	--chart-3: oklch(0.588 0.158 241.966);
+	--chart-4: oklch(0.5 0.134 242.749);
+	--chart-5: oklch(0.443 0.11 240.79);
 	--sidebar: oklch(0.218 0.008 223.9);
 	--sidebar-foreground: oklch(0.987 0.002 197.1);
 	--sidebar-primary: oklch(0.685 0.169 237.323);
@@ -117,6 +117,7 @@
 	--radius-2xl: calc(var(--radius) * 1.8);
 	--radius-3xl: calc(var(--radius) * 2.2);
 	--radius-4xl: calc(var(--radius) * 2.6);
+	--font-heading: "Noto Sans Variable", sans-serif;
 }
 
 @layer base {

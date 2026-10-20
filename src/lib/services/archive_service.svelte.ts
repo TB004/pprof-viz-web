@@ -3,14 +3,14 @@
 
 import { create } from "@bufbuild/protobuf";
 import {
-	Archive,
+	type Archive,
 	Utils as ArchiveUtils,
 	CollectionMetaSchema,
-} from "$lib/archive";
-import { Collections } from "$lib/data";
-import type { DBStore, FileStore } from "$lib/storage";
-import type { CollectionRow, DiskUsage } from "$lib/types";
-import { TextUtils, ulid } from "$lib/utils";
+} from "#lib/archive";
+import { Collections } from "#lib/data";
+import type { DBStore, FileStore } from "#lib/storage";
+import type { CollectionRow, DiskUsage } from "#lib/types";
+import { TextUtils, ulid } from "#lib/utils";
 import type { CollectionService } from "./collection_service.svelte.js";
 import type { ErrorService } from "./error_service.svelte.js";
 
@@ -31,11 +31,12 @@ export class ArchiveService {
 	constructor(
 		db: DBStore,
 		fs: FileStore,
+		archive: Archive,
 		session: CollectionService,
 		errors: ErrorService,
 	) {
 		this.#collections = new Collections(db);
-		this.#archive = new Archive();
+		this.#archive = archive;
 		this.#fs = fs;
 		this.#session = session;
 		this.#errors = errors;

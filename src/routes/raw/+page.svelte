@@ -5,9 +5,9 @@
 
 <script lang="ts">
 import { BracesIcon } from "@lucide/svelte";
-import { EmptyState, PageShell } from "$lib/components/custom/page";
-import { RawControlsBar, RawTable } from "$lib/components/custom/raw";
-import { collectionService } from "$lib/services";
+import { EmptyState, PageShell } from "#lib/components/custom/page";
+import { RawControlsBar, RawTable } from "#lib/components/custom/raw";
+import { collectionService } from "#lib/services";
 
 const collectionState = collectionService.getState();
 

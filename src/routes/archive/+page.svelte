@@ -4,7 +4,12 @@
 -->
 
 <script lang="ts">
-import { ArchiveIcon, HardDriveIcon } from "@lucide/svelte";
+import {
+	ArchiveIcon,
+	DownloadIcon,
+	HardDriveIcon,
+	UploadIcon,
+} from "@lucide/svelte";
 import { onMount } from "svelte";
 import {
 	ChartCard,
@@ -12,14 +17,17 @@ import {
 	DeleteDialog,
 	EditDialog,
 	type Slice,
-} from "$lib/components/custom/archive";
-import { EmptyState, PageShell } from "$lib/components/custom/page";
-import * as Card from "$lib/components/ui/card";
-import { archiveService } from "$lib/services";
-import type { CollectionRow } from "$lib/types";
-import { FormatUtils } from "$lib/utils";
+} from "#lib/components/custom/archive";
+import { EmptyState, PageShell } from "#lib/components/custom/page";
+import { ImportDialog } from "#lib/components/custom/transfer";
+import { Button } from "#lib/components/ui/button";
+import * as Card from "#lib/components/ui/card";
+import { archiveService, transferService } from "#lib/services";
+import type { CollectionRow } from "#lib/types";
+import { FormatUtils } from "#lib/utils";
 
 const archiveState = archiveService.getState();
+const transferState = transferService.getState();
 
 onMount(() => {
 	void archiveService.refresh();
@@ -97,6 +105,19 @@ const perProfileSlices = $derived<Slice[]>(
 
 let deleteTarget = $state<CollectionRow | null>(null);
 let editTarget = $state<CollectionRow | null>(null);
+let selectedIds = $state<string[]>([]);
+
+// A selection only means anything for rows that are still listed.
+$effect(() => {
+	const present = new Set(collections.map((row) => row.id));
+	const kept = selectedIds.filter((id) => present.has(id));
+	if (kept.length !== selectedIds.length) selectedIds = kept;
+});
+
+async function exportSelected() {
+	const ok = await transferService.exportArchives(selectedIds);
+	if (ok) selectedIds = [];
+}
 </script>
 
 <PageShell
@@ -104,18 +125,40 @@ let editTarget = $state<CollectionRow | null>(null);
 	description="Saved collections stored in this browser as .ppvz files"
 >
 	{#snippet actions()}
-		<div
-			class="flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1.5 text-sm shadow-sm"
-		>
-			<HardDriveIcon class="size-4 text-muted-foreground" />
-			<span class="font-medium tabular-nums">
-				{FormatUtils.fmtBytes(disk?.collectionsBytes ?? 0)}
-			</span>
-			<span class="text-muted-foreground"
-				>used by
-				{collections.length}
-				collection{collections.length === 1 ? "" : "s"}</span
+		<div class="flex flex-wrap items-center justify-end gap-2">
+			{#if selectedIds.length > 0}
+				<Button
+					variant="outline"
+					size="sm"
+					disabled={transferState.busy}
+					onclick={exportSelected}
+				>
+					<UploadIcon />
+					Export {selectedIds.length} selected
+				</Button>
+			{/if}
+			<Button
+				variant="outline"
+				size="sm"
+				disabled={transferState.busy}
+				onclick={() => transferService.stageImport()}
 			>
+				<DownloadIcon />
+				Import
+			</Button>
+			<div
+				class="flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1.5 text-sm shadow-sm"
+			>
+				<HardDriveIcon class="size-4 text-muted-foreground" />
+				<span class="font-medium tabular-nums">
+					{FormatUtils.fmtBytes(disk?.collectionsBytes ?? 0)}
+				</span>
+				<span class="text-muted-foreground"
+					>used by
+					{collections.length}
+					collection{collections.length === 1 ? "" : "s"}</span
+				>
+			</div>
 		</div>
 	{/snippet}
 
@@ -143,8 +186,10 @@ let editTarget = $state<CollectionRow | null>(null);
 			<Card.Content class="p-0">
 				<CollectionTable
 					{collections}
+					bind:selectedIds
 					onEdit={(row) => (editTarget = row)}
 					onDelete={(row) => (deleteTarget = row)}
+					onExport={(row) => transferService.exportArchives([row.id])}
 				/>
 			</Card.Content>
 		</Card.Root>
@@ -159,3 +204,4 @@ let editTarget = $state<CollectionRow | null>(null);
 
 <DeleteDialog bind:target={deleteTarget} />
 <EditDialog bind:target={editTarget} />
+<ImportDialog />

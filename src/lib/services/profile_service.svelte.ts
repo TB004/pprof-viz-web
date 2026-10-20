@@ -1,15 +1,15 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { browser } from "$app/environment";
-import { Profiles, Projects } from "$lib/data";
-import type { DBStore } from "$lib/storage";
+import { Profiles, Projects } from "#lib/data";
+import type { DBStore } from "#lib/storage";
 import type {
 	CollectionType,
 	ProfileInput,
 	ProfileRow,
 	ProjectRow,
-} from "$lib/types";
+} from "#lib/types";
+import { browser } from "$app/env";
 import type { ErrorService } from "./error_service.svelte.js";
 
 export interface CollectionProfile {
@@ -137,6 +137,15 @@ export class ProfileService {
 		await this.#mutate("delete profile", () =>
 			this.#profiles.remove(profileId),
 		);
+	}
+
+	/** Re-read the catalog after something outside this service changed it. */
+	async refresh(): Promise<void> {
+		try {
+			await this.#reload();
+		} catch (error) {
+			this.#errors.reportFailure("Failed to load projects and profiles", error);
+		}
 	}
 
 	async #reload(): Promise<void> {

@@ -17,9 +17,9 @@ export type {
 	StoredCollection,
 	StreamConfigRequest,
 	SyncResponse,
-} from "$lib/proto/gen/collector_pb.js";
+} from "#lib/proto/gen/collector_pb.js";
 
-import type { AllResponse } from "$lib/proto/gen/collector_pb.js";
+import type { AllResponse } from "#lib/proto/gen/collector_pb.js";
 
 /** One merged sample: every group carries its full state, not a delta. */
 export type Frame = AllResponse;

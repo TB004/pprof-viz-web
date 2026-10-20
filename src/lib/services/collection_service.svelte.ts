@@ -1,16 +1,16 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { CollectionWorkerHandle } from "$lib/collection/client.js";
-import type { SessionProfile, WorkerEvent } from "$lib/collection/protocol.js";
+import { CollectionWorkerHandle } from "#lib/collection/client.js";
+import type { SessionProfile, WorkerEvent } from "#lib/collection/protocol.js";
 import {
 	type CollectionStatus,
 	type CollectionType,
 	type Frame,
 	type MetadataResponse,
 	CollectionStatus as Status,
-} from "$lib/types";
-import { ulid } from "$lib/utils";
+} from "#lib/types";
+import { ulid } from "#lib/utils";
 import type { ErrorService } from "./error_service.svelte.js";
 import type { ProfileService } from "./profile_service.svelte.js";
 

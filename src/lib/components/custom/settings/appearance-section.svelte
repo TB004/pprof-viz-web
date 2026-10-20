@@ -5,9 +5,9 @@
 
 <script lang="ts">
 import { CheckIcon, MonitorIcon, MoonIcon, SunIcon } from "@lucide/svelte";
-import * as Card from "$lib/components/ui/card/index.js";
-import { settingsService } from "$lib/services";
-import { ThemeMode } from "$lib/types";
+import * as Card from "#lib/components/ui/card/index.js";
+import { settingsService } from "#lib/services";
+import { ThemeMode } from "#lib/types";
 
 const themeOptions: Array<{
 	value: ThemeMode;
@@ -38,7 +38,8 @@ const settings = settingsService.getSettings();
 					<button
 						type="button"
 						class={`relative flex flex-col items-center gap-3 rounded-xl border p-4 text-sm font-medium transition-colors ${isSelected ? "border-primary bg-primary/5 text-foreground" : "border-border/70 bg-muted/25 text-muted-foreground hover:border-primary/30 hover:text-foreground"}`}
-						onclick={() => settingsService.updateSettings({ theme: option.value })}
+						onclick={() =>
+							settingsService.updateSettings({ theme: option.value })}
 					>
 						<option.icon class="size-5" />
 						<span>{option.label}</span>

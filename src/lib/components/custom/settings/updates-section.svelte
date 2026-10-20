@@ -11,9 +11,9 @@ import {
 	LoaderCircleIcon,
 	RefreshCwIcon,
 } from "@lucide/svelte";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Card from "$lib/components/ui/card/index.js";
-import { serviceWorkerService } from "$lib/services";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Card from "#lib/components/ui/card/index.js";
+import { serviceWorkerService } from "#lib/services";
 
 const swState = serviceWorkerService.getState();
 </script>
@@ -54,7 +54,9 @@ const swState = serviceWorkerService.getState();
 					{#if swState.ready}
 						<CircleCheck class="size-4 text-green-500" />
 						<span>
-							Available offline{swState.installed ? ", running as an installed app" : ""}.
+							Available offline{swState.installed
+								? ", running as an installed app"
+								: ""}.
 						</span>
 					{:else}
 						<LoaderCircleIcon

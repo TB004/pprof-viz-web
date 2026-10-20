@@ -10,6 +10,7 @@ export {
 	profileService,
 	serviceWorkerService,
 	settingsService,
+	transferService,
 } from "./app.svelte.js";
 export {
 	ArchiveService,
@@ -40,3 +41,7 @@ export {
 	type ServiceWorkerState,
 } from "./service_worker_service.svelte.js";
 export { defaultSettings, SettingsService } from "./settings_service.svelte.js";
+export {
+	TransferService,
+	type TransferState,
+} from "./transfer_service.svelte.js";

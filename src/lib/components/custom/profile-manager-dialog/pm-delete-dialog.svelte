@@ -4,8 +4,8 @@
 -->
 
 <script lang="ts">
-import { ConfirmDialog } from "$lib/components/custom/confirm-dialog";
-import { profileService } from "$lib/services";
+import { ConfirmDialog } from "#lib/components/custom/confirm-dialog";
+import { profileService } from "#lib/services";
 import { clearProfileForm, dialogState } from "./state.svelte.ts";
 
 const isProject = $derived(dialogState.deleteDialogType === "project");

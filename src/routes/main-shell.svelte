@@ -6,10 +6,10 @@
 <script lang="ts">
 import { CloudDownloadIcon } from "@lucide/svelte";
 import type { Snippet } from "svelte";
+import { SessionStatusBar } from "#lib/components/custom/session-status-bar";
+import * as Sidebar from "#lib/components/ui/sidebar/index.js";
+import { serviceWorkerService } from "#lib/services";
 import { page } from "$app/state";
-import { SessionStatusBar } from "$lib/components/custom/session-status-bar";
-import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-import { serviceWorkerService } from "$lib/services";
 
 type Props = { children: Snippet };
 const { children }: Props = $props();

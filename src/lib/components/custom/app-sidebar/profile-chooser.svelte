@@ -5,11 +5,11 @@
 
 <script lang="ts">
 import { PlayIcon, Settings2Icon, SquareIcon } from "@lucide/svelte";
-import { Button } from "$lib/components/ui/button";
-import { ScrollArea } from "$lib/components/ui/scroll-area";
-import * as Select from "$lib/components/ui/select";
-import { collectionService, profileService } from "$lib/services";
-import { CollectionStatus } from "$lib/types";
+import { Button } from "#lib/components/ui/button";
+import { ScrollArea } from "#lib/components/ui/scroll-area";
+import * as Select from "#lib/components/ui/select";
+import { collectionService, profileService } from "#lib/services";
+import { CollectionStatus } from "#lib/types";
 
 type Props = {
 	profileManagerOpen: boolean;

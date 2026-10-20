@@ -4,9 +4,9 @@
 -->
 
 <script lang="ts">
-import { ConfirmDialog } from "$lib/components/custom/confirm-dialog";
-import { archiveService } from "$lib/services";
-import type { CollectionRow } from "$lib/types";
+import { ConfirmDialog } from "#lib/components/custom/confirm-dialog";
+import { archiveService } from "#lib/services";
+import type { CollectionRow } from "#lib/types";
 
 let { target = $bindable(null) }: { target: CollectionRow | null } = $props();
 
@@ -21,8 +21,8 @@ async function confirmDelete() {
 	bind:open={
 		() => target !== null,
 		(open) => {
-			if (!open) target = null;
-		}
+	if (!open) target = null;
+}
 	}
 	title="Delete collection"
 	description={`Delete ${target?.name} and its .ppvz file. This cannot be undone.`}

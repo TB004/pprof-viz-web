@@ -6,14 +6,14 @@
 <script lang="ts">
 import { BracesIcon, LinkIcon, PackageIcon } from "@lucide/svelte";
 import type { Component } from "svelte";
-import { MetricChart } from "$lib/components/custom/charts";
-import { EmptyState, PageShell } from "$lib/components/custom/page";
-import { StatGrid } from "$lib/components/custom/stat-card";
-import * as Card from "$lib/components/ui/card";
-import { Tooltip } from "$lib/components/ui/chart";
-import * as Table from "$lib/components/ui/table";
-import { collectionService } from "$lib/services";
-import { FormatUtils } from "$lib/utils";
+import { MetricChart } from "#lib/components/custom/charts";
+import { EmptyState, PageShell } from "#lib/components/custom/page";
+import { StatGrid } from "#lib/components/custom/stat-card";
+import * as Card from "#lib/components/ui/card";
+import { Tooltip } from "#lib/components/ui/chart";
+import * as Table from "#lib/components/ui/table";
+import { collectionService } from "#lib/services";
+import { FormatUtils } from "#lib/utils";
 
 const collectionState = collectionService.getState();
 
@@ -226,10 +226,10 @@ const summaryStats = $derived([
 										<div class="flex items-center gap-2">
 											<span
 												class="size-1.5 shrink-0 rounded-full {row.activeInLast
-													? 'bg-green-500'
+													? "bg-green-500"
 													: row.count > 0
-														? 'bg-muted-foreground/40'
-														: 'bg-muted'}"
+														? "bg-muted-foreground/40"
+														: "bg-muted"}"
 											></span>
 											<span
 												class={row.count === 0 ? "text-muted-foreground" : ""}
@@ -241,8 +241,8 @@ const summaryStats = $derived([
 									<Table.Cell
 										class="px-4 py-2.5 text-right font-mono tabular-nums {row.count ===
 										0
-											? 'text-muted-foreground'
-											: ''}"
+											? "text-muted-foreground"
+											: ""}"
 									>
 										{row.count.toLocaleString()}
 									</Table.Cell>
@@ -263,7 +263,10 @@ const summaryStats = $derived([
 
 {#snippet mutexTooltip()}
 	<Tooltip labelFormatter={(d) => `Sample ${d}`}>
-		{#snippet formatter({ value, name })}
+		{#snippet formatter({
+			value,
+			name,
+		})}
 			<div class="flex w-full items-center gap-2">
 				<div
 					style="--color-bg: var(--chart-2); --color-border: var(--chart-2);"

@@ -1,9 +1,9 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { buildUrl, parseUrl } from "$lib/components/custom/profile-form";
-import { settingsService } from "$lib/services";
-import { CollectionType } from "$lib/types";
+import { buildUrl, parseUrl } from "#lib/components/custom/profile-form";
+import { type ProfileProject, settingsService } from "#lib/services";
+import { CollectionType, type ExportScope } from "#lib/types";
 
 export type EditorMode = "profile" | "new-profile";
 
@@ -37,7 +37,35 @@ export const dialogState = $state({
 	deleteDialogName: "",
 	deleteDialogProjectId: undefined as string | undefined,
 	deleteDialogProfileId: undefined as string | undefined,
+	exportDialogOpen: false,
+	exportDialogTitle: "",
+	exportDialogSubtitle: "",
+	exportDialogName: "",
+	exportDialogScope: {} as ExportScope,
+	exportDialogProfileCount: 0,
 });
+
+/** Open the export dialog for one project and everything under it. */
+export function openProjectExport(project: ProfileProject) {
+	dialogState.exportDialogTitle = `Export "${project.name}"`;
+	dialogState.exportDialogSubtitle =
+		"The project, its profiles, and optionally the collections captured with them.";
+	dialogState.exportDialogName = project.name;
+	dialogState.exportDialogScope = { projectIds: [project.id] };
+	dialogState.exportDialogProfileCount = project.profiles.length;
+	dialogState.exportDialogOpen = true;
+}
+
+/** Open the export dialog for a single profile, with its project alongside. */
+export function openProfileExport(name: string, profileId: string) {
+	dialogState.exportDialogTitle = `Export "${name}"`;
+	dialogState.exportDialogSubtitle =
+		"The profile and its project, and optionally the collections captured with it.";
+	dialogState.exportDialogName = name;
+	dialogState.exportDialogScope = { profileIds: [profileId] };
+	dialogState.exportDialogProfileCount = 1;
+	dialogState.exportDialogOpen = true;
+}
 
 export function clearProfileForm() {
 	const settings = settingsService.getSettings();

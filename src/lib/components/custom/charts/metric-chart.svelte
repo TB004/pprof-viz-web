@@ -16,12 +16,12 @@ export type MetricSeries = {
 <script lang="ts">
 import { AreaChart, LineChart } from "layerchart";
 import type { Snippet } from "svelte";
-import * as Card from "$lib/components/ui/card";
+import * as Card from "#lib/components/ui/card";
 import {
 	type ChartConfig,
 	ChartContainer,
 	Tooltip,
-} from "$lib/components/ui/chart";
+} from "#lib/components/ui/chart";
 
 let {
 	title,

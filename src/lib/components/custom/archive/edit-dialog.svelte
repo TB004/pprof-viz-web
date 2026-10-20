@@ -4,9 +4,9 @@
 -->
 
 <script lang="ts">
-import { NameDescriptionDialog } from "$lib/components/custom/name-description-dialog";
-import { archiveService } from "$lib/services";
-import type { CollectionRow } from "$lib/types";
+import { NameDescriptionDialog } from "#lib/components/custom/name-description-dialog";
+import { archiveService } from "#lib/services";
+import type { CollectionRow } from "#lib/types";
 
 let { target = $bindable(null) }: { target: CollectionRow | null } = $props();
 
@@ -39,8 +39,8 @@ async function confirmEdit() {
 	bind:open={
 		() => target !== null,
 		(open) => {
-			if (!open) target = null;
-		}
+	if (!open) target = null;
+}
 	}
 	title="Edit collection"
 	subtitle="Update the name and description of this saved collection."

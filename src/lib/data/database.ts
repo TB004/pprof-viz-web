@@ -1,7 +1,7 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { DBStore } from "$lib/storage/idb.js";
+import { DBStore } from "#lib/storage/idb.js";
 
 const DATABASE_NAME = "pprof-viz";
 const DATABASE_VERSION = 1;

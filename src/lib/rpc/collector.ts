@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { createClient } from "@connectrpc/connect";
-import { CollectorService } from "$lib/proto/gen/collector_pb.js";
-import type { Frame, MetadataResponse } from "$lib/types";
+import { CollectorService } from "#lib/proto/gen/collector_pb.js";
+import type { Frame, MetadataResponse } from "#lib/types";
 import { createTransport, type TransportOptions } from "./connect.js";
 
 const PING_TIMEOUT_MS = 10_000;

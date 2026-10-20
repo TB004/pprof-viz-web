@@ -14,12 +14,12 @@ export type CompositionSlice = {
 
 <script lang="ts">
 import { PieChart } from "layerchart";
-import * as Card from "$lib/components/ui/card";
+import * as Card from "#lib/components/ui/card";
 import {
 	type ChartConfig,
 	ChartContainer,
 	Tooltip,
-} from "$lib/components/ui/chart";
+} from "#lib/components/ui/chart";
 
 let {
 	title,

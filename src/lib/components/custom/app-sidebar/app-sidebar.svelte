@@ -4,9 +4,9 @@
 -->
 
 <script lang="ts">
-import { PMDialog } from "$lib/components/custom/profile-manager-dialog";
-import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-import { dataRoutes, shellRoutes } from "$lib/routes";
+import { PMDialog } from "#lib/components/custom/profile-manager-dialog";
+import * as Sidebar from "#lib/components/ui/sidebar/index.js";
+import { dataRoutes, shellRoutes } from "#lib/routes";
 import ProfileChooser from "./profile-chooser.svelte";
 
 let profileManagerOpen = $state(false);
@@ -27,7 +27,9 @@ let profileManagerOpen = $state(false);
 					{#each dataRoutes as item (item.url)}
 						<Sidebar.MenuItem>
 							<Sidebar.MenuButton>
-								{#snippet child({ props })}
+								{#snippet child({
+									props,
+								})}
 									<a href={item.url} {...props}>
 										<item.icon />
 										<span>{item.title}</span>
@@ -48,7 +50,9 @@ let profileManagerOpen = $state(false);
 			{#each shellRoutes as item (item.url)}
 				<Sidebar.MenuItem>
 					<Sidebar.MenuButton>
-						{#snippet child({ props })}
+						{#snippet child({
+							props,
+						})}
 							<a href={item.url} {...props}>
 								<item.icon />
 								<span>{item.title}</span>

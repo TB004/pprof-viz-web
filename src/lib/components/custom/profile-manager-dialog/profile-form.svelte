@@ -5,10 +5,10 @@
 
 <script lang="ts">
 import { EyeIcon, EyeOffIcon } from "@lucide/svelte";
-import { ModePicker, UrlField } from "$lib/components/custom/profile-form";
-import { Button } from "$lib/components/ui/button/index.js";
-import Input from "$lib/components/ui/input/input.svelte";
-import { CollectionType } from "$lib/types";
+import { ModePicker, UrlField } from "#lib/components/custom/profile-form";
+import { Button } from "#lib/components/ui/button/index.js";
+import Input from "#lib/components/ui/input/input.svelte";
+import { CollectionType } from "#lib/types";
 import { dialogState } from "./state.svelte.ts";
 
 let showToken = $state(false);

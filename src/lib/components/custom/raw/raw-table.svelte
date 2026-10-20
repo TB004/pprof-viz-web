@@ -5,17 +5,17 @@
 
 <script lang="ts">
 import { ChevronDownIcon, ChevronRightIcon } from "@lucide/svelte";
-import * as Card from "$lib/components/ui/card";
-import { ScrollArea } from "$lib/components/ui/scroll-area";
-import * as Table from "$lib/components/ui/table";
-import { collectionService } from "$lib/services";
+import * as Card from "#lib/components/ui/card";
+import { ScrollArea } from "#lib/components/ui/scroll-area";
+import * as Table from "#lib/components/ui/table";
+import { collectionService } from "#lib/services";
 import {
 	CollectionStatus,
 	type Frame,
 	type FrameGroup,
 	type MetadataResponse,
-} from "$lib/types";
-import { FrameUtils } from "$lib/utils";
+} from "#lib/types";
+import { FrameUtils } from "#lib/utils";
 
 export type RowEntry = {
 	sample: number;

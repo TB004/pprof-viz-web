@@ -1,8 +1,8 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import type { AppError } from "$lib/types";
-import { ulid } from "$lib/utils";
+import type { AppError } from "#lib/types";
+import { ulid } from "#lib/utils";
 
 export type { AppError };
 

@@ -6,9 +6,9 @@ import {
 	type CollectionMeta,
 	CollectionMetaSchema,
 	StoredCollectionSchema,
-} from "$lib/proto/gen/collector_pb.js";
-import type { Frame, MetadataResponse } from "$lib/types";
-import { FrameUtils } from "$lib/utils";
+} from "#lib/proto/gen/collector_pb.js";
+import type { Frame, MetadataResponse } from "#lib/types";
+import { FrameUtils } from "#lib/utils";
 import { ZstdCompressor } from "./zstd.js";
 
 /** Bump when the payload layout changes in a way that needs a read migration. */

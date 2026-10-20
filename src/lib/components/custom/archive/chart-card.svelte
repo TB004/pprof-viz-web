@@ -11,14 +11,14 @@ export type Slice = { id: string; label: string; value: number; color: string };
 
 <script lang="ts">
 import { PieChart } from "layerchart";
-import * as Card from "$lib/components/ui/card";
+import * as Card from "#lib/components/ui/card";
 import {
 	type ChartConfig,
 	ChartContainer,
 	Tooltip,
-} from "$lib/components/ui/chart";
-import { ScrollArea } from "$lib/components/ui/scroll-area";
-import { FormatUtils } from "$lib/utils";
+} from "#lib/components/ui/chart";
+import { ScrollArea } from "#lib/components/ui/scroll-area";
+import { FormatUtils } from "#lib/utils";
 
 let {
 	title,
@@ -45,7 +45,13 @@ const config = $derived<ChartConfig>(
 const sliceLabels = $derived(new Map(slices.map((s) => [s.id, s.label])));
 </script>
 
-{#snippet byteTooltip({ name, value }: { name: string; value: unknown })}
+{#snippet byteTooltip({
+	name,
+	value,
+}: {
+	name: string;
+	value: unknown;
+})}
 	<div class="flex w-full items-center justify-between gap-4">
 		<span class="text-muted-foreground">{sliceLabels.get(name) ?? name}</span>
 		<span class="font-mono font-medium"

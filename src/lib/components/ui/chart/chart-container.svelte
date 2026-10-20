@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { HTMLAttributes } from "svelte/elements";
-import { cn, type WithElementRef } from "$lib/utils";
+import { cn, type WithElementRef } from "#lib/utils";
 import ChartStyle from "./chart-style.svelte";
 import { type ChartConfig, setChartContext } from "./chart-utils.js";
 
@@ -71,7 +71,7 @@ setChartContext({
 		"[&_.lc-tooltip-rects-g]:fill-transparent",
 		"[&_.lc-layout-svg-g]:fill-transparent",
 		"[&_.lc-root-container]:w-full",
-		className
+		className,
 	)}
 	{...restProps}
 >

@@ -10,11 +10,11 @@ import {
 	parseUrl,
 	type Scheme,
 	UrlField,
-} from "$lib/components/custom/profile-form";
-import * as Card from "$lib/components/ui/card/index.js";
-import Input from "$lib/components/ui/input/input.svelte";
-import { settingsService } from "$lib/services";
-import { CollectionType } from "$lib/types";
+} from "#lib/components/custom/profile-form";
+import * as Card from "#lib/components/ui/card/index.js";
+import Input from "#lib/components/ui/input/input.svelte";
+import { settingsService } from "#lib/services";
+import { CollectionType } from "#lib/types";
 
 const settings = settingsService.getSettings();
 
@@ -46,9 +46,9 @@ function setHost(host: string) {
 				value={settings.defaultName}
 				placeholder="Production pprof"
 				oninput={(e) =>
-                    settingsService.updateSettings({
-                        defaultName: e.currentTarget.value,
-                    })}
+					settingsService.updateSettings({
+						defaultName: e.currentTarget.value,
+					})}
 			/>
 		</label>
 
@@ -82,15 +82,12 @@ function setHost(host: string) {
 						step={1}
 						value={settings.defaultIntervalSeconds}
 						oninput={(e) => {
-                            const v = Number.parseInt(
-                                e.currentTarget.value,
-                                10,
-                            );
-                            if (v >= 1)
-                                settingsService.updateSettings({
-                                    defaultIntervalSeconds: v,
-                                });
-                        }}
+							const v = Number.parseInt(e.currentTarget.value, 10);
+							if (v >= 1)
+								settingsService.updateSettings({
+									defaultIntervalSeconds: v,
+								});
+						}}
 					/>
 				</label>
 				<label class="block">
@@ -106,15 +103,12 @@ function setHost(host: string) {
 						step={1}
 						value={settings.defaultNumberOfCycles}
 						oninput={(e) => {
-                            const v = Number.parseInt(
-                                e.currentTarget.value,
-                                10,
-                            );
-                            if (v >= 0)
-                                settingsService.updateSettings({
-                                    defaultNumberOfCycles: v,
-                                });
-                        }}
+							const v = Number.parseInt(e.currentTarget.value, 10);
+							if (v >= 0)
+								settingsService.updateSettings({
+									defaultNumberOfCycles: v,
+								});
+						}}
 					/>
 				</label>
 			</div>

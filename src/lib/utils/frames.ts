@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import { create } from "@bufbuild/protobuf";
-import { HistogramSchema } from "$lib/proto/gen/collector_pb.js";
-import { FRAME_GROUPS, type Frame, type Histogram } from "$lib/types";
+import { HistogramSchema } from "#lib/proto/gen/collector_pb.js";
+import { FRAME_GROUPS, type Frame, type Histogram } from "#lib/types";
 
 /** A frame group (`gc`, `scheduler`, …) as an addressable field bag. */
 type Group = Record<string, unknown>;

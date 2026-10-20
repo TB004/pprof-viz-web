@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { HTMLAttributes } from "svelte/elements";
-import { cn, type WithElementRef } from "$lib/utils";
+import { cn, type WithElementRef } from "#lib/utils";
 
 let {
 	ref = $bindable(null),
@@ -15,7 +15,7 @@ let {
 	data-slot="item-content"
 	class={cn(
 		"gap-1 group-data-[size=xs]/item:gap-0.5 flex flex-1 flex-col [&+[data-slot=item-content]]:flex-none",
-		className
+		className,
 	)}
 	{...restProps}
 >

@@ -4,19 +4,19 @@
 -->
 
 <script lang="ts">
-import { DownloadIcon, PencilIcon, Trash2Icon } from "@lucide/svelte";
+import { DownloadIcon, PencilIcon, TrashIcon } from "@lucide/svelte";
 import { createColumnHelper, tableFeatures } from "@tanstack/table-core";
-import { goto } from "$app/navigation";
-import { Button } from "$lib/components/ui/button";
+import { Button } from "#lib/components/ui/button";
 import {
 	createSvelteTable,
 	FlexRender,
 	renderSnippet,
-} from "$lib/components/ui/data-table";
-import * as Table from "$lib/components/ui/table";
-import { archiveService, formatElapsedTime } from "$lib/services";
-import type { CollectionRow } from "$lib/types";
-import { FormatUtils } from "$lib/utils";
+} from "#lib/components/ui/data-table";
+import * as Table from "#lib/components/ui/table";
+import { archiveService, formatElapsedTime } from "#lib/services";
+import type { CollectionRow } from "#lib/types";
+import { FormatUtils } from "#lib/utils";
+import { goto } from "$app/navigation";
 
 let {
 	collections,
@@ -94,29 +94,41 @@ const table = createSvelteTable({
 });
 </script>
 
-{#snippet descCell(row: CollectionRow)}
+{#snippet descCell(
+	row: CollectionRow,
+)}
 	<span class="text-muted-foreground">{row.description ?? "—"}</span>
 {/snippet}
 
-{#snippet sizeCell(row: CollectionRow)}
+{#snippet sizeCell(
+	row: CollectionRow,
+)}
 	<span class="tabular-nums">{FormatUtils.fmtBytes(row.sizeBytes)}</span>
 {/snippet}
 
-{#snippet durationCell(row: CollectionRow)}
+{#snippet durationCell(
+	row: CollectionRow,
+)}
 	<span class="tabular-nums">{fmtDuration(row.durationMs)}</span>
 {/snippet}
 
-{#snippet samplesCell(row: CollectionRow)}
+{#snippet samplesCell(
+	row: CollectionRow,
+)}
 	<span class="tabular-nums">{row.sampleCount.toLocaleString()}</span>
 {/snippet}
 
-{#snippet dateCell(row: CollectionRow)}
+{#snippet dateCell(
+	row: CollectionRow,
+)}
 	<span class="text-muted-foreground tabular-nums"
 		>{fmtDate(row.createdAt)}</span
 	>
 {/snippet}
 
-{#snippet actionsCell(row: CollectionRow)}
+{#snippet actionsCell(
+	row: CollectionRow,
+)}
 	<div class="flex items-center justify-end gap-1.5">
 		<Button
 			variant="outline"
@@ -136,7 +148,7 @@ const table = createSvelteTable({
 			class="text-destructive"
 			onclick={() => onDelete(row)}
 		>
-			<Trash2Icon />
+			<TrashIcon />
 		</Button>
 	</div>
 {/snippet}

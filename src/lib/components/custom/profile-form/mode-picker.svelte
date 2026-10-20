@@ -5,7 +5,7 @@
 
 <script lang="ts">
 import { CheckIcon } from "@lucide/svelte";
-import type { CollectionType } from "$lib/types";
+import type { CollectionType } from "#lib/types";
 import { modeOptions } from "./options.js";
 
 type Props = {

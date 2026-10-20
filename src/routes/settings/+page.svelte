@@ -10,8 +10,8 @@ import {
 	DangerZoneSection,
 	ProfileDefaultsSection,
 	UpdatesSection,
-} from "$lib/components/custom/settings";
-import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
+} from "#lib/components/custom/settings";
+import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
 </script>
 
 <ScrollArea class="h-full mr-2">

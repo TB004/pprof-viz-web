@@ -1,9 +1,9 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { buildUrl, parseUrl } from "$lib/components/custom/profile-form";
-import { settingsService } from "$lib/services";
-import { CollectionType } from "$lib/types";
+import { buildUrl, parseUrl } from "#lib/components/custom/profile-form";
+import { settingsService } from "#lib/services";
+import { CollectionType } from "#lib/types";
 
 export type EditorMode = "profile" | "new-profile";
 

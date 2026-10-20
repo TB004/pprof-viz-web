@@ -33,12 +33,12 @@ export type SidebarMenuButtonSize = VariantProps<
 import { mergeProps } from "bits-ui";
 import type { ComponentProps, Snippet } from "svelte";
 import type { HTMLAttributes } from "svelte/elements";
-import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+import * as Tooltip from "#lib/components/ui/tooltip/index.js";
 import {
 	cn,
 	type WithElementRef,
 	type WithoutChildrenOrChild,
-} from "$lib/utils";
+} from "#lib/utils";
 import { useSidebar } from "./context.svelte.js";
 
 let {
@@ -75,7 +75,9 @@ const buttonProps = $derived({
 });
 </script>
 
-{#snippet Button(snippetProps = {} as { props?: Record<string, unknown> })}
+{#snippet Button(
+	snippetProps = {} as { props?: Record<string, unknown> },
+)}
 	{#if child}
 		{@render child({ props: mergeProps(buttonProps, snippetProps.props) })}
 	{:else}
@@ -94,7 +96,9 @@ const buttonProps = $derived({
 {:else}
 	<Tooltip.Root>
 		<Tooltip.Trigger>
-			{#snippet child({ props })}
+			{#snippet child({
+				props,
+			})}
 				{@render Button({ props })}
 			{/snippet}
 		</Tooltip.Trigger>

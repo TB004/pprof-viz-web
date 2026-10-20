@@ -6,11 +6,11 @@ import {
 	Archive,
 	Utils as ArchiveUtils,
 	CollectionMetaSchema,
-} from "$lib/archive";
-import { Collections } from "$lib/data";
-import type { DBStore, FileStore } from "$lib/storage";
-import type { CollectionRow, DiskUsage } from "$lib/types";
-import { TextUtils, ulid } from "$lib/utils";
+} from "#lib/archive";
+import { Collections } from "#lib/data";
+import type { DBStore, FileStore } from "#lib/storage";
+import type { CollectionRow, DiskUsage } from "#lib/types";
+import { TextUtils, ulid } from "#lib/utils";
 import type { CollectionService } from "./collection_service.svelte.js";
 import type { ErrorService } from "./error_service.svelte.js";
 

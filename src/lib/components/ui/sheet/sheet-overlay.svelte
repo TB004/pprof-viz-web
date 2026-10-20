@@ -1,6 +1,6 @@
 <script lang="ts">
 import { Dialog as SheetPrimitive } from "bits-ui";
-import { cn } from "$lib/utils";
+import { cn } from "#lib/utils";
 
 let {
 	ref = $bindable(null),
@@ -12,6 +12,9 @@ let {
 <SheetPrimitive.Overlay
 	bind:ref
 	data-slot="sheet-overlay"
-	class={cn("bg-black/30 supports-backdrop-filter:backdrop-blur-sm fixed inset-0 z-50", className)}
+	class={cn(
+		"bg-black/30 supports-backdrop-filter:backdrop-blur-sm fixed inset-0 z-50",
+		className,
+	)}
 	{...restProps}
 />

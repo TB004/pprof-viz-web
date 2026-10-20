@@ -10,12 +10,12 @@ import {
 	FolderIcon,
 	PencilIcon,
 	PlusIcon,
-	Trash2Icon,
+	TrashIcon,
 } from "@lucide/svelte";
-import { Button } from "$lib/components/ui/button/index.js";
-import { profileService } from "$lib/services";
-import type { ProfileProject } from "$lib/services/profile_service.svelte.js";
-import { CollectionType } from "$lib/types";
+import { Button } from "#lib/components/ui/button/index.js";
+import { profileService } from "#lib/services";
+import type { ProfileProject } from "#lib/services/profile_service.svelte.js";
+import { CollectionType } from "#lib/types";
 import { clearProfileForm, dialogState } from "./state.svelte.ts";
 
 type Props = {
@@ -127,10 +127,10 @@ async function handleProfileSelect(projectId: string, profileId: string) {
 				size="icon-xs"
 				class="hover:bg-sidebar-foreground/10 dark:hover:bg-sidebar-foreground/10 hover:text-sidebar-accent-foreground"
 				onclick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    openRenameProjectDialog(project.id);
-                }}
+					event.preventDefault();
+					event.stopPropagation();
+					openRenameProjectDialog(project.id);
+				}}
 			>
 				<PencilIcon class="size-3.5" />
 				<span class="sr-only">Edit project</span>
@@ -140,10 +140,10 @@ async function handleProfileSelect(projectId: string, profileId: string) {
 				size="icon-xs"
 				class="hover:bg-sidebar-foreground/10 dark:hover:bg-sidebar-foreground/10 hover:text-sidebar-accent-foreground"
 				onclick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    startNewProfile(project.id);
-                }}
+					event.preventDefault();
+					event.stopPropagation();
+					startNewProfile(project.id);
+				}}
 			>
 				<PlusIcon class="size-3.5" />
 				<span class="sr-only">Add profile</span>
@@ -153,12 +153,12 @@ async function handleProfileSelect(projectId: string, profileId: string) {
 				size="icon-xs"
 				class="hover:bg-destructive/10 dark:hover:bg-destructive/10 hover:text-destructive dark:hover:text-destructive"
 				onclick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    openDeleteProjectDialog(project.id);
-                }}
+					event.preventDefault();
+					event.stopPropagation();
+					openDeleteProjectDialog(project.id);
+				}}
 			>
-				<Trash2Icon class="size-3.5" />
+				<TrashIcon class="size-3.5" />
 				<span class="sr-only">Delete project</span>
 			</Button>
 		</div>

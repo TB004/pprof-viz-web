@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { HTMLAttributes } from "svelte/elements";
-import * as Sheet from "$lib/components/ui/sheet/index.js";
-import { cn, type WithElementRef } from "$lib/utils";
+import * as Sheet from "#lib/components/ui/sheet/index.js";
+import { cn, type WithElementRef } from "#lib/utils";
 import { SIDEBAR_WIDTH_MOBILE } from "./constants.js";
 import { useSidebar } from "./context.svelte.js";
 
@@ -25,9 +25,9 @@ const sidebar = useSidebar();
 {#if collapsible === "none"}
 	<div
 		class={cn(
-            "bg-sidebar text-sidebar-foreground flex h-full w-(--sidebar-width) flex-col",
-            className,
-        )}
+			"bg-sidebar text-sidebar-foreground flex h-full w-(--sidebar-width) flex-col",
+			className,
+		)}
 		bind:this={ref}
 		{...restProps}
 	>
@@ -44,9 +44,9 @@ const sidebar = useSidebar();
 			data-slot="sidebar"
 			data-mobile="true"
 			class={cn(
-                "bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden",
-                className,
-            )}
+				"bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden",
+				className,
+			)}
 			style="--sidebar-width: {SIDEBAR_WIDTH_MOBILE};"
 			{side}
 		>
@@ -73,27 +73,27 @@ const sidebar = useSidebar();
 		<div
 			data-slot="sidebar-gap"
 			class={cn(
-                "transition-[width] duration-200 ease-linear relative w-(--sidebar-width) bg-transparent",
-                "group-data-[collapsible=offcanvas]:w-0",
-                "group-data-[side=right]:rotate-180",
-                variant === "floating" || variant === "inset"
-                    ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]"
-                    : "group-data-[collapsible=icon]:w-(--sidebar-width-icon)",
-            )}
+				"transition-[width] duration-200 ease-linear relative w-(--sidebar-width) bg-transparent",
+				"group-data-[collapsible=offcanvas]:w-0",
+				"group-data-[side=right]:rotate-180",
+				variant === "floating" || variant === "inset"
+					? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]"
+					: "group-data-[collapsible=icon]:w-(--sidebar-width-icon)",
+			)}
 		></div>
 		<div
 			data-slot="sidebar-container"
 			class={cn(
-                "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
-                side === "left"
-                    ? "inset-s-0 group-data-[collapsible=offcanvas]:inset-s-[calc(var(--sidebar-width)*-1)]"
-                    : "inset-e-0 group-data-[collapsible=offcanvas]:inset-e-[calc(var(--sidebar-width)*-1)]",
-                // Adjust the padding for floating and inset variants.
-                variant === "floating" || variant === "inset"
-                    ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
-                    : "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-e group-data-[side=right]:border-s",
-                className,
-            )}
+				"fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
+				side === "left"
+					? "inset-s-0 group-data-[collapsible=offcanvas]:inset-s-[calc(var(--sidebar-width)*-1)]"
+					: "inset-e-0 group-data-[collapsible=offcanvas]:inset-e-[calc(var(--sidebar-width)*-1)]",
+				// Adjust the padding for floating and inset variants.
+				variant === "floating" || variant === "inset"
+					? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
+					: "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-e group-data-[side=right]:border-s",
+				className,
+			)}
 			{...restProps}
 		>
 			<div

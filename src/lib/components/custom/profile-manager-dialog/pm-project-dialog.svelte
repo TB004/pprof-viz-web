@@ -4,10 +4,10 @@
 -->
 
 <script lang="ts">
-import { Button } from "$lib/components/ui/button/index.js";
-import * as Dialog from "$lib/components/ui/dialog/index.js";
-import Input from "$lib/components/ui/input/input.svelte";
-import { profileService } from "$lib/services";
+import { Button } from "#lib/components/ui/button/index.js";
+import * as Dialog from "#lib/components/ui/dialog/index.js";
+import Input from "#lib/components/ui/input/input.svelte";
+import { profileService } from "#lib/services";
 import { clearProfileForm, dialogState } from "./state.svelte.ts";
 
 let name = $state("");
@@ -64,13 +64,13 @@ function cancel() {
 		<Dialog.Header>
 			<Dialog.Title>
 				{dialogState.projectDialogMode === "create"
-                    ? "Create project"
-                    : "Rename project"}
+					? "Create project"
+					: "Rename project"}
 			</Dialog.Title>
 			<Dialog.Description>
 				{dialogState.projectDialogMode === "create"
-                    ? "Enter a project name before adding profiles."
-                    : "Update the project name and save the change."}
+					? "Enter a project name before adding profiles."
+					: "Update the project name and save the change."}
 			</Dialog.Description>
 		</Dialog.Header>
 
@@ -85,9 +85,7 @@ function cancel() {
 			<div class="flex flex-wrap justify-end gap-2 pt-2">
 				<Button variant="outline" onclick={cancel}>Cancel</Button>
 				<Button variant="default" onclick={confirm}>
-					{dialogState.projectDialogMode === "create"
-                        ? "Create"
-                        : "Save"}
+					{dialogState.projectDialogMode === "create" ? "Create" : "Save"}
 				</Button>
 			</div>
 		</div>

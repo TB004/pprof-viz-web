@@ -1,8 +1,8 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import type { DBStore } from "$lib/storage/idb.js";
-import type { FileStore } from "$lib/storage/opfs.js";
+import type { DBStore } from "#lib/storage/idb.js";
+import type { FileStore } from "#lib/storage/opfs.js";
 import { ALL_STORES } from "./database.js";
 
 export class Reset {

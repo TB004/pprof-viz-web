@@ -4,8 +4,8 @@
 -->
 
 <script lang="ts">
-import { version } from "$app/environment";
-import * as Card from "$lib/components/ui/card/index.js";
+import * as Card from "#lib/components/ui/card/index.js";
+import { version } from "$app/env";
 </script>
 
 <Card.Root class="border-border/60">

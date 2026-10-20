@@ -12,12 +12,12 @@ import {
 	DeleteDialog,
 	EditDialog,
 	type Slice,
-} from "$lib/components/custom/archive";
-import { EmptyState, PageShell } from "$lib/components/custom/page";
-import * as Card from "$lib/components/ui/card";
-import { archiveService } from "$lib/services";
-import type { CollectionRow } from "$lib/types";
-import { FormatUtils } from "$lib/utils";
+} from "#lib/components/custom/archive";
+import { EmptyState, PageShell } from "#lib/components/custom/page";
+import * as Card from "#lib/components/ui/card";
+import { archiveService } from "#lib/services";
+import type { CollectionRow } from "#lib/types";
+import { FormatUtils } from "#lib/utils";
 
 const archiveState = archiveService.getState();
 

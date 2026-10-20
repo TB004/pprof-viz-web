@@ -5,11 +5,11 @@
 
 <script lang="ts">
 import { ActivityIcon, CpuIcon, TimerIcon, ZapIcon } from "@lucide/svelte";
-import { MetricChart } from "$lib/components/custom/charts";
-import { EmptyState, PageShell } from "$lib/components/custom/page";
-import { StatGrid } from "$lib/components/custom/stat-card";
-import { collectionService } from "$lib/services";
-import { FormatUtils } from "$lib/utils";
+import { MetricChart } from "#lib/components/custom/charts";
+import { EmptyState, PageShell } from "#lib/components/custom/page";
+import { StatGrid } from "#lib/components/custom/stat-card";
+import { collectionService } from "#lib/services";
+import { FormatUtils } from "#lib/utils";
 
 const collectionState = collectionService.getState();
 

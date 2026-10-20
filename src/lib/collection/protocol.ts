@@ -1,7 +1,7 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import type { CollectionType, Frame, MetadataResponse } from "$lib/types";
+import type { CollectionType, Frame, MetadataResponse } from "#lib/types";
 
 /** Everything the worker needs to run a session, without touching the database. */
 export interface SessionProfile {

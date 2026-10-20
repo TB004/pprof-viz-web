@@ -5,17 +5,27 @@
 /// <reference lib="esnext" />
 /// <reference lib="webworker" />
 
-import { base, build, files, prerendered, version } from "$service-worker";
+import { version } from "$app/env";
+import { assets, immutable, prerendered } from "$app/manifest";
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
 
 /** Versioned so a deploy never serves a mix of old and new assets. */
 const CACHE = `pprof-viz-${version}`;
 
-/** Everything the app needs to boot: hashed chunks, static assets, routes. */
-const PRECACHE = [...build, ...files, ...prerendered];
+/**
+ * The worker's scope is the app's base path, so resolving against it keeps
+ * everything correct when the app is served from a sub-path. Manifest paths
+ * are relative to the base, with the empty string standing for the root.
+ */
+const SCOPE = sw.registration.scope;
 
-const IMMUTABLE_PREFIX = `${base}/_app/immutable/`;
+/** Everything the app needs to boot: hashed chunks, static assets, routes. */
+const PRECACHE = [...immutable, ...assets, ...prerendered].map(
+	(entry) => new URL(entry.path, SCOPE).href,
+);
+
+const IMMUTABLE_PREFIX = new URL("_app/immutable/", SCOPE).pathname;
 
 sw.addEventListener("install", (event) => {
 	event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)));
@@ -72,7 +82,7 @@ async function networkFirst(request: Request): Promise<Response> {
 		// Any route renders the same shell, so the entry point is a valid
 		// offline answer for a navigation to a page we have not cached.
 		if (request.mode === "navigate") {
-			const shell = await cache.match("/");
+			const shell = await cache.match(SCOPE);
 			if (shell) return shell;
 		}
 		throw error;

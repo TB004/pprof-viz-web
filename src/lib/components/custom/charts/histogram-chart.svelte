@@ -9,7 +9,7 @@ import {
 	type ChartConfig,
 	ChartContainer,
 	Tooltip,
-} from "$lib/components/ui/chart";
+} from "#lib/components/ui/chart";
 
 type HistSeries = {
 	key: string;
@@ -113,8 +113,8 @@ const chartSeries = $derived(
 			seriesLayout={grouped ? "group" : "overlap"}
 			series={chartSeries}
 			props={{
-                xAxis: { ticks: xTicks, format: (v) => labelMap[String(v)] ?? "" },
-            }}
+				xAxis: { ticks: xTicks, format: (v) => labelMap[String(v)] ?? "" },
+			}}
 		>
 			{#snippet tooltip()}
 				<Tooltip labelFormatter={(d) => `≤ ${labelMap[String(d)] ?? d}`} />

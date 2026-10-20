@@ -16,12 +16,12 @@ import {
 	CompositionChart,
 	HistogramChart,
 	MetricChart,
-} from "$lib/components/custom/charts";
-import { EmptyState, PageShell } from "$lib/components/custom/page";
-import { StatGrid } from "$lib/components/custom/stat-card";
-import * as Card from "$lib/components/ui/card";
-import { collectionService } from "$lib/services";
-import { FormatUtils } from "$lib/utils";
+} from "#lib/components/custom/charts";
+import { EmptyState, PageShell } from "#lib/components/custom/page";
+import { StatGrid } from "#lib/components/custom/stat-card";
+import * as Card from "#lib/components/ui/card";
+import { collectionService } from "#lib/services";
+import { FormatUtils } from "#lib/utils";
 
 const collectionState = collectionService.getState();
 

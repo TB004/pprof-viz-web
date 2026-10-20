@@ -1,7 +1,7 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { browser } from "$app/environment";
+import { browser } from "$app/env";
 
 export interface ServiceWorkerState {
 	supported: boolean;

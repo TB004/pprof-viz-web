@@ -5,9 +5,9 @@
 
 <script lang="ts">
 import { TriangleAlertIcon } from "@lucide/svelte";
-import { ConfirmDialog } from "$lib/components/custom/confirm-dialog";
-import * as Card from "$lib/components/ui/card/index.js";
-import { settingsService } from "$lib/services";
+import { ConfirmDialog } from "#lib/components/custom/confirm-dialog";
+import * as Card from "#lib/components/ui/card/index.js";
+import { settingsService } from "#lib/services";
 
 let dialogOpen = $state(false);
 let resetting = $state(false);

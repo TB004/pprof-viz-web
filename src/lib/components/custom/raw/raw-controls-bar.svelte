@@ -11,10 +11,10 @@ import {
 	PauseIcon,
 	PlayIcon,
 } from "@lucide/svelte";
-import { Button } from "$lib/components/ui/button";
-import * as Select from "$lib/components/ui/select/index.js";
-import { collectionService } from "$lib/services";
-import { CollectionStatus } from "$lib/types";
+import { Button } from "#lib/components/ui/button";
+import * as Select from "#lib/components/ui/select/index.js";
+import { collectionService } from "#lib/services";
+import { CollectionStatus } from "#lib/types";
 
 let {
 	totalRows,

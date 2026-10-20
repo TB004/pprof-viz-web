@@ -1,7 +1,7 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { CollectorClient, describeError } from "$lib/rpc/collector.js";
+import { CollectorClient, describeError } from "#lib/rpc/collector.js";
 
 /**
  * Reachability check for a profile being edited. Resolves when the agent

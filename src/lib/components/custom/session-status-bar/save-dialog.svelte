@@ -4,8 +4,8 @@
 -->
 
 <script lang="ts">
-import { NameDescriptionDialog } from "$lib/components/custom/name-description-dialog";
-import { archiveService, collectionService } from "$lib/services";
+import { NameDescriptionDialog } from "#lib/components/custom/name-description-dialog";
+import { archiveService, collectionService } from "#lib/services";
 
 let { open: dialogOpen = $bindable(false) }: { open: boolean } = $props();
 

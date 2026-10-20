@@ -1,7 +1,7 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import type { DiskUsage } from "$lib/types";
+import type { DiskUsage } from "#lib/types";
 
 export function filenameFor(collectionId: string): string {
 	return `${collectionId}.ppvz`;

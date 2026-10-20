@@ -5,10 +5,10 @@ import {
 	CollectorClient,
 	describeError,
 	isCancellation,
-} from "$lib/rpc/collector.js";
-import type { Frame } from "$lib/types";
-import { CollectionType } from "$lib/types";
-import { FrameUtils } from "$lib/utils";
+} from "#lib/rpc/collector.js";
+import type { Frame } from "#lib/types";
+import { CollectionType } from "#lib/types";
+import { FrameUtils } from "#lib/utils";
 import type { SessionProfile, WorkerCommand, WorkerEvent } from "./protocol.js";
 
 interface WorkerScope {

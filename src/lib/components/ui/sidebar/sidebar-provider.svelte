@@ -1,7 +1,7 @@
 <script lang="ts">
 import type { HTMLAttributes } from "svelte/elements";
-import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-import { cn, type WithElementRef } from "$lib/utils";
+import * as Tooltip from "#lib/components/ui/tooltip/index.js";
+import { cn, type WithElementRef } from "#lib/utils";
 import { SIDEBAR_WIDTH, SIDEBAR_WIDTH_ICON } from "./constants.js";
 import { setSidebar } from "./context.svelte.js";
 
@@ -35,7 +35,7 @@ const sidebar = setSidebar({
 		style="--sidebar-width: {SIDEBAR_WIDTH}; --sidebar-width-icon: {SIDEBAR_WIDTH_ICON}; {style}"
 		class={cn(
 			"group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full",
-			className
+			className,
 		)}
 		bind:this={ref}
 		{...restProps}

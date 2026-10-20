@@ -1,9 +1,9 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { DB } from "$lib/data";
-import { FileStore, JsonStore } from "$lib/storage";
-import type { AppSettings } from "$lib/types";
+import { DB } from "#lib/data";
+import { FileStore, JsonStore } from "#lib/storage";
+import type { AppSettings } from "#lib/types";
 import { ArchiveService } from "./archive_service.svelte.js";
 import { CollectionService } from "./collection_service.svelte.js";
 import { ErrorService } from "./error_service.svelte.js";

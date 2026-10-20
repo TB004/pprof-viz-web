@@ -1,9 +1,9 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import type { DBStore } from "$lib/storage/idb.js";
-import type { ProfileInput, ProfileRow } from "$lib/types";
-import { TextUtils, ulid } from "$lib/utils";
+import type { DBStore } from "#lib/storage/idb.js";
+import type { ProfileInput, ProfileRow } from "#lib/types";
+import { TextUtils, ulid } from "#lib/utils";
 import { Store } from "./database.js";
 
 /** Trim the user-supplied fields and reject anything the RPC layer can't use. */

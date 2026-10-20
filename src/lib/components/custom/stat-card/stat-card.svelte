@@ -5,7 +5,7 @@
 
 <script lang="ts">
 import type { Component } from "svelte";
-import * as Card from "$lib/components/ui/card";
+import * as Card from "#lib/components/ui/card";
 
 let {
 	label,

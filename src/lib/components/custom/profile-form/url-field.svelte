@@ -4,8 +4,8 @@
 -->
 
 <script lang="ts">
-import Input from "$lib/components/ui/input/input.svelte";
-import * as Select from "$lib/components/ui/select/index.js";
+import Input from "#lib/components/ui/input/input.svelte";
+import * as Select from "#lib/components/ui/select/index.js";
 import { type Scheme, schemeOptions } from "./options.js";
 
 type Props = {

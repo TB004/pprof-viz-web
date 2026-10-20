@@ -13,12 +13,12 @@ import {
 	PlayIcon,
 } from "@lucide/svelte";
 import type { Component } from "svelte";
-import { PMDialog } from "$lib/components/custom/profile-manager-dialog";
-import { Button } from "$lib/components/ui/button";
-import * as Card from "$lib/components/ui/card";
-import { dataRoutes } from "$lib/routes";
-import { collectionService, profileService } from "$lib/services";
-import { CollectionStatus } from "$lib/types";
+import { PMDialog } from "#lib/components/custom/profile-manager-dialog";
+import { Button } from "#lib/components/ui/button";
+import * as Card from "#lib/components/ui/card";
+import { dataRoutes } from "#lib/routes";
+import { collectionService, profileService } from "#lib/services";
+import { CollectionStatus } from "#lib/types";
 
 const collectionState = collectionService.getState();
 
@@ -111,12 +111,7 @@ const setupSteps: {
 			<!-- Setup steps -->
 			<div class="space-y-3">
 				{#each setupSteps as step, i (step.title)}
-					{@render setupStep(
-                        i + 1,
-                        step.icon,
-                        step.title,
-                        step.description,
-                    )}
+					{@render setupStep(i + 1, step.icon, step.title, step.description)}
 				{/each}
 			</div>
 
@@ -133,33 +128,33 @@ const setupSteps: {
 </div>
 
 {#snippet setupStep(
-    num: number,
-    Icon: Component,
-    title: string,
-    description: string,
+	num: number,
+	Icon: Component,
+	title: string,
+	description: string,
 )}
 	{@const done = num < activeStep || activeStep === 0}
 	{@const active = num === activeStep}
 	<Card.Root
 		class={[
-            "border transition-colors",
-            active
-                ? "border-primary/40 bg-primary/5 shadow-sm"
-                : done
-                  ? "border-border/40 bg-muted/20"
-                  : "border-border/40 opacity-50",
-        ].join(" ")}
+			"border transition-colors",
+			active
+				? "border-primary/40 bg-primary/5 shadow-sm"
+				: done
+					? "border-border/40 bg-muted/20"
+					: "border-border/40 opacity-50",
+		].join(" ")}
 	>
 		<Card.Content class="flex items-center gap-4 p-4">
 			<div
 				class={[
-                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold",
-                    done
-                        ? "border-transparent bg-primary text-primary-foreground"
-                        : active
-                          ? "border-primary text-primary"
-                          : "border-border text-muted-foreground",
-                ].join(" ")}
+					"flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold",
+					done
+						? "border-transparent bg-primary text-primary-foreground"
+						: active
+							? "border-primary text-primary"
+							: "border-border text-muted-foreground",
+				].join(" ")}
 			>
 				{#if done}
 					<CheckIcon class="size-3.5" />
@@ -170,11 +165,9 @@ const setupSteps: {
 			<div class="min-w-0 flex-1 space-y-0.5">
 				<p
 					class={[
-                        "text-sm font-medium",
-                        done
-                            ? "text-muted-foreground line-through"
-                            : "text-foreground",
-                    ].join(" ")}
+						"text-sm font-medium",
+						done ? "text-muted-foreground line-through" : "text-foreground",
+					].join(" ")}
 				>
 					{title}
 				</p>

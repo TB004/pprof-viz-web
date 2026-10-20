@@ -10,8 +10,8 @@ import {
 	LoaderCircleIcon,
 	PlugZapIcon,
 } from "@lucide/svelte";
-import { Button } from "$lib/components/ui/button/index.js";
-import { pingAgent } from "$lib/services/agent_service.js";
+import { Button } from "#lib/components/ui/button/index.js";
+import { pingAgent } from "#lib/services/agent_service.js";
 import { assembleUrl, dialogState } from "./state.svelte.ts";
 
 type PingStatus = "idle" | "pending" | "success" | "error";

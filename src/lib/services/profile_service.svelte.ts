@@ -1,15 +1,15 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { browser } from "$app/environment";
-import { Profiles, Projects } from "$lib/data";
-import type { DBStore } from "$lib/storage";
+import { Profiles, Projects } from "#lib/data";
+import type { DBStore } from "#lib/storage";
 import type {
 	CollectionType,
 	ProfileInput,
 	ProfileRow,
 	ProjectRow,
-} from "$lib/types";
+} from "#lib/types";
+import { browser } from "$app/env";
 import type { ErrorService } from "./error_service.svelte.js";
 
 export interface CollectionProfile {

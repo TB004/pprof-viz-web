@@ -1,10 +1,10 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import { browser } from "$app/environment";
-import { Reset } from "$lib/data";
-import type { DBStore, FileStore, JsonStore } from "$lib/storage";
-import { type AppSettings, CollectionType, ThemeMode } from "$lib/types";
+import { Reset } from "#lib/data";
+import type { DBStore, FileStore, JsonStore } from "#lib/storage";
+import { type AppSettings, CollectionType, ThemeMode } from "#lib/types";
+import { browser } from "$app/env";
 
 export const SETTINGS_KEY = "pprof-viz-settings";
 

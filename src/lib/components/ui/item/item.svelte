@@ -28,7 +28,7 @@ export type ItemVariant = VariantProps<typeof itemVariants>["variant"];
 <script lang="ts">
 import type { Snippet } from "svelte";
 import type { HTMLAttributes } from "svelte/elements";
-import { cn, type WithElementRef } from "$lib/utils";
+import { cn, type WithElementRef } from "#lib/utils";
 
 let {
 	ref = $bindable(null),

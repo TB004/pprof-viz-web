@@ -4,7 +4,7 @@
 # Serves an already-built site. Same result as `packaging/Containerfile`,
 # minus the build stage — run `just build` first, then:
 #
-#   podman build -t pprof-viz-web -f packaging/Containerfile.dist .
+#   podman build --format docker -t pprof-viz-web -f packaging/Containerfile.dist .
 #
 # CI uses this one: the static output is architecture-independent, so building
 # it once and reusing it makes the multi-arch image a pure file copy with no

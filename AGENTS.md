@@ -67,6 +67,18 @@ Components must not reach past `services` into `data`/`rpc`/`storage`.
   underneath whatever is already using it, and a result held across the next
   compress or decompress reads back as zeroes. For the same reason there is one
   `Archive` for the tab, built in `services/app.svelte.ts` and injected.
+- **A `.ppvzb` bundle is the only thing that carries projects and profiles.** It
+  is a zip of `manifest.json` plus the untouched `collections/<ulid>.ppvz`
+  payloads (`src/lib/bundle`), and it is ours alone — the desktop app reads only
+  bare `.ppvz`. An imported file is untrusted: entry names outside
+  `collections/<ulid>.ppvz` are dropped, the manifest is validated field by
+  field, and every payload must decode before anything is written.
+- **Collections denormalise their profile instead of referencing it**, so
+  "the archives of this project" can only be matched on the captured
+  `profileName` and `profileUrl`. Exports say so in the dialog.
+- **A rename never rewrites the `.ppvz`.** The metadata row is authoritative, so
+  export goes through `Archive.rewriteMeta`, which re-encodes only when the
+  embedded meta actually differs.
 - **The browser owns TLS and the HTTP version.** There is no per-profile "allow invalid
   certificates" or HTTP/3 toggle here, and there cannot be. A collector must present a trusted
   certificate and send CORS headers.

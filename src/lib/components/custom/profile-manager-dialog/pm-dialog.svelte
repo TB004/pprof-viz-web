@@ -4,7 +4,8 @@
 -->
 
 <script lang="ts">
-import { CheckIcon, TrashIcon } from "@lucide/svelte";
+import { CheckIcon, TrashIcon, UploadIcon } from "@lucide/svelte";
+import { ExportDialog } from "#lib/components/custom/transfer";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import * as ScrollArea from "#lib/components/ui/scroll-area/index.js";
@@ -15,7 +16,12 @@ import PMDeleteDialog from "./pm-delete-dialog.svelte";
 import PMProjectDialog from "./pm-project-dialog.svelte";
 import PMSidebar from "./pm-sidebar.svelte";
 import ProfileForm from "./profile-form.svelte";
-import { assembleUrl, clearProfileForm, dialogState } from "./state.svelte.ts";
+import {
+	assembleUrl,
+	clearProfileForm,
+	dialogState,
+	openProfileExport,
+} from "./state.svelte.ts";
 
 type Props = {
 	open?: boolean;
@@ -174,6 +180,17 @@ const hasChanges = $derived(
 											<ConnectionTester />
 											{#if dialogState.selectedProfileId}
 												<Button
+													variant="outline"
+													onclick={() =>
+														openProfileExport(
+															dialogState.profileName,
+															dialogState.selectedProfileId ?? "",
+														)}
+												>
+													<UploadIcon class="size-4" />
+													<span>Export</span>
+												</Button>
+												<Button
 													variant="destructive"
 													onclick={() =>
 														openDeleteProfileDialog(
@@ -211,3 +228,12 @@ const hasChanges = $derived(
 
 <PMProjectDialog />
 <PMDeleteDialog />
+
+<ExportDialog
+	bind:open={dialogState.exportDialogOpen}
+	title={dialogState.exportDialogTitle}
+	subtitle={dialogState.exportDialogSubtitle}
+	exportScope={dialogState.exportDialogScope}
+	suggestedName={dialogState.exportDialogName}
+	profileCount={dialogState.exportDialogProfileCount}
+/>

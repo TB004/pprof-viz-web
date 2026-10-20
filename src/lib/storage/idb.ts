@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 /** Adapt a single IndexedDB request to a promise. */
-function request<T>(source: IDBRequest<T>): Promise<T> {
+export function request<T>(source: IDBRequest<T>): Promise<T> {
 	return new Promise((resolve, reject) => {
 		source.onsuccess = () => resolve(source.result);
 		source.onerror = () =>
@@ -65,19 +65,19 @@ export class DBStore {
 	}
 
 	get<T>(store: string, key: IDBValidKey): Promise<T | undefined> {
-		return this.#transact(store, "readonly", (tx) =>
+		return this.transaction(store, "readonly", (tx) =>
 			request<T | undefined>(tx.objectStore(store).get(key)),
 		);
 	}
 
 	getAll<T>(store: string): Promise<T[]> {
-		return this.#transact(store, "readonly", (tx) =>
+		return this.transaction(store, "readonly", (tx) =>
 			request<T[]>(tx.objectStore(store).getAll()),
 		);
 	}
 
 	async add(store: string, value: unknown): Promise<void> {
-		await this.#transact(store, "readwrite", (tx) =>
+		await this.transaction(store, "readwrite", (tx) =>
 			request(tx.objectStore(store).add(value)),
 		);
 	}
@@ -87,7 +87,7 @@ export class DBStore {
 		key: IDBValidKey,
 		mutate: (row: T) => T,
 	): Promise<void> {
-		await this.#transact(store, "readwrite", async (tx) => {
+		await this.transaction(store, "readwrite", async (tx) => {
 			const objectStore = tx.objectStore(store);
 			const row = await request<T | undefined>(objectStore.get(key));
 			if (row === undefined) {
@@ -103,7 +103,7 @@ export class DBStore {
 		cascade?: Cascade,
 	): Promise<void> {
 		const stores = cascade ? [store, cascade.store] : store;
-		await this.#transact(stores, "readwrite", async (tx) => {
+		await this.transaction(stores, "readwrite", async (tx) => {
 			if (cascade) {
 				const child = tx.objectStore(cascade.store);
 				const keys = await request<IDBValidKey[]>(
@@ -117,12 +117,16 @@ export class DBStore {
 
 	async clear(stores: string | string[]): Promise<void> {
 		const names = typeof stores === "string" ? [stores] : stores;
-		await this.#transact(names, "readwrite", async (tx) => {
+		await this.transaction(names, "readwrite", async (tx) => {
 			for (const name of names) await request(tx.objectStore(name).clear());
 		});
 	}
 
-	async #transact<T>(
+	/**
+	 * Run several reads and writes in one commit. Callers wrap each request with
+	 * `request()`; anything that throws aborts the whole transaction.
+	 */
+	async transaction<T>(
 		stores: string | string[],
 		mode: IDBTransactionMode,
 		body: (tx: IDBTransaction) => Promise<T> | T,

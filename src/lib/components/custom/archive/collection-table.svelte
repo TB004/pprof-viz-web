@@ -4,9 +4,15 @@
 -->
 
 <script lang="ts">
-import { DownloadIcon, PencilIcon, TrashIcon } from "@lucide/svelte";
+import {
+	DownloadIcon,
+	PencilIcon,
+	TrashIcon,
+	UploadIcon,
+} from "@lucide/svelte";
 import { createColumnHelper, tableFeatures } from "@tanstack/table-core";
 import { Button } from "#lib/components/ui/button";
+import { Checkbox } from "#lib/components/ui/checkbox";
 import {
 	createSvelteTable,
 	FlexRender,
@@ -20,15 +26,34 @@ import { goto } from "$app/navigation";
 
 let {
 	collections,
+	selectedIds = $bindable([]),
 	onEdit,
 	onDelete,
+	onExport,
 }: {
 	collections: CollectionRow[];
+	/** The rows ticked for a bulk export; owned by the page. */
+	selectedIds?: string[];
 	onEdit: (row: CollectionRow) => void;
 	onDelete: (row: CollectionRow) => void;
+	onExport: (row: CollectionRow) => void;
 } = $props();
 
 let loadingId = $state<string | null>(null);
+
+const allSelected = $derived(
+	collections.length > 0 && selectedIds.length === collections.length,
+);
+
+function toggle(id: string) {
+	selectedIds = selectedIds.includes(id)
+		? selectedIds.filter((other) => other !== id)
+		: [...selectedIds, id];
+}
+
+function toggleAll() {
+	selectedIds = allSelected ? [] : collections.map((row) => row.id);
+}
 
 async function load(row: CollectionRow) {
 	loadingId = row.id;
@@ -57,6 +82,11 @@ const features = tableFeatures({});
 const column = createColumnHelper<typeof features, CollectionRow>();
 
 const columns = column.columns([
+	column.display({
+		id: "select",
+		header: () => renderSnippet(selectAllCell, undefined),
+		cell: ({ row }) => renderSnippet(selectCell, row.original),
+	}),
 	column.accessor("name", { header: "Name" }),
 	column.accessor("description", {
 		header: "Description",
@@ -93,6 +123,25 @@ const table = createSvelteTable({
 	},
 });
 </script>
+
+{#snippet selectAllCell()}
+	<Checkbox
+		aria-label="Select every collection"
+		checked={allSelected}
+		indeterminate={selectedIds.length > 0 && !allSelected}
+		onCheckedChange={toggleAll}
+	/>
+{/snippet}
+
+{#snippet selectCell(
+	row: CollectionRow,
+)}
+	<Checkbox
+		aria-label="Select {row.name}"
+		checked={selectedIds.includes(row.id)}
+		onCheckedChange={() => toggle(row.id)}
+	/>
+{/snippet}
 
 {#snippet descCell(
 	row: CollectionRow,
@@ -138,6 +187,14 @@ const table = createSvelteTable({
 		>
 			<DownloadIcon />
 			{loadingId === row.id ? "Loading…" : "Load"}
+		</Button>
+		<Button
+			variant="ghost"
+			size="xs"
+			title="Export as .ppvz"
+			onclick={() => onExport(row)}
+		>
+			<UploadIcon />
 		</Button>
 		<Button variant="ghost" size="xs" onclick={() => onEdit(row)}>
 			<PencilIcon />

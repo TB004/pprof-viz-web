@@ -139,6 +139,15 @@ export class ProfileService {
 		);
 	}
 
+	/** Re-read the catalog after something outside this service changed it. */
+	async refresh(): Promise<void> {
+		try {
+			await this.#reload();
+		} catch (error) {
+			this.#errors.reportFailure("Failed to load projects and profiles", error);
+		}
+	}
+
 	async #reload(): Promise<void> {
 		const [projects, profiles] = await Promise.all([
 			this.#projects.list(),

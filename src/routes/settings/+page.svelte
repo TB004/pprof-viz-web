@@ -7,10 +7,12 @@
 import {
 	AboutSection,
 	AppearanceSection,
+	BackupSection,
 	DangerZoneSection,
 	ProfileDefaultsSection,
 	UpdatesSection,
 } from "#lib/components/custom/settings";
+import { ImportDialog } from "#lib/components/custom/transfer";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
 </script>
 
@@ -24,8 +26,11 @@ import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
 		</div>
 		<AppearanceSection />
 		<ProfileDefaultsSection />
+		<BackupSection />
 		<DangerZoneSection />
 		<UpdatesSection />
 		<AboutSection />
 	</div>
 </ScrollArea>
+
+<ImportDialog />

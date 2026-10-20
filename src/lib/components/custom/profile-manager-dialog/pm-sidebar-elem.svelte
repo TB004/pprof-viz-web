@@ -11,12 +11,17 @@ import {
 	PencilIcon,
 	PlusIcon,
 	TrashIcon,
+	UploadIcon,
 } from "@lucide/svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import { profileService } from "#lib/services";
 import type { ProfileProject } from "#lib/services/profile_service.svelte.js";
 import { CollectionType } from "#lib/types";
-import { clearProfileForm, dialogState } from "./state.svelte.ts";
+import {
+	clearProfileForm,
+	dialogState,
+	openProjectExport,
+} from "./state.svelte.ts";
 
 type Props = {
 	project: ProfileProject;
@@ -147,6 +152,19 @@ async function handleProfileSelect(projectId: string, profileId: string) {
 			>
 				<PlusIcon class="size-3.5" />
 				<span class="sr-only">Add profile</span>
+			</Button>
+			<Button
+				variant="ghost"
+				size="icon-xs"
+				class="hover:bg-sidebar-foreground/10 dark:hover:bg-sidebar-foreground/10 hover:text-sidebar-accent-foreground"
+				onclick={(event) => {
+					event.preventDefault();
+					event.stopPropagation();
+					openProjectExport(project);
+				}}
+			>
+				<UploadIcon class="size-3.5" />
+				<span class="sr-only">Export project</span>
 			</Button>
 			<Button
 				variant="ghost"

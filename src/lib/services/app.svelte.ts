@@ -11,6 +11,7 @@ import { ErrorService } from "./error_service.svelte.js";
 import { ProfileService } from "./profile_service.svelte.js";
 import { ServiceWorkerService } from "./service_worker_service.svelte.js";
 import { defaultSettings, SettingsService } from "./settings_service.svelte.js";
+import { TransferService } from "./transfer_service.svelte.js";
 
 export const COLLECTIONS_DIRECTORY = "collections";
 export const SETTINGS_KEY = "pprof-viz-settings";
@@ -32,6 +33,14 @@ export const archiveService = new ArchiveService(
 	files,
 	archive,
 	collectionService,
+	errorService,
+);
+export const transferService = new TransferService(
+	DB.db,
+	files,
+	archive,
+	archiveService,
+	profileService,
 	errorService,
 );
 export const settingsService = new SettingsService(settingsStore, DB.db, files);

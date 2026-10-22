@@ -8,7 +8,7 @@
 # without a secure context, which disables the service worker and persistent
 # storage. Give SITE_ADDRESS a hostname, or put this behind a TLS proxy.
 
-FROM docker.io/oven/bun:1.4.0-alpine AS build
+FROM docker.io/oven/bun:1.4.3-alpine AS build
 WORKDIR /app
 
 COPY package.json bun.lock ./
@@ -17,7 +17,7 @@ RUN bun install --frozen-lockfile
 COPY . .
 RUN bun run build
 
-FROM docker.io/library/caddy:2.11.4-alpine
+FROM docker.io/library/caddy:2.11.7-alpine
 COPY packaging/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /app/build /srv
 

@@ -6,9 +6,9 @@
 <script lang="ts">
 import { onDestroy } from "svelte";
 import "./layout.css";
-import { AppSidebar } from "#lib/components/custom/app-sidebar";
+import { collectionService } from "#lib/app.svelte.js";
 import * as Sidebar from "#lib/components/ui/sidebar/index.js";
-import { collectionService } from "#lib/services";
+import AppSidebar from "./app-sidebar.svelte";
 import MainShell from "./main-shell.svelte";
 
 let { children } = $props();

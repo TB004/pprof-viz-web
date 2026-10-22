@@ -104,16 +104,26 @@ The browser connects to the collector directly, so it is subject to browser rule
 
 Everything runs in the browser; there is no server-side component beyond the static file host.
 
-| Concern                | Implementation                                                          |
-| ---------------------- | ----------------------------------------------------------------------- |
-| Agent RPC              | `src/lib/rpc` — Connect over `fetch`, binary protobuf codec              |
-| Wire schema            | `proto/collector.proto` — shared with the desktop app, `just proto`      |
-| Collection session     | `src/lib/collection` — runs in a dedicated Web Worker                    |
-| Projects & profiles    | `src/lib/data` — IndexedDB                                              |
-| Settings               | `src/lib/storage/kv.ts` — `localStorage`                                 |
-| Saved collections      | `src/lib/archive` — delta-encoded, zstd `.ppvz` in OPFS                  |
-| Reactive state for UI  | `src/lib/services` — Svelte 5 runes                                      |
-| Offline & updates      | `src/service-worker.ts` — precaches the build, driven by `ServiceWorkerService` |
+Code is grouped by feature: each folder holds its service (Svelte 5 runes), its logic and its
+components. Components used by a single page sit next to that page in `src/routes`.
+
+| Concern                | Implementation                                                               |
+| ---------------------- | ---------------------------------------------------------------------------- |
+| Collection session     | `src/lib/session` — Connect over `fetch`, run in a dedicated Web Worker       |
+| Wire schema            | `proto/collector.proto` — shared with the desktop app, `just proto`           |
+| Projects & profiles    | `src/lib/profiles` — IndexedDB (`src/lib/db.ts`)                              |
+| Saved collections      | `src/lib/archive` — delta-encoded, zstd `.ppvz` in OPFS (`src/lib/files.ts`)  |
+| Import & export        | `src/lib/transfer` — `.ppvzb` bundles, optionally with encrypted tokens       |
+| Settings               | `src/lib/settings.svelte.ts` — `localStorage`                                 |
+| Service wiring         | `src/lib/app.svelte.ts` — the one instance of each service                    |
+| Offline & updates      | `src/service-worker.ts`, driven by `src/lib/updates.svelte.ts`                |
+
+## 🤖 AI Notice
+
+This project is developed with heavy use of AI coding assistants. Large parts of the code,
+the commit messages and the pull requests were written with AI tools, then reviewed and
+directed by the maintainer. Keep that in mind when you read or reuse the code, and please
+report anything that looks wrong.
 
 ## 📄 License
 

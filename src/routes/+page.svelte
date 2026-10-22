@@ -13,12 +13,12 @@ import {
 	PlayIcon,
 } from "@lucide/svelte";
 import type { Component } from "svelte";
-import { PMDialog } from "#lib/components/custom/profile-manager-dialog";
+import { collectionService, profileService } from "#lib/app.svelte.js";
 import { Button } from "#lib/components/ui/button";
 import * as Card from "#lib/components/ui/card";
-import { dataRoutes } from "#lib/routes";
-import { collectionService, profileService } from "#lib/services";
+import { openProfileManager } from "#lib/profiles/state.svelte.js";
 import { CollectionStatus } from "#lib/types";
+import { dataRoutes } from "./nav.js";
 
 const collectionState = collectionService.getState();
 
@@ -29,8 +29,6 @@ const isRunning = $derived(collectionState.status === CollectionStatus.Running);
 const activeStep = $derived(
 	!hasProfiles ? 1 : !hasSelectedProfile ? 2 : !isRunning ? 3 : 0,
 );
-
-let profileManagerOpen = $state(false);
 
 const setupSteps: {
 	icon: Component;
@@ -117,7 +115,7 @@ const setupSteps: {
 
 			{#if activeStep === 1}
 				<div class="flex justify-center">
-					<Button onclick={() => (profileManagerOpen = true)} class="px-6">
+					<Button onclick={openProfileManager} class="px-6">
 						<ListPlusIcon class="size-4" />
 						Open Profile Manager
 					</Button>
@@ -181,5 +179,3 @@ const setupSteps: {
 		</Card.Content>
 	</Card.Root>
 {/snippet}
-
-<PMDialog bind:open={profileManagerOpen} />

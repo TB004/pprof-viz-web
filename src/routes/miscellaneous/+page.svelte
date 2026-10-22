@@ -6,14 +6,15 @@
 <script lang="ts">
 import { BracesIcon, LinkIcon, PackageIcon } from "@lucide/svelte";
 import type { Component } from "svelte";
-import { MetricChart } from "#lib/components/custom/charts";
-import { EmptyState, PageShell } from "#lib/components/custom/page";
-import { StatGrid } from "#lib/components/custom/stat-card";
+import { collectionService } from "#lib/app.svelte.js";
+import EmptyState from "#lib/components/empty-state.svelte";
+import MetricChart from "#lib/components/metric-chart.svelte";
+import PageShell from "#lib/components/page-shell.svelte";
+import StatGrid from "#lib/components/stat-grid.svelte";
 import * as Card from "#lib/components/ui/card";
 import { Tooltip } from "#lib/components/ui/chart";
 import * as Table from "#lib/components/ui/table";
-import { collectionService } from "#lib/services";
-import { FormatUtils } from "#lib/utils";
+import { fmtCountAxis, fmtSecs, fmtSecsAxis } from "#lib/utils";
 
 const collectionState = collectionService.getState();
 
@@ -168,7 +169,7 @@ const summaryStats = $derived([
 			description="Cumulative C function calls from Go over samples"
 			type="line"
 			data={cgoChartData}
-			format={FormatUtils.fmtCountAxis}
+			format={fmtCountAxis}
 			series={[{ key: "cgoCalls", label: "CGo Calls" }]}
 		/>
 
@@ -176,7 +177,7 @@ const summaryStats = $derived([
 			title="Mutex Wait Duration"
 			description="Total accumulated mutex contention time per sample"
 			data={syncChartData}
-			format={FormatUtils.fmtSecsAxis}
+			format={fmtSecsAxis}
 			series={[
 				{ key: "mutexWait", label: "Mutex Wait", color: "var(--chart-2)" },
 			]}
@@ -188,7 +189,7 @@ const summaryStats = $derived([
 			description="Total GODEBUG event count accumulated across all event types per sample"
 			type="line"
 			data={debugChartData}
-			format={FormatUtils.fmtCountAxis}
+			format={fmtCountAxis}
 			series={[
 				{ key: "total", label: "Total Events", color: "var(--chart-3)" },
 			]}
@@ -275,7 +276,7 @@ const summaryStats = $derived([
 				<div class="flex flex-1 items-center justify-between leading-none">
 					<span class="text-muted-foreground">{name}</span>
 					<span class="text-foreground font-mono font-medium tabular-nums">
-						{FormatUtils.fmtSecs(Number(value))}
+						{fmtSecs(Number(value))}
 					</span>
 				</div>
 			</div>

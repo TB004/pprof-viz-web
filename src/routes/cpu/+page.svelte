@@ -5,11 +5,12 @@
 
 <script lang="ts">
 import { ActivityIcon, CpuIcon, TimerIcon, ZapIcon } from "@lucide/svelte";
-import { MetricChart } from "#lib/components/custom/charts";
-import { EmptyState, PageShell } from "#lib/components/custom/page";
-import { StatGrid } from "#lib/components/custom/stat-card";
-import { collectionService } from "#lib/services";
-import { FormatUtils } from "#lib/utils";
+import { collectionService } from "#lib/app.svelte.js";
+import EmptyState from "#lib/components/empty-state.svelte";
+import MetricChart from "#lib/components/metric-chart.svelte";
+import PageShell from "#lib/components/page-shell.svelte";
+import StatGrid from "#lib/components/stat-grid.svelte";
+import { fmtCountAxis, fmtSecs, fmtSecsAxis } from "#lib/utils";
 
 const collectionState = collectionService.getState();
 
@@ -38,19 +39,19 @@ const hasData = $derived(chartData.length > 0);
 const stats = $derived([
 	{
 		label: "User CPU",
-		value: FormatUtils.fmtSecs(latest?.user ?? 0),
+		value: fmtSecs(latest?.user ?? 0),
 		description: "CPU time in user code",
 		Icon: CpuIcon,
 	},
 	{
 		label: "Total CPU",
-		value: FormatUtils.fmtSecs(latest?.total ?? 0),
+		value: fmtSecs(latest?.total ?? 0),
 		description: "Total measured CPU time",
 		Icon: TimerIcon,
 	},
 	{
 		label: "GC CPU",
-		value: FormatUtils.fmtSecs(latest?.gcTotal ?? 0),
+		value: fmtSecs(latest?.gcTotal ?? 0),
 		description: "CPU time in garbage collection",
 		Icon: ZapIcon,
 	},
@@ -90,7 +91,7 @@ const stats = $derived([
 			title="CPU Time Distribution"
 			description="User, idle, GC, and scavenge CPU seconds per sample"
 			data={chartData}
-			format={FormatUtils.fmtSecsAxis}
+			format={fmtSecsAxis}
 			series={[
 				{ key: "user", label: "User" },
 				{ key: "idle", label: "Idle" },
@@ -103,7 +104,7 @@ const stats = $derived([
 			title="GC CPU Breakdown"
 			description="CPU seconds consumed by each GC phase per sample"
 			data={chartData}
-			format={FormatUtils.fmtSecsAxis}
+			format={fmtSecsAxis}
 			series={[
 				{ key: "gcAssist", label: "GC Assist" },
 				{ key: "gcDedicated", label: "GC Dedicated" },
@@ -116,7 +117,7 @@ const stats = $derived([
 			description="Running, runnable, and waiting goroutines over time"
 			type="line"
 			data={chartData}
-			format={FormatUtils.fmtCountAxis}
+			format={fmtCountAxis}
 			series={[
 				{ key: "goroutinesRunning", label: "Running" },
 				{ key: "goroutinesRunnable", label: "Runnable" },

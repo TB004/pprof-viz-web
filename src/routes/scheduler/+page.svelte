@@ -12,16 +12,15 @@ import {
 	LayersIcon,
 	PlayIcon,
 } from "@lucide/svelte";
-import {
-	CompositionChart,
-	HistogramChart,
-	MetricChart,
-} from "#lib/components/custom/charts";
-import { EmptyState, PageShell } from "#lib/components/custom/page";
-import { StatGrid } from "#lib/components/custom/stat-card";
+import { collectionService } from "#lib/app.svelte.js";
+import CompositionChart from "#lib/components/composition-chart.svelte";
+import EmptyState from "#lib/components/empty-state.svelte";
+import HistogramChart from "#lib/components/histogram-chart.svelte";
+import MetricChart from "#lib/components/metric-chart.svelte";
+import PageShell from "#lib/components/page-shell.svelte";
+import StatGrid from "#lib/components/stat-grid.svelte";
 import * as Card from "#lib/components/ui/card";
-import { collectionService } from "#lib/services";
-import { FormatUtils } from "#lib/utils";
+import { fmtSecsAxis } from "#lib/utils";
 
 const collectionState = collectionService.getState();
 
@@ -151,7 +150,7 @@ const schedMeta = $derived(metadata?.scheduler);
 			<Card.Content>
 				<HistogramChart
 					buckets={schedMeta?.latenciesSecondsBuckets}
-					format={FormatUtils.fmtSecsAxis}
+					format={fmtSecsAxis}
 					series={[
 						{
 							key: "count",
@@ -174,7 +173,7 @@ const schedMeta = $derived(metadata?.scheduler);
 			<Card.Content>
 				<HistogramChart
 					buckets={schedMeta?.totalGcPauseSecondsBuckets}
-					format={FormatUtils.fmtSecsAxis}
+					format={fmtSecsAxis}
 					series={[
 						{
 							key: "count",
@@ -197,7 +196,7 @@ const schedMeta = $derived(metadata?.scheduler);
 			<Card.Content>
 				<HistogramChart
 					buckets={schedMeta?.stoppingGcSecondsBuckets}
-					format={FormatUtils.fmtSecsAxis}
+					format={fmtSecsAxis}
 					series={[
 						{
 							key: "count",

@@ -5,9 +5,11 @@
 
 <script lang="ts">
 import { BracesIcon } from "@lucide/svelte";
-import { EmptyState, PageShell } from "#lib/components/custom/page";
-import { RawControlsBar, RawTable } from "#lib/components/custom/raw";
-import { collectionService } from "#lib/services";
+import { collectionService } from "#lib/app.svelte.js";
+import EmptyState from "#lib/components/empty-state.svelte";
+import PageShell from "#lib/components/page-shell.svelte";
+import ControlsBar from "./controls-bar.svelte";
+import RawTable from "./raw-table.svelte";
 
 const collectionState = collectionService.getState();
 
@@ -23,7 +25,7 @@ const hasData = $derived((collectionState.data?.length ?? 0) > 0);
 	title="Raw Data"
 	description="All proto fields from every sample — newest first. Click a cell to expand and pause the live view."
 >
-	<RawControlsBar {totalRows} bind:paused bind:currentPage bind:rowsPerPage />
+	<ControlsBar {totalRows} bind:paused bind:currentPage bind:rowsPerPage />
 
 	{#if !hasData}
 		<EmptyState icon={BracesIcon}>

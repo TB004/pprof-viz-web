@@ -6,9 +6,9 @@
 <script lang="ts">
 import { CloudDownloadIcon } from "@lucide/svelte";
 import type { Snippet } from "svelte";
-import { SessionStatusBar } from "#lib/components/custom/session-status-bar";
+import { serviceWorkerService } from "#lib/app.svelte.js";
 import * as Sidebar from "#lib/components/ui/sidebar/index.js";
-import { serviceWorkerService } from "#lib/services";
+import StatusBar from "#lib/session/status-bar.svelte";
 import { page } from "$app/state";
 
 type Props = { children: Snippet };
@@ -46,5 +46,5 @@ const routeLabel = $derived.by(() => {
 		{/if}
 	</header>
 	<div class="min-h-0 flex-1 overflow-hidden">{@render children()}</div>
-	<SessionStatusBar />
+	<StatusBar />
 </div>

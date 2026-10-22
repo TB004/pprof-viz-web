@@ -4,16 +4,13 @@
 -->
 
 <script lang="ts">
-import {
-	AboutSection,
-	AppearanceSection,
-	BackupSection,
-	DangerZoneSection,
-	ProfileDefaultsSection,
-	UpdatesSection,
-} from "#lib/components/custom/settings";
-import { ImportDialog } from "#lib/components/custom/transfer";
 import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
+import About from "./about.svelte";
+import Appearance from "./appearance.svelte";
+import Backup from "./backup.svelte";
+import DangerZone from "./danger-zone.svelte";
+import ProfileDefaults from "./profile-defaults.svelte";
+import Updates from "./updates.svelte";
 </script>
 
 <ScrollArea class="h-full mr-2">
@@ -24,13 +21,11 @@ import { ScrollArea } from "#lib/components/ui/scroll-area/index.js";
 				Customize the application to your preferences.
 			</p>
 		</div>
-		<AppearanceSection />
-		<ProfileDefaultsSection />
-		<BackupSection />
-		<DangerZoneSection />
-		<UpdatesSection />
-		<AboutSection />
+		<Appearance />
+		<ProfileDefaults />
+		<Backup />
+		<DangerZone />
+		<Updates />
+		<About />
 	</div>
 </ScrollArea>
-
-<ImportDialog />

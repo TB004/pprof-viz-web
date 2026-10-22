@@ -10,12 +10,14 @@ import {
 	RefreshCwIcon,
 	ZapIcon,
 } from "@lucide/svelte";
-import { HistogramChart, MetricChart } from "#lib/components/custom/charts";
-import { EmptyState, PageShell } from "#lib/components/custom/page";
-import { StatGrid } from "#lib/components/custom/stat-card";
+import { collectionService } from "#lib/app.svelte.js";
+import EmptyState from "#lib/components/empty-state.svelte";
+import HistogramChart from "#lib/components/histogram-chart.svelte";
+import MetricChart from "#lib/components/metric-chart.svelte";
+import PageShell from "#lib/components/page-shell.svelte";
+import StatGrid from "#lib/components/stat-grid.svelte";
 import * as Card from "#lib/components/ui/card";
-import { collectionService } from "#lib/services";
-import { FormatUtils } from "#lib/utils";
+import { fmtBytes, fmtBytesAxis, fmtCountAxis } from "#lib/utils";
 
 const collectionState = collectionService.getState();
 
@@ -65,13 +67,13 @@ const stats = $derived([
 	},
 	{
 		label: "Live Heap",
-		value: FormatUtils.fmtBytes(latest?.liveOccupiedBytes ?? 0),
+		value: fmtBytes(latest?.liveOccupiedBytes ?? 0),
 		description: "Currently live heap memory",
 		Icon: DatabaseIcon,
 	},
 	{
 		label: "Heap Goal",
-		value: FormatUtils.fmtBytes(latest?.goalHeapSizeBytes ?? 0),
+		value: fmtBytes(latest?.goalHeapSizeBytes ?? 0),
 		description: "Target heap size for next GC",
 		Icon: DatabaseIcon,
 	},
@@ -99,7 +101,7 @@ const stats = $derived([
 			title="Heap Size"
 			description="Live heap and GC goal size over time"
 			data={chartData}
-			format={FormatUtils.fmtBytesAxis}
+			format={fmtBytesAxis}
 			series={[
 				{ key: "liveOccupiedBytes", label: "Live Heap" },
 				{ key: "goalHeapSizeBytes", label: "Heap Goal" },
@@ -110,7 +112,7 @@ const stats = $derived([
 			title="Allocation Activity"
 			description="Cumulative bytes allocated and freed over time"
 			data={chartData}
-			format={FormatUtils.fmtBytesAxis}
+			format={fmtBytesAxis}
 			series={[
 				{ key: "bytesAllocs", label: "Allocated" },
 				{ key: "bytesFrees", label: "Freed" },
@@ -122,7 +124,7 @@ const stats = $derived([
 			description="Cumulative automatic and forced GC cycles over time"
 			type="line"
 			data={chartData}
-			format={FormatUtils.fmtCountAxis}
+			format={fmtCountAxis}
 			series={[
 				{ key: "automaticCycles", label: "Automatic" },
 				{ key: "forcedCycles", label: "Forced" },
@@ -139,7 +141,7 @@ const stats = $derived([
 			<Card.Content>
 				<HistogramChart
 					buckets={gcMeta?.bytesAllocsBySizeBuckets}
-					format={FormatUtils.fmtBytesAxis}
+					format={fmtBytesAxis}
 					grouped
 					series={[
 						{

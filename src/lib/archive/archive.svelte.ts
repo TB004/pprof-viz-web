@@ -113,6 +113,7 @@ export class ArchiveService {
 		const payload = await decodeArchive(await this.#fs.read(row.filename));
 		// The metadata row is authoritative — it reflects any later edits.
 		this.#session.installLoaded({
+			name: row.name,
 			frames: payload.frames,
 			frameTimestamps: payload.frameTimestamps,
 			metadata: payload.metadata,

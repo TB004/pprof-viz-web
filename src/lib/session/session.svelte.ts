@@ -22,6 +22,8 @@ export interface CollectionState {
 	elapsedSeconds: number;
 	/** True when the current data was loaded from the archive, not collected. */
 	loaded: boolean;
+	/** The archived collection's name while `loaded` is true. */
+	loadedName?: string;
 	/** True once the current session has been written to the archive. */
 	saved: boolean;
 	/** Why the current session failed to start or stopped early. */
@@ -50,6 +52,7 @@ export interface CollectionSnapshot {
 }
 
 export interface LoadedCollection {
+	name: string;
 	frames: Frame[];
 	frameTimestamps: number[];
 	metadata: MetadataResponse | null;
@@ -205,6 +208,7 @@ export class CollectionService {
 			collectedSamples: 0,
 			elapsedSeconds: 0,
 			loaded: false,
+			loadedName: undefined,
 			saved: false,
 			error: null,
 			selectedProfile: profile.id,
@@ -268,6 +272,7 @@ export class CollectionService {
 			collectedSamples: loaded.frames.length,
 			elapsedSeconds: Math.max(0, Math.floor(loaded.durationMs / 1000)),
 			loaded: true,
+			loadedName: loaded.name,
 			saved: false,
 			error: null,
 			data: loaded.frames,

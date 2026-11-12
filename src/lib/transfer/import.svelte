@@ -4,9 +4,11 @@
 -->
 
 <script lang="ts">
-import { DownloadIcon, TriangleAlertIcon } from "@lucide/svelte";
+import { DownloadIcon } from "@lucide/svelte";
 import { transferService } from "#lib/app.svelte.js";
 import ErrorAlert from "#lib/components/error-alert.svelte";
+import Notice from "#lib/components/notice.svelte";
+import RadioCard from "#lib/components/radio-card.svelte";
 import {
 	Button,
 	type ButtonSize,
@@ -117,10 +119,10 @@ async function confirm() {
 }
 	}
 >
-	<Dialog.Content class="sm:max-w-lg">
+	<Dialog.Content class="sm:max-w-[540px]">
 		<Dialog.Header>
 			<Dialog.Title>Import</Dialog.Title>
-			<Dialog.Description>
+			<Dialog.Description class={staged ? "mono truncate" : ""}>
 				{#if staged}
 					{staged.sources.join(", ")}
 				{:else}
@@ -129,25 +131,27 @@ async function confirm() {
 			</Dialog.Description>
 		</Dialog.Header>
 
-		<ErrorAlert message={reading.error} />
+		<div class="flex flex-col gap-4 px-[22px] py-3.5">
+			<ErrorAlert message={reading.error} />
 
-		{#if staged}
-			<div class="flex flex-col gap-4">
-				<dl class="grid grid-cols-3 gap-3 text-sm">
+			{#if staged}
+				<dl class="m-0 grid grid-cols-3 gap-2">
 					{#each [
 						["Projects", staged.projects.length],
 						["Profiles", staged.profiles.length],
 						["Archives", staged.payloads.length],
 					] as entry (entry[0])}
-						<div class="rounded-md border bg-muted/30 px-3 py-2">
-							<dt class="text-xs text-muted-foreground">{entry[0]}</dt>
-							<dd class="text-base font-medium tabular-nums">{entry[1]}</dd>
+						<div
+							class="border-line bg-surface-2 rounded-[10px] border px-3 py-2.5"
+						>
+							<dt class="text-muted-foreground text-[11.5px]">{entry[0]}</dt>
+							<dd class="mono m-0 text-lg font-[550]">{entry[1]}</dd>
 						</div>
 					{/each}
 				</dl>
 
-				<p class="text-xs text-muted-foreground">
-					{fmtBytes(staged.totalBytes)}
+				<p class="text-muted-foreground text-[12.5px]">
+					<span class="mono">{fmtBytes(staged.totalBytes)}</span>
 					of archive data.
 					{#if staged.orphanCollections.length > 0}
 						{staged.orphanCollections.length}
@@ -157,8 +161,11 @@ async function confirm() {
 				</p>
 
 				{#if encrypted}
-					<div class="flex flex-col gap-2">
-						<label for="{uid}-passphrase" class="text-sm font-medium">
+					<div>
+						<label
+							for="{uid}-passphrase"
+							class="mb-2 block text-[13px] font-[550]"
+						>
 							Passphrase
 						</label>
 						<Input
@@ -169,48 +176,42 @@ async function confirm() {
 							placeholder="Leave empty to import without credentials"
 							onkeydown={(e) => e.key === "Enter" && confirm()}
 						/>
-						<p class="text-xs text-muted-foreground">
+						<p class="text-muted-foreground mt-1.5 text-[12.5px]">
 							This bundle carries encrypted profile tokens. Without the
 							passphrase the profiles are imported and their tokens left blank.
 						</p>
 					</div>
 				{:else if staged.credentials === BundleCredentials.Plain}
-					<p class="flex items-start gap-1.5 text-xs text-muted-foreground">
-						<TriangleAlertIcon class="mt-0.5 size-3.5 shrink-0" />
-						<span>This bundle carries profile tokens in cleartext.</span>
-					</p>
+					<Notice tone="warn">
+						This bundle carries profile tokens in cleartext.
+					</Notice>
 				{/if}
 
 				{#if collisions > 0}
-					<fieldset class="flex flex-col gap-2">
-						<legend class="mb-3 text-sm font-medium">
+					<fieldset class="m-0 flex flex-col gap-2 border-0 p-0">
+						<legend class="mb-2 text-[13px] font-[550]">
 							{collisions}
 							record{collisions === 1 ? "" : "s"}
 							already exist here
 						</legend>
-						{#each MODES as option (option.value)}
-							<label class="flex items-start gap-2.5 text-sm">
-								<input
-									type="radio"
+						<div role="radiogroup" class="flex flex-col gap-2">
+							{#each MODES as option (option.value)}
+								<RadioCard
 									name="{uid}-mode"
-									class="mt-0.5 size-4 accent-primary"
-									value={option.value}
-									bind:group={mode}
-								>
-								<span>
-									{option.label}
-									<span class="block text-xs text-muted-foreground">
-										{option.hint}
-									</span>
-								</span>
-							</label>
-						{/each}
+									class="px-3 py-[11px]"
+									title={option.label}
+									description={option.hint}
+									checked={mode === option.value}
+									onSelect={() => (mode = option.value)}
+								/>
+							{/each}
+						</div>
 					</fieldset>
 				{/if}
 
 				<ErrorAlert message={importing.error} />
-			</div>
-		{/if}
+			{/if}
+		</div>
 
 		<Dialog.Footer>
 			<Button variant="outline" onclick={close} disabled={transferState.busy}>
@@ -218,6 +219,7 @@ async function confirm() {
 			</Button>
 			{#if staged}
 				<Button onclick={confirm} disabled={transferState.busy}>
+					<DownloadIcon />
 					{transferState.busy ? transferState.phase || "Importing…" : "Import"}
 				</Button>
 			{:else}

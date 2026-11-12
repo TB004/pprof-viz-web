@@ -4,6 +4,7 @@
 -->
 
 <script lang="ts">
+import type { Snippet } from "svelte";
 import ErrorAlert from "#lib/components/error-alert.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
@@ -26,6 +27,8 @@ type Props = {
 	pendingLabel?: string;
 	/** Why the last confirm failed, shown under the fields. */
 	error?: string | null;
+	/** Shown above the fields, e.g. what is about to be saved. */
+	summary?: Snippet;
 };
 
 let {
@@ -42,6 +45,7 @@ let {
 	pending = false,
 	pendingLabel = "Saving…",
 	error,
+	summary,
 }: Props = $props();
 
 // Both fields are labelled, so the ids have to be unique per instance.
@@ -53,15 +57,18 @@ function cancel() {
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Content class="sm:max-w-md">
+	<Dialog.Content>
 		<Dialog.Header>
 			<Dialog.Title>{title}</Dialog.Title>
 			<Dialog.Description>{subtitle}</Dialog.Description>
 		</Dialog.Header>
 
-		<div class="flex flex-col gap-3">
-			<div class="flex flex-col gap-1.5">
-				<label for="{uid}-name" class="text-sm font-medium">Name</label>
+		<div class="flex flex-col gap-4 px-[22px] py-3.5">
+			{@render summary?.()}
+			<div>
+				<label for="{uid}-name" class="mb-2 block text-[13px] font-[550]">
+					Name
+				</label>
 				<Input
 					id="{uid}-name"
 					bind:value={name}
@@ -69,15 +76,20 @@ function cancel() {
 					onkeydown={(e) => e.key === "Enter" && onConfirm()}
 				/>
 			</div>
-			<div class="flex flex-col gap-1.5">
-				<label for="{uid}-description" class="text-sm font-medium">
-					Description <span class="text-muted-foreground">(optional)</span>
+			<div>
+				<label
+					for="{uid}-description"
+					class="mb-2 block text-[13px] font-[550]"
+				>
+					Description
+					<span class="text-muted-foreground ml-1 font-normal">optional</span>
 				</label>
-				<Input
+				<textarea
 					id="{uid}-description"
 					bind:value={description}
 					placeholder={descriptionPlaceholder}
-				/>
+					class="bg-field border-line-2 text-ink placeholder:text-faint min-h-21 w-full resize-y rounded-control border px-3 py-2.5 text-[13.5px] leading-normal outline-none focus-visible:border-transparent focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-(--focus)"
+				></textarea>
 			</div>
 			<ErrorAlert message={error} />
 		</div>

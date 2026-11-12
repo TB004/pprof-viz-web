@@ -7,8 +7,8 @@
 export type Scheme = "http" | "https";
 
 const schemeOptions: Array<{ value: Scheme; label: string }> = [
-	{ value: "http", label: "http://" },
 	{ value: "https", label: "https://" },
+	{ value: "http", label: "http://" },
 ];
 
 /** Split a stored URL into the parts the URL field edits. */
@@ -26,8 +26,8 @@ export function buildUrl(scheme: Scheme, host: string): string {
 </script>
 
 <script lang="ts">
+import Notice from "#lib/components/notice.svelte";
 import Input from "#lib/components/ui/input/input.svelte";
-import * as Select from "#lib/components/ui/select/index.js";
 
 type Props = {
 	scheme: Scheme;
@@ -43,40 +43,55 @@ let {
 	host,
 	onSchemeChange,
 	onHostChange,
-	label = "URL",
+	label = "Collector URL",
 	optional = false,
 }: Props = $props();
+
+const uid = $props.id();
+
+// Browsers block plain HTTP from an HTTPS page, except for loopback.
+const mixedContent = $derived(
+	scheme === "http" &&
+		host.trim() !== "" &&
+		!/^(localhost|127\.|\[::1\])/.test(host.trim()),
+);
 </script>
 
-<div class="block">
-	<span class="mb-3 block text-sm font-medium text-foreground">
+<div>
+	<label for="{uid}-host" class="mb-2 block text-[13px] font-[550]">
 		{label}
 		{#if optional}
-			<span class="ml-1 font-normal text-muted-foreground">(optional)</span>
+			<span class="text-muted-foreground ml-1 font-normal">optional</span>
 		{/if}
-	</span>
-	<div class="flex gap-2">
-		<Select.Root
-			type="single"
-			value={scheme}
-			onValueChange={(v) => {
-				if (v) onSchemeChange(v as Scheme);
-			}}
+	</label>
+	<div class="flex">
+		<fieldset
+			class="m-0 border-line bg-hover inline-flex shrink-0 gap-0.5 rounded-l-control border border-r-0 p-1"
 		>
-			<Select.Trigger class="w-25 shrink-0">
-				{schemeOptions.find((o) => o.value === scheme)?.label ?? "http://"}
-			</Select.Trigger>
-			<Select.Content class="p-1.5">
-				{#each schemeOptions as opt (opt.value)}
-					<Select.Item value={opt.value}>{opt.label}</Select.Item>
-				{/each}
-			</Select.Content>
-		</Select.Root>
+			<legend class="sr-only">Scheme</legend>
+			{#each schemeOptions as opt (opt.value)}
+				<button
+					type="button"
+					aria-pressed={scheme === opt.value}
+					class="mono text-muted-foreground hover:text-ink aria-pressed:bg-surface aria-pressed:text-ink h-7 cursor-pointer rounded-[7px] px-2 text-xs aria-pressed:shadow-[0_1px_2px_rgb(0_0_0/0.12)]"
+					onclick={() => onSchemeChange(opt.value)}
+				>
+					{opt.label}
+				</button>
+			{/each}
+		</fieldset>
 		<Input
+			id="{uid}-host"
 			value={host}
-			placeholder="localhost:9090"
-			class="flex-1 min-w-0"
+			placeholder="collector.internal:9090"
+			class="mono min-w-0 flex-1 rounded-l-none"
 			oninput={(e) => onHostChange(e.currentTarget.value)}
 		/>
 	</div>
+	{#if mixedContent}
+		<Notice tone="warn" class="mt-2">
+			An HTTPS-hosted dashboard can’t reach an http:// collector (mixed
+			content). Plain HTTP only works for localhost.
+		</Notice>
+	{/if}
 </div>

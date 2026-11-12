@@ -4,45 +4,38 @@
 -->
 
 <script lang="ts">
-import * as Card from "#lib/components/ui/card/index.js";
 import { version } from "$app/env";
+import Section from "./section.svelte";
 </script>
 
-<Card.Root class="border-border/60">
-	<Card.Header>
-		<Card.Title class="text-base">About</Card.Title>
-		<Card.Description
-			>Application information and legal notices.</Card.Description
-		>
-	</Card.Header>
-	<Card.Content class="space-y-4">
-		<div class="grid grid-cols-2 gap-y-3 text-sm">
-			<span class="text-muted-foreground">Application</span>
-			<span class="font-medium">Pprof-Viz</span>
-
-			<span class="text-muted-foreground">Build</span>
-			<span class="font-medium font-mono">{version}</span>
-
-			<span class="text-muted-foreground">Identifier</span>
-			<span class="font-medium font-mono">de.tb004.pprof-viz</span>
-
-			<span class="text-muted-foreground">Repository</span>
-			<span>
-				<a
-					href="https://github.com/TB004/pprof-viz-web"
-					target="_blank"
-					rel="noreferrer noopener"
-					class="text-sm font-medium text-primary underline-offset-4 hover:underline"
-				>
-					github.com/TB004/pprof-viz-web
-				</a>
-			</span>
-
-			<span class="text-muted-foreground">Copyright</span>
-			<span class="font-medium">Copyright &copy; 2026 Tizian Bahr</span>
-
-			<span class="text-muted-foreground">License</span>
-			<span class="font-medium">GPL-3 License</span>
-		</div>
-	</Card.Content>
-</Card.Root>
+<Section
+	id="about"
+	title="About"
+	description="Application information and legal notices."
+>
+	<dl
+		class="m-0 grid grid-cols-[120px_minmax(0,1fr)] gap-x-4 gap-y-3 text-[13px]"
+	>
+		<dt class="text-muted-foreground">Application</dt>
+		<dd class="m-0">Pprof-Viz Web</dd>
+		<dt class="text-muted-foreground">Build</dt>
+		<dd class="mono m-0">{version}</dd>
+		<dt class="text-muted-foreground">Identifier</dt>
+		<dd class="mono m-0">de.tb004.pprof-viz</dd>
+		<dt class="text-muted-foreground">Repository</dt>
+		<dd class="m-0 min-w-0">
+			<a
+				href="https://github.com/TB004/pprof-viz-web"
+				target="_blank"
+				rel="noreferrer noopener"
+				class="text-acc underline-offset-4 hover:underline"
+			>
+				github.com/TB004/pprof-viz-web
+			</a>
+		</dd>
+		<dt class="text-muted-foreground">Copyright</dt>
+		<dd class="m-0">© 2026 Tizian Bahr</dd>
+		<dt class="text-muted-foreground">License</dt>
+		<dd class="m-0">GPL-3.0-or-later</dd>
+	</dl>
+</Section>

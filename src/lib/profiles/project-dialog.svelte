@@ -55,7 +55,7 @@ function cancel() {
 </script>
 
 <Dialog.Root bind:open={dialogState.projectDialogOpen}>
-	<Dialog.Content class="sm:max-w-md">
+	<Dialog.Content>
 		<Dialog.Header>
 			<Dialog.Title>
 				{dialogState.projectDialogMode === "create"
@@ -69,26 +69,21 @@ function cancel() {
 			</Dialog.Description>
 		</Dialog.Header>
 
-		<div class="space-y-4 px-6">
-			<label class="block">
-				<span class="mb-3 block text-sm font-medium text-foreground"
-					>Project name</span
-				>
-				<Input bind:value={name} placeholder="Production" />
-			</label>
-
-			<ErrorAlert message={saving.error} />
-
-			<div class="flex flex-wrap justify-end gap-2 pt-2">
-				<Button variant="outline" onclick={cancel}>Cancel</Button>
-				<Button
-					variant="default"
-					disabled={!name.trim() || saving.pending}
-					onclick={confirm}
-				>
-					{dialogState.projectDialogMode === "create" ? "Create" : "Save"}
-				</Button>
+		<div class="flex flex-col gap-4 px-[22px] py-3.5">
+			<div>
+				<label for="project-name" class="mb-2 block text-[13px] font-[550]">
+					Project name
+				</label>
+				<Input id="project-name" bind:value={name} placeholder="Production" />
 			</div>
+			<ErrorAlert message={saving.error} />
 		</div>
+
+		<Dialog.Footer>
+			<Button variant="outline" onclick={cancel}>Cancel</Button>
+			<Button disabled={!name.trim() || saving.pending} onclick={confirm}>
+				{dialogState.projectDialogMode === "create" ? "Create" : "Save"}
+			</Button>
+		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>

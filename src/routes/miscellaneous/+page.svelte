@@ -4,17 +4,23 @@
 -->
 
 <script lang="ts">
-import { BracesIcon, LinkIcon, PackageIcon } from "@lucide/svelte";
-import type { Component } from "svelte";
+import { PackageIcon } from "@lucide/svelte";
 import { collectionService } from "#lib/app.svelte.js";
-import EmptyState from "#lib/components/empty-state.svelte";
-import MetricChart from "#lib/components/metric-chart.svelte";
-import PageShell from "#lib/components/page-shell.svelte";
+import MetricChart, {
+	type ChartRow,
+} from "#lib/components/metric-chart.svelte";
+import Panel from "#lib/components/panel.svelte";
+import Segmented from "#lib/components/segmented.svelte";
 import StatGrid from "#lib/components/stat-grid.svelte";
-import * as Card from "#lib/components/ui/card";
-import { Tooltip } from "#lib/components/ui/chart";
-import * as Table from "#lib/components/ui/table";
-import { fmtCountAxis, fmtSecs, fmtSecsAxis } from "#lib/utils";
+import {
+	deltas,
+	fmtCount,
+	fmtCountAxis,
+	fmtSecs,
+	fmtSecsAxis,
+} from "#lib/utils";
+import DashboardShell from "../dashboard-shell.svelte";
+import { windowed } from "../sample-window.svelte.js";
 
 const collectionState = collectionService.getState();
 
@@ -67,42 +73,19 @@ const GO_DEBUG_KEYS = [
 	"zipInsecurePathEvents",
 ] as const;
 
-function fmtDebugKey(key: string): string {
-	return key
-		.replace(/Events$/, "")
-		.replace(/([A-Z])/g, " $1")
-		.replace(/(\d+)/g, " $1")
-		.trim()
-		.replace(/\s+/g, " ")
-		.split(" ")
-		.map((w, i) => (i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w))
-		.join(" ");
+/** The GODEBUG setting a counter belongs to, e.g. `http2client`. */
+function settingName(key: string): string {
+	return key.replace(/Events$/, "").toLowerCase();
 }
 
 const frames = $derived(collectionState.data ?? []);
-const hasData = $derived(frames.length > 0);
-const latest = $derived(frames.at(-1));
 
-const totalCgoCalls = $derived(Number(latest?.cgo?.cgoCalls ?? 0));
-
-const cgoChartData = $derived(
-	frames.map((frame, i) => ({
-		sample: i + 1,
-		cgoCalls: Number(frame.cgo?.cgoCalls ?? 0),
-	})),
-);
-
-const syncChartData = $derived(
-	frames.map((frame, i) => ({
-		sample: i + 1,
-		mutexWait: frame.sync?.totalMutexWaitDurationSeconds ?? 0,
-	})),
-);
+let filter = $state<"nonzero" | "all">("nonzero");
 
 // Everything the GODEBUG chart and table need, from a single walk over the
 // frame buffer.
 const debugSummary = $derived.by(() => {
-	const totals: { sample: number; total: number }[] = [];
+	const totals: number[] = [];
 	const counts = new Array<number>(GO_DEBUG_KEYS.length).fill(0);
 	const lastActive = new Array<number>(GO_DEBUG_KEYS.length).fill(-1);
 
@@ -119,167 +102,205 @@ const debugSummary = $derived.by(() => {
 			counts[k] = value;
 			total += value;
 		});
-		totals.push({ sample: sampleIndex + 1, total });
+		totals.push(total);
 	});
 
 	const rows = GO_DEBUG_KEYS.map((key, k) => ({
 		key,
-		label: fmtDebugKey(key),
+		name: settingName(key),
 		count: counts[k],
 		lastActive: lastActive[k],
 		// Active in the newest sample — needs two samples to be a comparison.
 		activeInLast: frames.length >= 2 && lastActive[k] === frames.length,
 	})).sort((a, b) => b.count - a.count);
 
-	return { totals, rows, latestTotal: totals.at(-1)?.total ?? 0 };
+	return { totals, rows, hit: rows.filter((r) => r.count > 0).length };
 });
 
-const debugChartData = $derived(debugSummary.totals);
-const debugTableRows = $derived(debugSummary.rows);
+const rows = $derived.by((): ChartRow[] => {
+	const cgo = frames.map((f) => Number(f.cgo?.cgoCalls ?? 0));
+	const cgoPer = deltas(cgo);
+	const mutexPer = deltas(
+		frames.map((f) => f.sync?.totalMutexWaitDurationSeconds ?? 0),
+	);
+	const debugPer = deltas(debugSummary.totals);
+	return frames.map((_, i) => ({
+		sample: i + 1,
+		at: collectionState.dataTimestamps?.[i],
+		cgo: cgo[i],
+		cgoPer: cgoPer[i],
+		mutex: mutexPer[i],
+		debugTotal: debugSummary.totals[i],
+		debugPer: debugPer[i],
+	}));
+});
 
-const summaryStats = $derived([
-	{
-		label: "Total CGo Calls",
-		value: totalCgoCalls.toLocaleString(),
-		description: "Cumulative C function calls from Go",
-		Icon: LinkIcon as Component,
-	},
-	{
-		label: "Total Debug Events",
-		value: debugSummary.latestTotal.toLocaleString(),
-		description: "Sum of all GODEBUG event counters",
-		Icon: BracesIcon as Component,
-	},
-]);
+const data = $derived(windowed(rows));
+const history = (key: string) => rows.slice(-40).map((r) => r[key] ?? 0);
+
+const stats = $derived.by(() => {
+	const l = rows.at(-1) ?? { sample: 0 };
+	return [
+		{
+			label: "CGo calls",
+			value: fmtCount(l.cgo ?? 0),
+			sub: "cumulative",
+			history: history("cgo"),
+			color: "var(--chart-1)",
+		},
+		{
+			label: "CGo calls / sample",
+			value: fmtCount(l.cgoPer ?? 0),
+			history: history("cgoPer"),
+			color: "var(--chart-1)",
+		},
+		{
+			label: "Mutex wait",
+			value: fmtSecs(l.mutex ?? 0),
+			sub: "in the latest sample",
+			history: history("mutex"),
+			color: "var(--chart-2)",
+		},
+		{
+			label: "GODEBUG events",
+			value: fmtCount(l.debugTotal ?? 0),
+			sub: "cumulative, all settings",
+			history: history("debugTotal"),
+			color: "var(--chart-3)",
+		},
+		{
+			label: "Settings hit",
+			value: `${debugSummary.hit} of ${GO_DEBUG_KEYS.length}`,
+			sub: "non-default behaviours seen",
+			history: history("debugPer"),
+			color: "var(--chart-3)",
+		},
+	];
+});
+
+const tableRows = $derived(
+	filter === "all"
+		? debugSummary.rows
+		: debugSummary.rows.filter((r) => r.count > 0),
+);
 </script>
 
-<PageShell
+<DashboardShell
 	title="Miscellaneous"
-	description="CGo calls, mutex contention, and Go debug event counters"
+	icon={PackageIcon}
+	description="CGo calls, mutex contention and GODEBUG non-default behaviour counters."
 >
-	{#if !hasData}
-		<EmptyState icon={PackageIcon}>
-			Select a profile and start collecting to see miscellaneous metrics.
-		</EmptyState>
-	{:else}
-		<StatGrid stats={summaryStats} class="grid grid-cols-2 gap-4" />
+	<StatGrid {stats} />
 
+	<div class="panel-grid">
 		<MetricChart
-			title="CGo Calls"
-			description="Cumulative C function calls from Go over samples"
-			type="line"
-			data={cgoChartData}
-			format={fmtCountAxis}
-			series={[{ key: "cgoCalls", label: "CGo Calls" }]}
+			title="CGo calls"
+			description="C function calls made from Go, per sample."
+			{data}
+			fitMin
+			format={fmtCount}
+			axisFormat={fmtCountAxis}
+			series={[{ key: "cgoPer", label: "Calls", color: "var(--chart-1)" }]}
 		/>
 
 		<MetricChart
-			title="Mutex Wait Duration"
-			description="Total accumulated mutex contention time per sample"
-			data={syncChartData}
-			format={fmtSecsAxis}
-			series={[
-				{ key: "mutexWait", label: "Mutex Wait", color: "var(--chart-2)" },
-			]}
-			tooltip={mutexTooltip}
+			title="Mutex wait"
+			description="Time goroutines spent blocked on sync.Mutex / RWMutex, per sample."
+			{data}
+			format={fmtSecs}
+			axisFormat={fmtSecsAxis}
+			series={[{ key: "mutex", label: "Wait", color: "var(--chart-2)" }]}
 		/>
 
 		<MetricChart
-			title="Debug Events Over Time"
-			description="Total GODEBUG event count accumulated across all event types per sample"
-			type="line"
-			data={debugChartData}
-			format={fmtCountAxis}
-			series={[
-				{ key: "total", label: "Total Events", color: "var(--chart-3)" },
-			]}
+			class="col-span-full"
+			title="GODEBUG events"
+			description="New non-default-behaviour events per sample, across all settings."
+			{data}
+			format={fmtCount}
+			axisFormat={fmtCountAxis}
+			series={[{ key: "debugPer", label: "Events", color: "var(--chart-3)" }]}
 		/>
 
-		<!-- Debug events table -->
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Debug Event Counters</Card.Title>
-				<Card.Description>
-					GODEBUG event types sorted by count — green dot indicates activity in
-					the most recent sample
-				</Card.Description>
-			</Card.Header>
-			<Card.Content class="p-0">
-				<div class="overflow-hidden rounded-b-xl">
-					<Table.Root>
-						<Table.Header>
-							<Table.Row class="bg-muted/50 hover:bg-muted/50">
-								<Table.Head class="px-4 py-3 text-muted-foreground">
-									Event
-								</Table.Head>
-								<Table.Head class="px-4 py-3 text-right text-muted-foreground">
-									Count
-								</Table.Head>
-								<Table.Head class="px-4 py-3 text-right text-muted-foreground">
-									Last Active
-								</Table.Head>
-							</Table.Row>
-						</Table.Header>
-						<Table.Body>
-							{#each debugTableRows as row (row.key)}
-								<Table.Row class="hover:bg-muted/30">
-									<Table.Cell class="px-4 py-2.5">
-										<div class="flex items-center gap-2">
-											<span
-												class="size-1.5 shrink-0 rounded-full {row.activeInLast
-													? "bg-green-500"
-													: row.count > 0
-														? "bg-muted-foreground/40"
-														: "bg-muted"}"
-											></span>
-											<span
-												class={row.count === 0 ? "text-muted-foreground" : ""}
-											>
-												{row.label}
-											</span>
-										</div>
-									</Table.Cell>
-									<Table.Cell
-										class="px-4 py-2.5 text-right font-mono tabular-nums {row.count ===
-										0
-											? "text-muted-foreground"
-											: ""}"
-									>
-										{row.count.toLocaleString()}
-									</Table.Cell>
-									<Table.Cell
-										class="px-4 py-2.5 text-right text-muted-foreground"
-									>
-										{row.lastActive === -1 ? "—" : `Sample ${row.lastActive}`}
-									</Table.Cell>
-								</Table.Row>
+		<Panel
+			class="col-span-full overflow-hidden"
+			title="GODEBUG event counters"
+			description="Times the runtime fell back to a non-default behaviour. A green dot means the counter moved in the latest sample."
+		>
+			{#snippet actions()}
+				<Segmented
+					label="Filter counters"
+					bind:value={filter}
+					options={[
+						{ value: "nonzero", label: `Non-zero · ${debugSummary.hit}` },
+						{ value: "all", label: `All · ${GO_DEBUG_KEYS.length}` },
+					]}
+				/>
+			{/snippet}
+			<div class="mt-2 overflow-x-auto">
+				{#if tableRows.length}
+					<table
+						aria-label="GODEBUG counters"
+						class="w-full min-w-[560px] table-fixed border-collapse text-[13px]"
+					>
+						<thead
+							class="bg-surface-2 text-muted-foreground text-[11.5px] tracking-[0.04em] uppercase"
+						>
+							<tr class="h-[38px]">
+								<th scope="col" class="w-[42px] pl-[18px]">
+									<span class="sr-only">Moved recently</span>
+								</th>
+								<th scope="col" class="px-1.5 text-left font-semibold">
+									Setting
+								</th>
+								<th
+									scope="col"
+									class="w-[140px] px-1.5 text-right font-semibold"
+								>
+									Events
+								</th>
+								<th
+									scope="col"
+									class="w-[158px] pr-[18px] pl-1.5 text-right font-semibold"
+								>
+									Last active
+								</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each tableRows as row (row.key)}
+								<tr
+									class="border-line hover:bg-hover h-11 border-t {row.count ===
+									0
+										? "text-muted-foreground"
+										: ""}"
+								>
+									<td class="pl-[18px]">
+										<span
+											class="block size-[7px] rounded-full {row.activeInLast
+												? "bg-ok"
+												: row.count > 0
+													? "bg-faint"
+													: "bg-line-2"}"
+										></span>
+									</td>
+									<td class="mono truncate px-1.5">{row.name}</td>
+									<td class="mono px-1.5 text-right">{fmtCount(row.count)}</td>
+									<td class="text-muted-foreground pr-[18px] pl-1.5 text-right">
+										{row.lastActive === -1 ? "—" : `sample #${row.lastActive}`}
+									</td>
+								</tr>
 							{/each}
-						</Table.Body>
-					</Table.Root>
-				</div>
-			</Card.Content>
-		</Card.Root>
-	{/if}
-</PageShell>
-
-{#snippet mutexTooltip()}
-	<Tooltip labelFormatter={(d) => `Sample ${d}`}>
-		{#snippet formatter({
-			value,
-			name,
-		})}
-			<div class="flex w-full items-center gap-2">
-				<div
-					style="--color-bg: var(--chart-2); --color-border: var(--chart-2);"
-					class="size-2.5 shrink-0 rounded-xs border-(--color-border) bg-(--color-bg)"
-				></div>
-				<div class="flex flex-1 items-center justify-between leading-none">
-					<span class="text-muted-foreground">{name}</span>
-					<span class="text-foreground font-mono font-medium tabular-nums">
-						{fmtSecs(Number(value))}
-					</span>
-				</div>
+						</tbody>
+					</table>
+				{:else}
+					<p
+						class="border-line text-muted-foreground border-t px-[18px] py-5 text-[13px]"
+					>
+						No GODEBUG counter has moved yet.
+					</p>
+				{/if}
 			</div>
-		{/snippet}
-	</Tooltip>
-{/snippet}
+		</Panel>
+	</div>
+</DashboardShell>

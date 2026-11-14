@@ -66,7 +66,7 @@ function isActive(url: string): boolean {
 <Sidebar.Root collapsible="offcanvas">
 	<Sidebar.Header class="gap-[18px] px-3.5 pt-[18px] pb-0">
 		<div class="flex items-center gap-[11px] px-1.5 py-0.5">
-			<img src="/icons/logo.svg" alt="" class="size-8 shrink-0">
+			<img src="/icons/icon-64.png" alt="" class="size-8 shrink-0">
 			<div class="min-w-0">
 				<div class="text-[15.5px] font-[650] tracking-[-0.01em]">Pprof-Viz</div>
 				<div class="text-muted-foreground text-[11.5px]">

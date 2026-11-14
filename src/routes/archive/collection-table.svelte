@@ -46,10 +46,7 @@ function toggleAll() {
 }
 </script>
 
-{#snippet header(
-	label: string,
-	className: string,
-)}
+{#snippet header(label: string, className: string)}
 	<th
 		scope="col"
 		class="text-muted-foreground h-[38px] px-1.5 text-left text-[11.5px] font-semibold tracking-[0.04em] uppercase {className}"

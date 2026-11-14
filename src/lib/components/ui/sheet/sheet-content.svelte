@@ -42,9 +42,7 @@ let {
 		{@render children?.()}
 		{#if showCloseButton}
 			<SheetPrimitive.Close data-slot="sheet-close">
-				{#snippet child({
-					props,
-				})}
+				{#snippet child({ props })}
 					<Button
 						variant="ghost"
 						class="bg-secondary absolute top-4 right-4"

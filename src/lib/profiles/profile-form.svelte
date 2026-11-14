@@ -16,11 +16,7 @@ const uid = $props.id();
 let showToken = $state(false);
 </script>
 
-{#snippet fieldLabel(
-	id: string,
-	text: string,
-	hint: string,
-)}
+{#snippet fieldLabel(id: string, text: string, hint: string)}
 	<label for={id} class="mb-2 block text-[13px] font-[550]">
 		{text}
 		{#if hint}

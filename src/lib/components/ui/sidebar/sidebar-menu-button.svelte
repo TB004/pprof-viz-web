@@ -75,9 +75,7 @@ const buttonProps = $derived({
 });
 </script>
 
-{#snippet Button(
-	snippetProps = {} as { props?: Record<string, unknown> },
-)}
+{#snippet Button(snippetProps = {} as { props?: Record<string, unknown> })}
 	{#if child}
 		{@render child({ props: mergeProps(buttonProps, snippetProps.props) })}
 	{:else}
@@ -96,9 +94,7 @@ const buttonProps = $derived({
 {:else}
 	<Tooltip.Root>
 		<Tooltip.Trigger>
-			{#snippet child({
-				props,
-			})}
+			{#snippet child({ props })}
 				{@render Button({ props })}
 			{/snippet}
 		</Tooltip.Trigger>

@@ -48,9 +48,7 @@ function isActive(url: string): boolean {
 }
 </script>
 
-{#snippet navItem(
-	route: NavRoute,
-)}
+{#snippet navItem(route: NavRoute)}
 	<a
 		href={route.url}
 		aria-current={isActive(route.url) ? "page" : undefined}

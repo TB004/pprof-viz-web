@@ -83,11 +83,7 @@ async function confirm() {
 }
 </script>
 
-{#snippet option(
-	id: string,
-	title: string,
-	hint: string,
-)}
+{#snippet option(id: string, title: string, hint: string)}
 	<span>
 		<label for={id} class="block cursor-pointer text-[13.5px] font-semibold">
 			{title}

@@ -138,17 +138,16 @@ const plot = $derived.by(() => {
 		base: f === 0,
 	}));
 
-	const xTicks =
+	// With only a few samples several fractions round to the same one; label it once.
+	const tickIndexes =
 		n > 1
-			? [...TICKS].reverse().map((f) => {
-					const i = Math.round(f * (n - 1));
-					return {
-						left: (i / (n - 1)) * 100,
-						label: `#${data[i].sample}`,
-						align: f === 0 ? "start" : f === 1 ? "end" : "center",
-					};
-				})
+			? new Set([...TICKS].reverse().map((f) => Math.round(f * (n - 1))))
 			: [];
+	const xTicks = [...tickIndexes].map((i) => ({
+		left: (i / (n - 1)) * 100,
+		label: `#${data[i].sample}`,
+		align: i === 0 ? "start" : i === n - 1 ? "end" : "center",
+	}));
 
 	return { n, y, paths, yTicks, xTicks, tops, totals: base };
 });

@@ -4,10 +4,10 @@
 import type { AllResponse } from "#lib/proto/gen/collector_pb.js";
 
 export type {
-	CollectionMeta,
 	Histogram,
 	MetadataResponse,
 } from "#lib/proto/gen/collector_pb.js";
+export type { CollectionMeta } from "#lib/proto/gen/storage_pb.js";
 
 export const CollectionType = {
 	Snapshot: "snapshot",

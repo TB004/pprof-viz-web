@@ -1,15 +1,14 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// The `.ppvz` container: a zstd frame wrapping a protobuf `StoredCollection`,
-// byte-compatible with the desktop app.
+// The `.ppvz` container: a zstd frame wrapping a protobuf `StoredCollection`.
 
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import {
 	type CollectionMeta,
 	CollectionMetaSchema,
 	StoredCollectionSchema,
-} from "#lib/proto/gen/collector_pb.js";
+} from "#lib/proto/gen/storage_pb.js";
 import { diffFrame, mergeFrame } from "#lib/session/frames.js";
 import type { CollectionRow, Frame, MetadataResponse } from "#lib/types";
 

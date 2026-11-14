@@ -125,7 +125,7 @@ components. Components used by a single page sit next to that page in `src/route
 | Concern                | Implementation                                                               |
 | ---------------------- | ---------------------------------------------------------------------------- |
 | Collection session     | `src/lib/session` — Connect over `fetch`, run in a dedicated Web Worker       |
-| Wire schema            | `proto/collector.proto` — shared with the desktop app, `just proto`           |
+| Wire schema            | `proto/collector.proto` — shared with the collector, `just proto`             |
 | Projects & profiles    | `src/lib/profiles` — IndexedDB (`src/lib/db.ts`)                              |
 | Saved collections      | `src/lib/archive` — delta-encoded, zstd `.ppvz` in OPFS (`src/lib/files.ts`)  |
 | Import & export        | `src/lib/transfer` — `.ppvzb` bundles, optionally with encrypted tokens       |

@@ -1,7 +1,6 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+# Version updates wait out the same 7 days as `minimumReleaseAge` in bunfig.toml:
+# Dependabot runs `bun install` to update the lockfile, which would refuse a
+# younger release anyway. Security updates ignore the cooldown and the groups.
 
 version: 2
 updates:
@@ -9,3 +8,20 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: "bun"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    # One PR for everything non-breaking; major versions still come one PR each.
+    groups:
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]

@@ -28,7 +28,7 @@ holds its service, the logic only it uses, and the components that belong to it.
   `task.svelte.ts` (see Errors below), and the single-file services `settings.svelte.ts` and
   `updates.svelte.ts` (the service worker).
 - `src/lib/session/` — the live collection: the Connect client (`collector.ts`, binary
-  protobuf, the same as the desktop app), the worker, `frames.ts` (merge/diff, also used by
+  protobuf), the worker, `frames.ts` (merge/diff, also used by
   the archive), the service, the status bar and the profile chooser.
 - `src/lib/profiles/` — projects and profiles: the service and the profile manager dialogs.
 - `src/lib/archive/` — the `.ppvz` codec and the service for saved collections.
@@ -72,16 +72,17 @@ There is no global error log. An error is shown where it happened:
   (`updatedCounts`), and unchanged fields are omitted. Always go through `mergeFrame` — even
   for the first frame and for snapshot mode, which is what normalises histograms to dense
   `counts`.
-- **`proto/collector.proto` is a shared contract, not a local file.** The Rust desktop app
-  compiles against the same schema. Change it there and here together, run `just proto`, and
-  commit the regenerated client — CI fails if it is stale. The `.ppvz` container messages
-  (`StoredCollection`, `CollectionMeta`) live in our own `proto/storage.proto`, not in the collector's.
+- **`proto/collector.proto` is a shared contract, not a local file.** The collector compiles
+  against the same schema. Change it there and here together, run `just proto`, and commit the
+  regenerated client — CI fails if it is stale. The `.ppvz` container messages
+  (`StoredCollection`, `CollectionMeta`) live in our own `proto/storage.proto`, not in the
+  collector's.
 - **Protobuf maps `uint64` to `bigint`.** Read with `Number(x ?? 0)` at the point of display.
   `JSON.stringify` throws on bigint, so anything that serializes a frame for display needs a
   replacer. Decoded messages also carry a `$typeName` key that is not payload — skip keys
   starting with `$` when iterating a group's fields.
-- **`.ppvz` is byte-compatible with the desktop app**: a zstd frame wrapping a protobuf
-  `StoredCollection`, with no wrapper header of ours. Do not add one. zstd has no browser
+- **`.ppvz` is a bare zstd frame wrapping a protobuf `StoredCollection`**, with no wrapper
+  header of ours. Do not add one. zstd has no browser
   API, so it is carried as WebAssembly (`src/lib/archive/codec.ts`), which is why the CSP in
   `packaging/Caddyfile` needs `wasm-unsafe-eval`.
 - **The zstd wasm module is per-document, and its results are views into its
@@ -92,8 +93,8 @@ There is no global error log. An error is shown where it happened:
   inside `codec.ts`.
 - **A `.ppvzb` bundle is the only thing that carries projects and profiles.** It
   is a zip of `manifest.json` plus the untouched `collections/<ulid>.ppvz`
-  payloads (`src/lib/transfer`), and it is ours alone — the desktop app reads only
-  bare `.ppvz`. An imported file is untrusted: entry names outside
+  payloads (`src/lib/transfer`), and it is ours alone; bare
+  `.ppvz` stays the interchange format for a single collection. An imported file is untrusted: entry names outside
   `collections/<ulid>.ppvz` are dropped, the manifest is validated field by
   field, and every payload must decode before anything is written.
 - **Collections denormalise their profile instead of referencing it**, so

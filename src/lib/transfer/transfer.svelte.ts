@@ -130,9 +130,8 @@ interface Gathered {
 }
 
 /**
- * Moving data in and out of the browser. Archives travel as `.ppvz` — the same
- * bytes the desktop app reads — while the metadata graph around them travels in
- * a `.ppvzb` bundle, which is a zip of a manifest and those same payloads.
+ * Moving data in and out of the browser. Archives travel as `.ppvz`, while the
+ * metadata graph around them travels in a `.ppvzb` bundle, which is a zip of a manifest and those same payloads.
  * Every action throws, for the dialog or page that started it to report.
  */
 export class TransferService {

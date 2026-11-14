@@ -1,8 +1,7 @@
 // Copyright (C) 2026 Tizian Bahr
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// The `.ppvz` container: a zstd frame wrapping a protobuf `StoredCollection`,
-// byte-compatible with the desktop app.
+// The `.ppvz` container: a zstd frame wrapping a protobuf `StoredCollection`.
 
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import {

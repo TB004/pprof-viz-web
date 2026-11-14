@@ -9,7 +9,7 @@ import {
 	type CollectionMeta,
 	CollectionMetaSchema,
 	StoredCollectionSchema,
-} from "#lib/proto/gen/collector_pb.js";
+} from "#lib/proto/gen/storage_pb.js";
 import { diffFrame, mergeFrame } from "#lib/session/frames.js";
 import type { CollectionRow, Frame, MetadataResponse } from "#lib/types";
 

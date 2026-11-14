@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (C) 2026 Tizian Bahr
+
 syntax = "proto3";
 
 package proto;
@@ -97,12 +100,8 @@ message GoDebugResponse {
   optional uint64 cache_verify_events = 3;
   optional uint64 http2_client_events = 4;
   optional uint64 http2_server_events = 5;
-  optional uint64 tls10_server_events = 6;
-  optional uint64 tls3_des_events = 7;
   optional uint64 tls_max_rsa_size_events = 8;
-  optional uint64 tls_rsa_kex_events = 9;
   optional uint64 tls_sha1_events = 10;
-  optional uint64 tls_unsafe_ekm_events = 11;
   optional uint64 http_cookie_max_num_events = 12;
   optional uint64 http_lax_content_length_events = 13;
   optional uint64 http_mux_go_121_events = 14;
@@ -110,13 +109,11 @@ message GoDebugResponse {
 
   // Remaining uint64 fields (Tag 16+)
   optional uint64 allow_multiple_vcs_events = 16;
-  optional uint64 async_timer_chan_events = 17;
   optional uint64 container_max_procs_events = 18;
   optional uint64 crypto_custom_rand_events = 19;
   optional uint64 embed_follow_symlink_events = 20;
   optional uint64 exec_err_dot_events = 21;
   optional uint64 test_json_build_text_events = 22;
-  optional uint64 type_alias_events = 23;
   optional uint64 html_meta_content_url_escaped_events = 24;
   optional uint64 install_go_root_events = 25;
   optional uint64 multipart_max_headers_events = 26;
@@ -133,13 +130,21 @@ message GoDebugResponse {
   optional uint64 url_strict_colons_events = 37;
   optional uint64 win_read_link_volume_events = 38;
   optional uint64 win_symlink_events = 39;
-  optional uint64 x509_keypair_leaf_events = 40;
   optional uint64 x509_negative_serial_events = 41;
   optional uint64 x509_rsa_crt_events = 42;
   optional uint64 x509_sha256_skid_events = 43;
   optional uint64 x509_use_fallback_roots_events = 44;
   optional uint64 x509_use_policies_events = 45;
   optional uint64 zip_insecure_path_events = 46;
+  // Added in Go 1.27.
+  optional uint64 fips140_ems_events = 47;
+  optional uint64 x509_ssl_cert_override_platform_events = 48;
+  optional uint64 http_serve_content_max_ranges_events = 49;
+
+  // Removed from runtime/metrics in Go 1.27 (the corresponding GODEBUG
+  // settings were retired). Tags stay reserved so old clients stay compatible.
+  reserved 6, 7, 9, 11, 17, 23, 40;
+  reserved "tls10_server_events", "tls3_des_events", "tls_rsa_kex_events", "tls_unsafe_ekm_events", "async_timer_chan_events", "type_alias_events", "x509_keypair_leaf_events";
 }
 
 message MemoryResponse {
@@ -190,27 +195,4 @@ message AllResponse {
   CPUResponse cpu = 5;
   CgoResponse cgo = 6;
   SyncResponse sync = 7;
-}
-
-// Metadata of an on-disk stored .ppvz file that is directy
-// embedded into the file to be self-contained and portable
-message CollectionMeta {
-  string name = 1;
-  string description = 2;
-  string profile_name = 3;
-  string profile_url = 4;
-  string mode = 5;
-  int64 created_at = 6;
-  int64 duration_ms = 7;
-  uint32 sample_count = 8;
-}
-
-message StoredCollection {
-  uint32 format_version = 1;
-  // Contains the buckets that are shared across each sample
-  MetadataResponse metadata = 2;
-  repeated AllResponse frames = 3;
-  // Wall-clock arrival time (epoch millis) of each frame, parallel to `frames`.
-  repeated int64 frame_timestamps = 4;
-  CollectionMeta meta = 5;
 }

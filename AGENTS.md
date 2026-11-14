@@ -74,7 +74,8 @@ There is no global error log. An error is shown where it happened:
   `counts`.
 - **`proto/collector.proto` is a shared contract, not a local file.** The Rust desktop app
   compiles against the same schema. Change it there and here together, run `just proto`, and
-  commit the regenerated client — CI fails if it is stale.
+  commit the regenerated client — CI fails if it is stale. The `.ppvz` container messages
+  (`StoredCollection`, `CollectionMeta`) live in our own `proto/storage.proto`, not in the collector's.
 - **Protobuf maps `uint64` to `bigint`.** Read with `Number(x ?? 0)` at the point of display.
   `JSON.stringify` throws on bigint, so anything that serializes a frame for display needs a
   replacer. Decoded messages also carry a `$typeName` key that is not payload — skip keys

@@ -4,23 +4,12 @@
 -->
 
 <script lang="ts">
-import {
-	DownloadIcon,
-	PencilIcon,
-	TrashIcon,
-	UploadIcon,
-} from "@lucide/svelte";
-import { createColumnHelper, tableFeatures } from "@tanstack/table-core";
+import { PencilIcon, TrashIcon, UploadIcon } from "@lucide/svelte";
+import Chip from "#lib/components/chip.svelte";
 import { Button } from "#lib/components/ui/button";
 import { Checkbox } from "#lib/components/ui/checkbox";
-import {
-	createSvelteTable,
-	FlexRender,
-	renderSnippet,
-} from "#lib/components/ui/data-table";
-import * as Table from "#lib/components/ui/table";
 import type { CollectionRow } from "#lib/types";
-import { fmtBytes, fmtElapsed } from "#lib/utils";
+import { fmtBytes, fmtClock, fmtCount, fmtDateTime } from "#lib/utils";
 
 let {
 	collections,
@@ -55,186 +44,125 @@ function toggle(id: string) {
 function toggleAll() {
 	selectedIds = allSelected ? [] : collections.map((row) => row.id);
 }
-
-function fmtDuration(ms: number): string {
-	return fmtElapsed(Math.max(0, Math.floor(ms / 1000)));
-}
-
-function fmtDate(ms: number): string {
-	return new Date(ms).toLocaleString(undefined, {
-		year: "numeric",
-		month: "short",
-		day: "numeric",
-		hour: "2-digit",
-		minute: "2-digit",
-	});
-}
-
-// The listing only renders rows, so the core row model — which every table
-// gets — is the whole feature set.
-const features = tableFeatures({});
-const column = createColumnHelper<typeof features, CollectionRow>();
-
-const columns = column.columns([
-	column.display({
-		id: "select",
-		header: () => renderSnippet(selectAllCell, undefined),
-		cell: ({ row }) => renderSnippet(selectCell, row.original),
-	}),
-	column.accessor("name", { header: "Name" }),
-	column.accessor("description", {
-		header: "Description",
-		cell: ({ row }) => renderSnippet(descCell, row.original),
-	}),
-	column.accessor("sizeBytes", {
-		header: "Size",
-		cell: ({ row }) => renderSnippet(sizeCell, row.original),
-	}),
-	column.accessor("durationMs", {
-		header: "Duration",
-		cell: ({ row }) => renderSnippet(durationCell, row.original),
-	}),
-	column.accessor("sampleCount", {
-		header: "Samples",
-		cell: ({ row }) => renderSnippet(samplesCell, row.original),
-	}),
-	column.accessor("createdAt", {
-		header: "Date",
-		cell: ({ row }) => renderSnippet(dateCell, row.original),
-	}),
-	column.display({
-		id: "actions",
-		header: "",
-		cell: ({ row }) => renderSnippet(actionsCell, row.original),
-	}),
-]);
-
-const table = createSvelteTable({
-	features,
-	columns,
-	get data() {
-		return collections;
-	},
-});
 </script>
 
-{#snippet selectAllCell()}
-	<Checkbox
-		aria-label="Select every collection"
-		checked={allSelected}
-		indeterminate={selectedIds.length > 0 && !allSelected}
-		onCheckedChange={toggleAll}
-	/>
-{/snippet}
-
-{#snippet selectCell(
-	row: CollectionRow,
-)}
-	<Checkbox
-		aria-label="Select {row.name}"
-		checked={selectedIds.includes(row.id)}
-		onCheckedChange={() => toggle(row.id)}
-	/>
-{/snippet}
-
-{#snippet descCell(
-	row: CollectionRow,
-)}
-	<span class="text-muted-foreground">{row.description ?? "—"}</span>
-{/snippet}
-
-{#snippet sizeCell(
-	row: CollectionRow,
-)}
-	<span class="tabular-nums">{fmtBytes(row.sizeBytes)}</span>
-{/snippet}
-
-{#snippet durationCell(
-	row: CollectionRow,
-)}
-	<span class="tabular-nums">{fmtDuration(row.durationMs)}</span>
-{/snippet}
-
-{#snippet samplesCell(
-	row: CollectionRow,
-)}
-	<span class="tabular-nums">{row.sampleCount.toLocaleString()}</span>
-{/snippet}
-
-{#snippet dateCell(
-	row: CollectionRow,
-)}
-	<span class="text-muted-foreground tabular-nums"
-		>{fmtDate(row.createdAt)}</span
+{#snippet header(label: string, className: string)}
+	<th
+		scope="col"
+		class="text-muted-foreground h-[38px] px-1.5 text-left text-[11.5px] font-semibold tracking-[0.04em] uppercase {className}"
 	>
+		{label}
+	</th>
 {/snippet}
 
-{#snippet actionsCell(
-	row: CollectionRow,
-)}
-	<div class="flex items-center justify-end gap-1.5">
-		<Button
-			variant="outline"
-			size="xs"
-			disabled={loadingId === row.id}
-			onclick={() => onLoad(row)}
-		>
-			<DownloadIcon />
-			{loadingId === row.id ? "Loading…" : "Load"}
-		</Button>
-		<Button
-			variant="ghost"
-			size="xs"
-			title="Export as .ppvz"
-			onclick={() => onExport(row)}
-		>
-			<UploadIcon />
-		</Button>
-		<Button variant="ghost" size="xs" onclick={() => onEdit(row)}>
-			<PencilIcon />
-		</Button>
-		<Button
-			variant="ghost"
-			size="xs"
-			class="text-destructive"
-			onclick={() => onDelete(row)}
-		>
-			<TrashIcon />
-		</Button>
-	</div>
-{/snippet}
-
-<div class="overflow-hidden rounded-xl">
-	<Table.Root>
-		<Table.Header>
-			{#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
-				<Table.Row>
-					{#each headerGroup.headers as header (header.id)}
-						<Table.Head>
-							{#if !header.isPlaceholder}
-								<FlexRender
-									content={header.column.columnDef.header}
-									context={header.getContext()}
-								/>
-							{/if}
-						</Table.Head>
-					{/each}
-				</Table.Row>
-			{/each}
-		</Table.Header>
-		<Table.Body>
-			{#each table.getRowModel().rows as row (row.id)}
-				<Table.Row>
-					{#each row.getAllCells() as cell (cell.id)}
-						<Table.Cell>
-							<FlexRender
-								content={cell.column.columnDef.cell}
-								context={cell.getContext()}
+<div class="overflow-x-auto">
+	<table
+		aria-label="Saved collections"
+		class="w-full min-w-[1000px] table-fixed border-collapse text-[13px]"
+	>
+		<thead class="bg-surface-2">
+			<tr>
+				<th scope="col" class="h-[38px] w-[44px] pr-1.5 pl-[18px]">
+					<span class="flex">
+						<Checkbox
+							aria-label="Select every collection"
+							checked={allSelected}
+							indeterminate={selectedIds.length > 0 && !allSelected}
+							onCheckedChange={toggleAll}
+						/>
+					</span>
+				</th>
+				{@render header("Name", "")}
+				{@render header("Source", "w-[20%]")}
+				{@render header("Mode", "w-[92px]")}
+				{@render header("Duration", "w-[90px] text-right")}
+				{@render header("Samples", "w-20 text-right")}
+				{@render header("Size", "w-[84px] text-right")}
+				{@render header("Saved", "w-[160px]")}
+				<th scope="col" class="w-[208px] pr-[18px]">
+					<span class="sr-only">Actions</span>
+				</th>
+			</tr>
+		</thead>
+		<tbody>
+			{#each collections as row (row.id)}
+				<tr class="group/row border-line hover:bg-hover h-[58px] border-t">
+					<td class="pr-1.5 pl-[18px]">
+						<span class="flex">
+							<Checkbox
+								aria-label="Select {row.name}"
+								checked={selectedIds.includes(row.id)}
+								onCheckedChange={() => toggle(row.id)}
 							/>
-						</Table.Cell>
-					{/each}
-				</Table.Row>
+						</span>
+					</td>
+					<td class="px-1.5">
+						<span class="block truncate font-[550]">{row.name}</span>
+						<span class="text-muted-foreground block truncate text-xs">
+							{row.description ?? "No description"}
+						</span>
+					</td>
+					<td class="px-1.5">
+						<span class="block truncate">{row.profileName ?? "—"}</span>
+						<span class="mono text-muted-foreground block truncate text-[11px]">
+							{row.profileUrl ?? ""}
+						</span>
+					</td>
+					<td class="px-1.5">
+						{#if row.mode}
+							<Chip>{row.mode}</Chip>
+						{/if}
+					</td>
+					<td class="mono px-1.5 text-right">
+						{fmtClock(row.durationMs / 1000)}
+					</td>
+					<td class="mono px-1.5 text-right">{fmtCount(row.sampleCount)}</td>
+					<td class="mono px-1.5 text-right">{fmtBytes(row.sizeBytes)}</td>
+					<td class="text-muted-foreground px-1.5 text-[12.5px]">
+						{fmtDateTime(row.createdAt)}
+					</td>
+					<td class="pr-[18px] pl-1.5">
+						<span
+							class="flex justify-end gap-1 opacity-0 transition-opacity group-focus-within/row:opacity-100 group-hover/row:opacity-100 max-md:opacity-100"
+						>
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={loadingId === row.id}
+								onclick={() => onLoad(row)}
+							>
+								{loadingId === row.id ? "Opening…" : "Open"}
+							</Button>
+							<Button
+								variant="ghost"
+								size="icon-sm"
+								aria-label="Export {row.name}"
+								title="Export as .ppvz"
+								onclick={() => onExport(row)}
+							>
+								<UploadIcon />
+							</Button>
+							<Button
+								variant="ghost"
+								size="icon-sm"
+								aria-label="Edit {row.name}"
+								onclick={() => onEdit(row)}
+							>
+								<PencilIcon />
+							</Button>
+							<Button
+								variant="ghost"
+								size="icon-sm"
+								class="text-bad hover:text-bad"
+								aria-label="Delete {row.name}"
+								onclick={() => onDelete(row)}
+							>
+								<TrashIcon />
+							</Button>
+						</span>
+					</td>
+				</tr>
 			{/each}
-		</Table.Body>
-	</Table.Root>
+		</tbody>
+	</table>
 </div>

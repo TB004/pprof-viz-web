@@ -59,6 +59,8 @@ export class SettingsService {
 	readonly #state: AppSettings;
 	readonly #db: DBStore;
 	readonly #fs: FileStore;
+	/** Whether the dark palette is showing, whatever the preference says. */
+	#dark = $state(false);
 
 	constructor(db: DBStore, fs: FileStore) {
 		this.#state = $state({ ...defaultSettings });
@@ -70,12 +72,25 @@ export class SettingsService {
 			// Follow the OS while the theme is "system".
 			window
 				.matchMedia("(prefers-color-scheme: dark)")
-				.addEventListener("change", () => applyTheme(this.#state.theme));
+				.addEventListener("change", () => {
+					this.#dark = applyTheme(this.#state.theme);
+				});
 		}
 	}
 
 	getSettings(): AppSettings {
 		return this.#state;
+	}
+
+	isDark(): boolean {
+		return this.#dark;
+	}
+
+	/** Switch to the palette that is not showing, as an explicit choice. */
+	toggleTheme(): void {
+		this.updateSettings({
+			theme: this.#dark ? ThemeMode.Light : ThemeMode.Dark,
+		});
 	}
 
 	updateSettings(patch: Partial<AppSettings>): void {
@@ -106,14 +121,15 @@ export class SettingsService {
 
 	#apply(next: AppSettings): void {
 		Object.assign(this.#state, next);
-		applyTheme(next.theme);
+		this.#dark = applyTheme(next.theme);
 	}
 }
 
-function applyTheme(theme: ThemeMode): void {
+function applyTheme(theme: ThemeMode): boolean {
 	const dark =
 		theme === ThemeMode.Dark ||
 		(theme === ThemeMode.System &&
 			window.matchMedia("(prefers-color-scheme: dark)").matches);
 	document.documentElement.classList.toggle("dark", dark);
+	return dark;
 }

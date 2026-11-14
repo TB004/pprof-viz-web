@@ -12,15 +12,27 @@ import ModePicker from "./mode-picker.svelte";
 import { dialogState } from "./state.svelte.js";
 import UrlField from "./url-field.svelte";
 
+const uid = $props.id();
 let showToken = $state(false);
 </script>
 
-<label class="block">
-	<span class="mb-3 block text-sm font-medium text-foreground">
-		Profile name
-	</span>
-	<Input bind:value={dialogState.profileName} placeholder="Production pprof" />
-</label>
+{#snippet fieldLabel(id: string, text: string, hint: string)}
+	<label for={id} class="mb-2 block text-[13px] font-[550]">
+		{text}
+		{#if hint}
+			<span class="text-muted-foreground ml-1 font-normal">{hint}</span>
+		{/if}
+	</label>
+{/snippet}
+
+<div>
+	{@render fieldLabel(`${uid}-name`, "Profile name", "")}
+	<Input
+		id="{uid}-name"
+		bind:value={dialogState.profileName}
+		placeholder="Production pprof"
+	/>
+</div>
 
 <UrlField
 	scheme={dialogState.profileScheme}
@@ -29,17 +41,16 @@ let showToken = $state(false);
 	onHostChange={(v) => (dialogState.profileUrlHost = v)}
 />
 
-<div class="block">
-	<span class="mb-3 block text-sm font-medium text-foreground">
-		Auth token
-		<span class="ml-1 font-normal text-muted-foreground">(optional)</span>
-	</span>
+<div>
+	{@render fieldLabel(`${uid}-token`, "Auth token", "optional")}
 	<div class="flex gap-2">
 		<Input
+			id="{uid}-token"
 			bind:value={dialogState.profileToken}
-			placeholder="eyJ..."
+			placeholder="eyJ…"
 			type={showToken ? "text" : "password"}
-			class="flex-1"
+			autocomplete="off"
+			class="mono flex-1"
 		/>
 		<Button
 			variant="outline"
@@ -48,12 +59,15 @@ let showToken = $state(false);
 			aria-label={showToken ? "Hide token" : "Show token"}
 		>
 			{#if showToken}
-				<EyeOffIcon class="size-4" />
+				<EyeOffIcon />
 			{:else}
-				<EyeIcon class="size-4" />
+				<EyeIcon />
 			{/if}
 		</Button>
 	</div>
+	<p class="text-muted-foreground mt-1.5 text-[12.5px]">
+		Sent as a Bearer token in the authorization header.
+	</p>
 </div>
 
 <ModePicker
@@ -62,32 +76,28 @@ let showToken = $state(false);
 />
 
 {#if dialogState.profileMode === CollectionType.Stream}
-	<div class="grid gap-4 sm:grid-cols-2">
-		<label class="block">
-			<span class="mb-3 block text-sm font-medium text-foreground">
-				Interval
-				<span class="ml-1 font-normal text-muted-foreground">(seconds)</span>
-			</span>
+	<div class="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-3.5">
+		<div>
+			{@render fieldLabel(`${uid}-interval`, "Interval", "seconds")}
 			<Input
+				id="{uid}-interval"
 				type="number"
 				min={1}
 				step={1}
+				class="mono"
 				bind:value={dialogState.profileIntervalSeconds}
 			/>
-		</label>
-		<label class="block">
-			<span class="mb-3 block text-sm font-medium text-foreground">
-				Cycles
-				<span class="ml-1 font-normal text-muted-foreground"
-					>(0 = infinite)</span
-				>
-			</span>
+		</div>
+		<div>
+			{@render fieldLabel(`${uid}-cycles`, "Cycles", "0 = until stopped")}
 			<Input
+				id="{uid}-cycles"
 				type="number"
 				min={0}
 				step={1}
+				class="mono"
 				bind:value={dialogState.profileNumberOfCycles}
 			/>
-		</label>
+		</div>
 	</div>
 {/if}

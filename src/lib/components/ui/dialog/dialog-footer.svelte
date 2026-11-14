@@ -19,7 +19,7 @@ let {
 	bind:this={ref}
 	data-slot="dialog-footer"
 	class={cn(
-		"flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
+		"flex flex-wrap justify-end gap-2 px-[22px] pt-3.5 pb-5",
 		className,
 	)}
 	{...restProps}
@@ -27,9 +27,7 @@ let {
 	{@render children?.()}
 	{#if showCloseButton}
 		<DialogPrimitive.Close>
-			{#snippet child({
-				props,
-			})}
+			{#snippet child({ props })}
 				<Button variant="outline" {...props}>Close</Button>
 			{/snippet}
 		</DialogPrimitive.Close>

@@ -4,6 +4,7 @@
 -->
 
 <script lang="ts">
+import { TrashIcon } from "@lucide/svelte";
 import ErrorAlert from "#lib/components/error-alert.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
@@ -40,17 +41,28 @@ function cancel() {
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Content class="sm:max-w-md">
-		<Dialog.Header>
-			<Dialog.Title>{title}</Dialog.Title>
-			<Dialog.Description class="pt-3">{description}</Dialog.Description>
-		</Dialog.Header>
-		<ErrorAlert message={error} />
-		<Dialog.Footer>
+	<Dialog.Content
+		role="alertdialog"
+		class="sm:max-w-[440px]"
+		showCloseButton={false}
+	>
+		<div class="flex items-start gap-3 px-[22px] pt-5">
+			<div
+				class="bg-bad-soft text-bad flex size-10 shrink-0 items-center justify-center rounded-[10px]"
+			>
+				<TrashIcon class="size-4" />
+			</div>
+			<Dialog.Header class="p-0">
+				<Dialog.Title>{title}</Dialog.Title>
+				<Dialog.Description>{description}</Dialog.Description>
+			</Dialog.Header>
+		</div>
+		<ErrorAlert class="mx-[22px] mt-4" message={error} />
+		<Dialog.Footer class="pt-[22px]">
 			<Button variant="outline" onclick={cancel}>
 				{cancelLabel}
 			</Button>
-			<Button variant="destructive" disabled={pending} onclick={onConfirm}>
+			<Button variant="danger" disabled={pending} onclick={onConfirm}>
 				{pending && pendingLabel ? pendingLabel : confirmLabel}
 			</Button>
 		</Dialog.Footer>

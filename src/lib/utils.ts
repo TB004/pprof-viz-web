@@ -21,56 +21,125 @@ export type WithElementRef<T, U extends HTMLElement = HTMLElement> = T & {
 
 // --- formatting ---
 
+const KB = 1024;
+const MB = 1024 ** 2;
+const GB = 1024 ** 3;
+
+/** A byte size for reading, e.g. `87.4 MB`. */
 export function fmtBytes(b: number): string {
-	if (b === 0) return "0 B";
-	const units = ["B", "KB", "MB", "GB", "TB"];
-	const i = Math.floor(Math.log(b) / Math.log(1024));
-	return `${(b / 1024 ** i).toFixed(2)} ${units[i]}`;
+	if (b >= GB) return `${(b / GB).toFixed(2)} GB`;
+	if (b >= MB) return `${(b / MB).toFixed(b >= 100 * MB ? 0 : 1)} MB`;
+	if (b >= KB) return `${(b / KB).toFixed(1)} KB`;
+	return `${Math.round(b)} B`;
 }
 
-/** Compact byte size for axis ticks, e.g. `19.1MB`. */
+/** Compact byte size for axis ticks, e.g. `19.1 MB`. */
 export function fmtBytesAxis(b: number): string {
-	if (b === 0) return "0";
-	if (b < 100) return `${b.toFixed(0)}B`;
-	if (b < 100 * 1024) return `${(b / 1024).toFixed(1)}KB`;
-	if (b < 100 * 1024 ** 2) return `${(b / 1024 ** 2).toFixed(1)}MB`;
-	if (b < 100 * 1024 ** 3) return `${(b / 1024 ** 3).toFixed(1)}GB`;
-	return `${(b / 1024 ** 4).toFixed(1)}TB`;
+	if (b >= GB) return `${(b / GB).toFixed(1)} GB`;
+	if (b >= MB) return `${Math.round((b / MB) * 10) / 10} MB`;
+	if (b >= KB) return `${Math.round(b / KB)} KB`;
+	return `${Math.round(b)} B`;
 }
 
-/** Compact count for axis ticks, e.g. `12.5K`, `3.4M`. */
+/** A count with thousands separators, e.g. `1,014`. */
+export function fmtCount(n: number): string {
+	return Math.round(n).toLocaleString("en-US");
+}
+
+/** Compact count for axis ticks and tight spots, e.g. `12k`, `3.4M`. */
 export function fmtCountAxis(n: number): string {
-	if (n !== Math.floor(n)) return "";
-	if (n < 1_000) return String(n);
-	if (n < 100_000) return `${(n / 1_000).toFixed(1)}K`;
-	if (n < 100_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-	return `${(n / 1_000_000_000).toFixed(1)}B`;
+	if (n >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
+	if (n >= 1e3) return `${(n / 1e3).toFixed(n >= 1e4 ? 0 : 1)}k`;
+	return String(Math.round(n * 10) / 10);
 }
 
-/** Human-readable duration from seconds, e.g. `1.250ms`, `2.500s`. */
+/** A duration in seconds for reading, scaling from µs to s, e.g. `12.3 ms`. */
 export function fmtSecs(s: number): string {
-	if (s === 0) return "0s";
-	if (s < 0.001) return `${(s * 1_000_000).toFixed(0)}µs`;
-	if (s < 1) return `${(s * 1_000).toFixed(2)}ms`;
-	return `${s.toFixed(3)}s`;
+	if (s >= 1) return `${s.toFixed(2)} s`;
+	if (s >= 0.001) return `${(s * 1000).toFixed(s >= 0.01 ? 1 : 2)} ms`;
+	return `${(s * 1e6).toFixed(0)} µs`;
 }
 
-/** Compact duration for axis ticks, scaling from µs up to hours. */
+/** Compact duration for axis ticks, e.g. `250µs`, `1.5s`. */
 export function fmtSecsAxis(s: number): string {
 	if (s === 0) return "0";
-	if (s < 0.0001) return `${(s * 1_000_000).toFixed(0)}µs`;
-	if (s < 0.1) return `${(s * 1_000).toFixed(1)}ms`;
-	if (s < 60) return `${s.toFixed(1)}s`;
-	if (s < 6000) return `${(s / 60).toFixed(1)}m`;
-	return `${(s / 3600).toFixed(1)}h`;
+	if (s >= 1) return `${Math.round(s * 10) / 10}s`;
+	if (s >= 0.001) return `${Math.round(s * 10000) / 10}ms`;
+	return `${Math.round(s * 1e6)}µs`;
 }
 
-/** A whole-second duration as `1h 2m 3s`. */
-export function fmtElapsed(totalSeconds: number): string {
-	const hours = Math.floor(totalSeconds / 3600);
-	const minutes = Math.floor((totalSeconds % 3600) / 60);
-	const seconds = totalSeconds % 60;
-	return `${hours}h ${minutes}m ${seconds}s`;
+export function fmtPercent(n: number): string {
+	return `${n.toFixed(1)}%`;
+}
+
+/** A whole-second duration as a clock reading, `mm:ss` or `h:mm:ss`. */
+export function fmtClock(totalSeconds: number): string {
+	const sec = Math.max(0, Math.round(totalSeconds));
+	const pad = (v: number) => String(v).padStart(2, "0");
+	const h = Math.floor(sec / 3600);
+	const m = Math.floor(sec / 60) % 60;
+	return `${h ? `${h}:${pad(m)}` : pad(m)}:${pad(sec % 60)}`;
+}
+
+/** A wall-clock time of day, `hh:mm:ss` on a 24-hour clock. */
+export function fmtTimeOfDay(ms: number): string {
+	return new Date(ms).toLocaleTimeString(undefined, {
+		hourCycle: "h23",
+		hour: "2-digit",
+		minute: "2-digit",
+		second: "2-digit",
+	});
+}
+
+/** A date and time for listings, e.g. `Nov 2, 2026, 18:12`. */
+export function fmtDateTime(ms: number): string {
+	return new Date(ms).toLocaleString(undefined, {
+		year: "numeric",
+		month: "short",
+		day: "numeric",
+		hour: "2-digit",
+		minute: "2-digit",
+	});
+}
+
+// --- series ---
+
+/**
+ * Per-sample increments of a cumulative counter. The runtime reports totals
+ * since process start; the dashboards chart what happened between samples.
+ * The first sample has no predecessor, so it repeats the second's increment
+ * rather than dipping to zero. A counter that goes backwards (a restarted
+ * process) contributes nothing for that step.
+ */
+export function deltas(values: number[]): number[] {
+	const out = values.map((v, i) =>
+		i === 0 ? 0 : Math.max(0, v - values[i - 1]),
+	);
+	if (out.length > 1) out[0] = out[1];
+	return out;
+}
+
+/** `deltas`, divided by the seconds between samples. */
+export function ratesPerSecond(
+	values: number[],
+	timestamps: number[],
+): number[] {
+	const steps = deltas(values);
+	return steps.map((d, i) => {
+		const j = Math.max(1, i);
+		const seconds = ((timestamps[j] ?? 0) - (timestamps[j - 1] ?? 0)) / 1000;
+		return seconds > 0 ? d / seconds : d;
+	});
+}
+
+/** "▲ 3.2% vs 10 samples ago", or a neutral note while there is no history. */
+export function trendLabel(values: number[], span = 10): string {
+	if (values.length <= span) return "latest sample";
+	const before = values[values.length - 1 - span];
+	const now = values[values.length - 1];
+	if (!before) return "latest sample";
+	const change = ((now - before) / Math.abs(before)) * 100;
+	return `${change >= 0 ? "▲" : "▼"} ${Math.abs(change).toFixed(1)}% vs ${span} samples ago`;
 }
 
 /** A caught value as a sentence to show next to whatever failed. */

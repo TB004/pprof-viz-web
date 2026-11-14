@@ -4,7 +4,7 @@
 -->
 
 <script lang="ts">
-import { ArchiveIcon, HardDriveIcon, UploadIcon } from "@lucide/svelte";
+import { ArchiveIcon, UploadIcon } from "@lucide/svelte";
 import { onMount } from "svelte";
 import { archiveService, transferService } from "#lib/app.svelte.js";
 import ConfirmDialog from "#lib/components/confirm-dialog.svelte";
@@ -12,14 +12,13 @@ import EmptyState from "#lib/components/empty-state.svelte";
 import ErrorAlert from "#lib/components/error-alert.svelte";
 import NameDescriptionDialog from "#lib/components/name-description-dialog.svelte";
 import PageShell from "#lib/components/page-shell.svelte";
+import Panel from "#lib/components/panel.svelte";
 import { Button } from "#lib/components/ui/button";
-import * as Card from "#lib/components/ui/card";
 import { Task } from "#lib/task.svelte.js";
 import Import from "#lib/transfer/import.svelte";
 import type { CollectionRow } from "#lib/types";
 import { fmtBytes } from "#lib/utils";
 import { goto } from "$app/navigation";
-import ChartCard, { type Slice } from "./chart-card.svelte";
 import CollectionTable from "./collection-table.svelte";
 
 const archiveState = archiveService.getState();
@@ -30,11 +29,30 @@ onMount(() => {
 });
 
 const collections = $derived(archiveState.collections);
-const disk = $derived(archiveState.diskUsage);
 const hasCollections = $derived(collections.length > 0);
 
-// Cycle through the theme chart colors for slices.
-const CHART_COLORS = [
+// How the browser's storage quota for this origin is spent, with our
+// collections broken out from whatever else the app keeps (settings, the
+// database, the cached app shell).
+const storage = $derived.by(() => {
+	const disk = archiveState.diskUsage;
+	const quota = disk?.totalBytes ?? 0;
+	const saved = disk?.collectionsBytes ?? 0;
+	const used = disk ? Math.max(saved, quota - disk.freeBytes) : saved;
+	const pct = (v: number) => (quota ? (v / quota) * 100 : 0);
+	return {
+		quota,
+		saved,
+		used,
+		other: Math.max(0, used - saved),
+		free: disk?.freeBytes ?? 0,
+		usedPct: pct(used),
+		savedPct: pct(saved),
+		otherPct: pct(Math.max(0, used - saved)),
+	};
+});
+
+const SOURCE_COLORS = [
 	"var(--chart-1)",
 	"var(--chart-2)",
 	"var(--chart-3)",
@@ -42,62 +60,21 @@ const CHART_COLORS = [
 	"var(--chart-5)",
 ];
 
-function withColors(
-	items: { id: string; label: string; value: number }[],
-): Slice[] {
-	return items
-		.filter((i) => i.value > 0)
-		.map((i, idx) => ({
-			...i,
-			color: CHART_COLORS[idx % CHART_COLORS.length],
-		}));
-}
-
-// How the browser's storage quota for this origin is spent, with our
-// collections broken out from whatever else the app keeps (settings, the
-// database, the cached app shell).
-const diskSlices = $derived<Slice[]>(
-	disk
-		? withColors([
-				{
-					id: "collections",
-					label: "Collections",
-					value: disk.collectionsBytes,
-				},
-				{
-					id: "other",
-					label: "Other used",
-					value: Math.max(
-						0,
-						disk.totalBytes - disk.freeBytes - disk.collectionsBytes,
-					),
-				},
-				{
-					id: "free",
-					label: "Available",
-					value: Math.max(0, disk.freeBytes),
-				},
-			])
-		: [],
-);
-
-const perCollectionSlices = $derived<Slice[]>(
-	withColors(
-		collections.map((c) => ({ id: c.id, label: c.name, value: c.sizeBytes })),
-	),
-);
-
-const perProfileSlices = $derived<Slice[]>(
-	withColors(
-		Object.entries(
-			collections.reduce<Record<string, number>>((acc, c) => {
-				const key = c.profileName || c.profileUrl || "Unknown";
-				acc[key] = (acc[key] ?? 0) + c.sizeBytes;
-				return acc;
-			}, {}),
-		).map(([label, value]) => ({ id: label, label, value })),
-	),
-);
+const bySource = $derived.by(() => {
+	const totals = new Map<string, number>();
+	for (const c of collections) {
+		const key = c.profileName || c.profileUrl || "Unknown";
+		totals.set(key, (totals.get(key) ?? 0) + c.sizeBytes);
+	}
+	const sorted = [...totals].sort((a, b) => b[1] - a[1]);
+	const max = sorted[0]?.[1] ?? 1;
+	return sorted.map(([label, bytes], i) => ({
+		label,
+		bytes,
+		width: (bytes / max) * 100,
+		color: SOURCE_COLORS[i % SOURCE_COLORS.length],
+	}));
+});
 
 let selectedIds = $state<string[]>([]);
 let loadingId = $state<string | null>(null);
@@ -168,14 +145,13 @@ async function confirmDelete() {
 
 <PageShell
 	title="Archive"
-	description="Saved collections stored in this browser as .ppvz files"
+	description="Collections saved in this browser as compressed .ppvz files in the Origin Private File System."
 >
 	{#snippet actions()}
-		<div class="flex flex-wrap items-center justify-end gap-2">
+		<div class="flex flex-wrap items-center gap-2">
 			{#if selectedIds.length > 0}
 				<Button
 					variant="outline"
-					size="sm"
 					disabled={transferState.busy}
 					onclick={exportSelected}
 				>
@@ -183,64 +159,119 @@ async function confirmDelete() {
 					Export {selectedIds.length} selected
 				</Button>
 			{/if}
-			<Import size="sm" />
-			<div
-				class="flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1.5 text-sm shadow-sm"
-			>
-				<HardDriveIcon class="size-4 text-muted-foreground" />
-				<span class="font-medium tabular-nums">
-					{fmtBytes(disk?.collectionsBytes ?? 0)}
-				</span>
-				<span class="text-muted-foreground"
-					>used by
-					{collections.length}
-					collection{collections.length === 1 ? "" : "s"}</span
-				>
-			</div>
+			<Import />
 		</div>
 	{/snippet}
 
 	<ErrorAlert message={archiveState.error} />
 	<ErrorAlert message={listing.error} onDismiss={() => listing.reset()} />
 
-	<div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-		<ChartCard
-			title="Storage quota"
-			description="Collections vs other app data vs available quota"
-			slices={diskSlices}
-			donut
-		/>
-		<ChartCard
-			title="By collection"
-			description="Storage footprint of each saved collection"
-			slices={perCollectionSlices}
-		/>
-		<ChartCard
+	<div class="panel-grid">
+		<Panel title="Storage" description="This origin’s browser quota.">
+			<div class="flex flex-col gap-3.5 px-[18px] pt-2 pb-[18px]">
+				<div class="flex flex-wrap items-baseline gap-2.5">
+					<span class="mono text-[30px] font-[550] tracking-[-0.02em]">
+						{fmtBytes(storage.used)}
+					</span>
+					<span class="text-muted-foreground">
+						{#if storage.quota}
+							of {fmtBytes(storage.quota)} used · {storage.usedPct.toFixed(2)}%
+						{:else}
+							used — the browser reports no quota
+						{/if}
+					</span>
+				</div>
+				<div
+					class="bg-grid flex h-2.5 overflow-hidden rounded-[5px]"
+					aria-hidden="true"
+				>
+					<div
+						class="bg-acc min-w-[3px]"
+						style:width="{storage.savedPct}%"
+					></div>
+					<div
+						class="bg-faint min-w-0.5"
+						style:width="{storage.otherPct}%"
+					></div>
+				</div>
+				<div class="flex flex-col">
+					{#each [
+						{
+							label: "Saved collections",
+							bytes: storage.saved,
+							note: `${collections.length} file${collections.length === 1 ? "" : "s"}`,
+							swatch: "bg-acc",
+						},
+						{
+							label: "App shell, database, settings",
+							bytes: storage.other,
+							note: "",
+							swatch: "bg-faint",
+						},
+						{
+							label: "Available",
+							bytes: storage.free,
+							note: "",
+							swatch: "bg-grid border border-line-2",
+						},
+					] as item (item.label)}
+						<div
+							class="border-line grid grid-cols-[12px_1fr_auto_64px] items-center gap-2.5 border-t py-2 text-[13px]"
+						>
+							<span class="size-[9px] rounded-[3px] {item.swatch}"></span>
+							<span>{item.label}</span>
+							<span class="mono text-right">{fmtBytes(item.bytes)}</span>
+							<span class="mono text-muted-foreground text-right"
+								>{item.note}</span
+							>
+						</div>
+					{/each}
+				</div>
+			</div>
+		</Panel>
+
+		<Panel
 			title="By source"
-			description="Footprint grouped by originating profile"
-			slices={perProfileSlices}
-		/>
+			description="Footprint grouped by the profile a collection was captured with."
+		>
+			<div class="flex flex-col gap-3 px-[18px] pt-3 pb-[18px]">
+				{#each bySource as source (source.label)}
+					<div
+						class="grid grid-cols-[minmax(90px,140px)_1fr_72px] items-center gap-3 text-[13px]"
+					>
+						<span class="truncate">{source.label}</span>
+						<div class="bg-grid h-2 overflow-hidden rounded-sm">
+							<div
+								class="h-full rounded-sm"
+								style:width="{source.width}%"
+								style:background={source.color}
+							></div>
+						</div>
+						<span class="mono text-right">{fmtBytes(source.bytes)}</span>
+					</div>
+				{:else}
+					<span class="text-muted-foreground text-[13px]">No data yet.</span>
+				{/each}
+			</div>
+		</Panel>
 	</div>
 
 	{#if hasCollections}
-		<Card.Root class="py-0">
-			<Card.Content class="p-0">
-				<CollectionTable
-					{collections}
-					bind:selectedIds
-					{loadingId}
-					onLoad={load}
-					onEdit={openEdit}
-					onDelete={openDelete}
-					onExport={exportOne}
-				/>
-			</Card.Content>
-		</Card.Root>
+		<Panel class="overflow-hidden">
+			<CollectionTable
+				{collections}
+				bind:selectedIds
+				{loadingId}
+				onLoad={load}
+				onEdit={openEdit}
+				onDelete={openDelete}
+				onExport={exportOne}
+			/>
+		</Panel>
 	{:else}
 		<EmptyState icon={ArchiveIcon} title="No saved collections">
-			Collect some metrics, then use
-			<span class="font-medium">Save</span>
-			in the status bar to store them here.
+			Collect some metrics, then use “Save collection” in the top bar to keep
+			them here — or import a .ppvz / .ppvzb file.
 		</EmptyState>
 	{/if}
 </PageShell>
@@ -256,6 +287,7 @@ async function confirmDelete() {
 	subtitle="Update the name and description of this saved collection."
 	bind:name={editName}
 	bind:description={editDescription}
+	confirmLabel="Save changes"
 	pending={editing.pending}
 	error={editing.error}
 	onConfirm={confirmEdit}
@@ -269,7 +301,8 @@ async function confirmDelete() {
 }
 	}
 	title="Delete collection"
-	description={`Delete ${deleteTarget?.name} and its .ppvz file. This cannot be undone.`}
+	description={`Delete “${deleteTarget?.name}” and its .ppvz file. This cannot be undone.`}
+	confirmLabel="Delete collection"
 	pending={deleting.pending}
 	pendingLabel="Deleting…"
 	error={deleting.error}

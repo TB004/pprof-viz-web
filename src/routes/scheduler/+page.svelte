@@ -4,209 +4,171 @@
 -->
 
 <script lang="ts">
-import {
-	ActivityIcon,
-	CpuIcon,
-	GaugeIcon,
-	HourglassIcon,
-	LayersIcon,
-	PlayIcon,
-} from "@lucide/svelte";
+import { HistoryIcon } from "@lucide/svelte";
 import { collectionService } from "#lib/app.svelte.js";
 import CompositionChart from "#lib/components/composition-chart.svelte";
-import EmptyState from "#lib/components/empty-state.svelte";
 import HistogramChart from "#lib/components/histogram-chart.svelte";
-import MetricChart from "#lib/components/metric-chart.svelte";
-import PageShell from "#lib/components/page-shell.svelte";
+import MetricChart, {
+	type ChartRow,
+} from "#lib/components/metric-chart.svelte";
 import StatGrid from "#lib/components/stat-grid.svelte";
-import * as Card from "#lib/components/ui/card";
-import { fmtSecsAxis } from "#lib/utils";
+import { fmtCount, fmtCountAxis, fmtSecsAxis } from "#lib/utils";
+import DashboardShell from "../dashboard-shell.svelte";
+import { windowed } from "../sample-window.svelte.js";
 
 const collectionState = collectionService.getState();
 
-const frames = $derived(collectionState.data ?? []);
-const metadata = $derived(collectionState.metadata);
-const hasData = $derived(frames.length > 0);
-const latest = $derived(frames.at(-1)?.scheduler);
+// Histograms pair per-frame counts with bucket boundaries from metadata
+// (boundaries are sent once, counts stream with each frame).
+const schedMeta = $derived(collectionState.metadata?.scheduler);
+const latestSched = $derived(collectionState.data?.at(-1)?.scheduler);
 
-const chartData = $derived(
-	frames.map((frame, i) => ({
-		sample: i + 1,
-		running: frame.scheduler?.runningGoroutines ?? 0,
-		runnable: frame.scheduler?.runnableGoroutines ?? 0,
-		waiting: frame.scheduler?.waitingGoroutines ?? 0,
-		live: frame.scheduler?.liveGoroutines ?? 0,
-		threads: frame.scheduler?.totalLiveThreads ?? 0,
-	})),
+const rows = $derived(
+	(collectionState.data ?? []).map(
+		(frame, i): ChartRow => ({
+			sample: i + 1,
+			at: collectionState.dataTimestamps?.[i],
+			running: frame.scheduler?.runningGoroutines ?? 0,
+			runnable: frame.scheduler?.runnableGoroutines ?? 0,
+			waiting: frame.scheduler?.waitingGoroutines ?? 0,
+			notInGo: frame.scheduler?.notInGoGoroutines ?? 0,
+			live: frame.scheduler?.liveGoroutines ?? 0,
+			threads: frame.scheduler?.totalLiveThreads ?? 0,
+			gomaxprocs: frame.scheduler?.gomaxprocsThreads ?? 0,
+		}),
+	),
 );
 
-const composition = $derived([
+const data = $derived(windowed(rows));
+const latest = $derived(rows.at(-1) ?? { sample: 0 });
+const history = (key: string) => rows.slice(-40).map((r) => r[key] ?? 0);
+
+const stat = (label: string, key: string, color: string, sub?: string) => ({
+	label,
+	value: fmtCount(latest[key] ?? 0),
+	sub,
+	history: history(key),
+	color,
+});
+
+const stats = $derived([
+	stat("Live goroutines", "live", "var(--chart-1)"),
+	stat("Running", "running", "var(--chart-1)"),
+	stat("Runnable", "runnable", "var(--chart-2)"),
+	stat("Waiting", "waiting", "var(--chart-5)"),
+	stat(
+		"GOMAXPROCS",
+		"gomaxprocs",
+		"var(--chart-5)",
+		"threads allowed to run Go",
+	),
+	stat("OS threads", "threads", "var(--chart-3)"),
+]);
+
+const states = $derived([
+	{
+		key: "waiting",
+		label: "Waiting",
+		value: latest.waiting ?? 0,
+		color: "var(--chart-5)",
+	},
 	{
 		key: "running",
 		label: "Running",
-		value: latest?.runningGoroutines ?? 0,
+		value: latest.running ?? 0,
+		color: "var(--chart-1)",
 	},
 	{
 		key: "runnable",
 		label: "Runnable",
-		value: latest?.runnableGoroutines ?? 0,
-	},
-	{
-		key: "waiting",
-		label: "Waiting",
-		value: latest?.waitingGoroutines ?? 0,
+		value: latest.runnable ?? 0,
+		color: "var(--chart-2)",
 	},
 	{
 		key: "notInGo",
-		label: "Not in Go",
-		value: latest?.notInGoGoroutines ?? 0,
+		label: "Not in Go (syscall / cgo)",
+		value: latest.notInGo ?? 0,
+		color: "var(--chart-3)",
 	},
 ]);
-
-const stats = $derived([
-	{
-		label: "Live Goroutines",
-		value: (latest?.liveGoroutines ?? 0).toLocaleString(),
-		description: "Goroutines that currently exist",
-		Icon: ActivityIcon,
-	},
-	{
-		label: "Running",
-		value: (latest?.runningGoroutines ?? 0).toLocaleString(),
-		description: "Goroutines executing on a thread",
-		Icon: PlayIcon,
-	},
-	{
-		label: "Runnable",
-		value: (latest?.runnableGoroutines ?? 0).toLocaleString(),
-		description: "Ready goroutines awaiting a thread",
-		Icon: GaugeIcon,
-	},
-	{
-		label: "Waiting",
-		value: (latest?.waitingGoroutines ?? 0).toLocaleString(),
-		description: "Goroutines blocked or sleeping",
-		Icon: HourglassIcon,
-	},
-	{
-		label: "GOMAXPROCS",
-		value: (latest?.gomaxprocsThreads ?? 0).toLocaleString(),
-		description: "Threads allowed to run Go code",
-		Icon: CpuIcon,
-	},
-	{
-		label: "OS Threads",
-		value: (latest?.totalLiveThreads ?? 0).toLocaleString(),
-		description: "Total live OS threads",
-		Icon: LayersIcon,
-	},
-]);
-
-// Histograms pair per-frame counts with bucket boundaries from metadata
-// (boundaries are sent once, counts stream with each frame).
-const schedMeta = $derived(metadata?.scheduler);
 </script>
 
-<PageShell
+<DashboardShell
 	title="Scheduler"
-	description="Goroutine states, scheduling latency, and stop-the-world pauses"
+	icon={HistoryIcon}
+	description="Goroutine states, scheduling latency and stop-the-world pauses."
 >
-	{#if !hasData}
-		<EmptyState icon={ActivityIcon}>
-			Select a profile and start collecting to see scheduler metrics.
-		</EmptyState>
-	{:else}
-		<StatGrid {stats} />
+	<StatGrid {stats} />
 
-		<div class="grid gap-6 lg:grid-cols-[2fr_3fr]">
-			<CompositionChart
-				title="Goroutine States"
-				description="How goroutines are distributed right now"
-				slices={composition}
-			/>
+	<div class="panel-grid">
+		<CompositionChart
+			title="Goroutine states"
+			description="How goroutines are distributed right now."
+			totalLabel="goroutines"
+			format={fmtCount}
+			slices={states}
+		/>
 
-			<MetricChart
-				title="Goroutines & Threads"
-				description="Running, runnable, waiting goroutines and OS threads over time"
-				type="line"
-				data={chartData}
-				height="h-64"
-				series={[
-					{ key: "running", label: "Running" },
-					{ key: "runnable", label: "Runnable" },
-					{ key: "waiting", label: "Waiting" },
-					{ key: "threads", label: "OS Threads" },
-				]}
-			/>
-		</div>
+		<MetricChart
+			title="Goroutines & threads"
+			description="Running and runnable goroutines against live OS threads."
+			{data}
+			format={fmtCount}
+			axisFormat={fmtCountAxis}
+			series={[
+				{ key: "running", label: "Running" },
+				{ key: "runnable", label: "Runnable" },
+				{ key: "threads", label: "OS threads" },
+			]}
+		/>
 
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Scheduling Latency</Card.Title>
-				<Card.Description>
-					Time goroutines spent waiting to run, by duration bucket
-				</Card.Description>
-			</Card.Header>
-			<Card.Content>
-				<HistogramChart
-					buckets={schedMeta?.latenciesSecondsBuckets}
-					format={fmtSecsAxis}
-					series={[
-						{
-							key: "count",
-							counts: latest?.latenciesSeconds?.counts,
-							label: "Goroutines",
-							color: "var(--chart-1)",
-						},
-					]}
-				/>
-			</Card.Content>
-		</Card.Root>
+		<HistogramChart
+			class="col-span-full"
+			title="Scheduling latency"
+			description="Time goroutines spent runnable before they got a thread."
+			buckets={schedMeta?.latenciesSecondsBuckets}
+			format={fmtSecsAxis}
+			unit="goroutines"
+			series={[
+				{
+					key: "count",
+					counts: latestSched?.latenciesSeconds?.counts,
+					label: "Goroutines",
+					color: "var(--chart-1)",
+				},
+			]}
+		/>
 
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>GC Pause Time</Card.Title>
-				<Card.Description>
-					Total stop-the-world pauses for garbage collection, by duration
-				</Card.Description>
-			</Card.Header>
-			<Card.Content>
-				<HistogramChart
-					buckets={schedMeta?.totalGcPauseSecondsBuckets}
-					format={fmtSecsAxis}
-					series={[
-						{
-							key: "count",
-							counts: latest?.totalGcPauseSeconds?.counts,
-							label: "Pauses",
-							color: "var(--chart-3)",
-						},
-					]}
-				/>
-			</Card.Content>
-		</Card.Root>
+		<HistogramChart
+			title="GC pause time"
+			description="Stop-the-world pauses caused by the collector, by duration."
+			buckets={schedMeta?.totalGcPauseSecondsBuckets}
+			format={fmtSecsAxis}
+			unit="pauses"
+			series={[
+				{
+					key: "count",
+					counts: latestSched?.totalGcPauseSeconds?.counts,
+					label: "Pauses",
+					color: "var(--chart-2)",
+				},
+			]}
+		/>
 
-		<Card.Root>
-			<Card.Header>
-				<Card.Title>Stop-the-World Latency</Card.Title>
-				<Card.Description>
-					Time to bring all goroutines to a stop for GC, by duration
-				</Card.Description>
-			</Card.Header>
-			<Card.Content>
-				<HistogramChart
-					buckets={schedMeta?.stoppingGcSecondsBuckets}
-					format={fmtSecsAxis}
-					series={[
-						{
-							key: "count",
-							counts: latest?.stoppingGcSeconds?.counts,
-							label: "Stops",
-							color: "var(--chart-4)",
-						},
-					]}
-				/>
-			</Card.Content>
-		</Card.Root>
-	{/if}
-</PageShell>
+		<HistogramChart
+			title="Stop-the-world latency"
+			description="Time to bring all goroutines to a halt for GC."
+			buckets={schedMeta?.stoppingGcSecondsBuckets}
+			format={fmtSecsAxis}
+			unit="stops"
+			series={[
+				{
+					key: "count",
+					counts: latestSched?.stoppingGcSeconds?.counts,
+					label: "Stops",
+					color: "var(--chart-3)",
+				},
+			]}
+		/>
+	</div>
+</DashboardShell>

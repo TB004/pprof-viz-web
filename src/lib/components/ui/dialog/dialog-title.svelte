@@ -12,6 +12,6 @@ let {
 <DialogPrimitive.Title
 	bind:ref
 	data-slot="dialog-title"
-	class={cn("text-base leading-none font-medium", className)}
+	class={cn("text-[17px] font-[650] tracking-[-0.01em]", className)}
 	{...restProps}
 />

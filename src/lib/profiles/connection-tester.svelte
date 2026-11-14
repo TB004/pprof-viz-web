@@ -6,90 +6,74 @@
 <script lang="ts">
 import {
 	CircleCheckIcon,
-	CircleXIcon,
 	LoaderCircleIcon,
-	PlugZapIcon,
+	PlugIcon,
+	TriangleAlertIcon,
 } from "@lucide/svelte";
 import { profileService } from "#lib/app.svelte.js";
 import { Button } from "#lib/components/ui/button/index.js";
 import { assembleUrl, dialogState } from "./state.svelte.js";
 
-type PingStatus = "idle" | "pending" | "success" | "error";
-
-let pingStatus = $state<PingStatus>("idle");
-let pingError = $state("");
-let pingResetTimer: ReturnType<typeof setTimeout> | undefined;
+// The "Test connection" button. Its outcome lives in `dialogState`, so the
+// editor can show it next to the fields it is about.
 
 // Reset the ping result whenever the URL changes so stale indicators don't persist.
 $effect(() => {
-	const _host = dialogState.profileUrlHost;
-	const _scheme = dialogState.profileScheme;
-	pingStatus = "idle";
-	pingError = "";
+	void dialogState.profileUrlHost;
+	void dialogState.profileScheme;
+	dialogState.pingStatus = "idle";
+	dialogState.pingMessage = "";
 });
 
 async function testConnection() {
 	const url = assembleUrl();
-	const host = dialogState.profileUrlHost.trim();
-	if (!host) {
-		return;
-	}
+	if (!dialogState.profileUrlHost.trim()) return;
 
 	try {
 		new URL(url);
 	} catch {
-		pingStatus = "error";
-		pingError = "Invalid URL format";
+		dialogState.pingStatus = "error";
+		dialogState.pingMessage = "Invalid URL format";
 		return;
 	}
 
 	const token = dialogState.profileToken.trim();
-
-	clearTimeout(pingResetTimer);
-	pingStatus = "pending";
-	pingError = "";
+	dialogState.pingStatus = "pending";
+	dialogState.pingMessage = "";
+	const started = performance.now();
 
 	try {
 		await profileService.ping(url, token || null);
-		pingStatus = "success";
+		dialogState.pingStatus = "success";
+		dialogState.pingMessage = `Collector answered Ping in ${Math.round(performance.now() - started)} ms.`;
 	} catch (err) {
-		pingStatus = "error";
-		pingError = err instanceof Error ? err.message : "Connection failed";
+		dialogState.pingStatus = "error";
+		dialogState.pingMessage = `Unreachable — ${err instanceof Error ? err.message : "connection failed"}. Check CORS on the collector and that its certificate is trusted.`;
 	}
-
-	pingResetTimer = setTimeout(() => {
-		pingStatus = "idle";
-		pingError = "";
-	}, 4000);
 }
 </script>
 
-<div class="flex flex-col gap-2">
-	<Button
-		variant="outline"
-		disabled={pingStatus === "pending" || !dialogState.profileUrlHost.trim()}
-		class={pingStatus === "success"
-			? "border-green-500/40 bg-green-500/10 text-green-600 hover:bg-green-500/15 hover:text-green-600"
-			: pingStatus === "error"
-				? "border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/15 hover:text-destructive"
-				: ""}
-		onclick={testConnection}
-	>
-		{#if pingStatus === "pending"}
-			<LoaderCircleIcon class="size-4 animate-spin" />
-			<span>Testing...</span>
-		{:else if pingStatus === "success"}
-			<CircleCheckIcon class="size-4" />
-			<span>Connected</span>
-		{:else if pingStatus === "error"}
-			<CircleXIcon class="size-4" />
-			<span>Unreachable</span>
-		{:else}
-			<PlugZapIcon class="size-4" />
-			<span>Test connection</span>
-		{/if}
-	</Button>
-	{#if pingStatus === "error" && pingError}
-		<p class="text-sm text-destructive">{pingError}</p>
+<Button
+	variant={dialogState.pingStatus === "success"
+		? "success"
+		: dialogState.pingStatus === "error"
+			? "destructive"
+			: "outline"}
+	disabled={dialogState.pingStatus === "pending" ||
+		!dialogState.profileUrlHost.trim()}
+	onclick={testConnection}
+>
+	{#if dialogState.pingStatus === "pending"}
+		<LoaderCircleIcon class="animate-spin" />
+		Testing…
+	{:else if dialogState.pingStatus === "success"}
+		<CircleCheckIcon />
+		Connected
+	{:else if dialogState.pingStatus === "error"}
+		<TriangleAlertIcon />
+		Unreachable
+	{:else}
+		<PlugIcon />
+		Test connection
 	{/if}
-</div>
+</Button>

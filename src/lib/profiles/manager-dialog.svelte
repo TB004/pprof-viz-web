@@ -4,10 +4,11 @@
 -->
 
 <script lang="ts">
-import { CheckIcon, TrashIcon, UploadIcon } from "@lucide/svelte";
+import { CheckIcon, PlugIcon, TrashIcon, UploadIcon } from "@lucide/svelte";
 import { profileService } from "#lib/app.svelte.js";
 import ConfirmDialog from "#lib/components/confirm-dialog.svelte";
 import ErrorAlert from "#lib/components/error-alert.svelte";
+import Notice from "#lib/components/notice.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
 import * as Dialog from "#lib/components/ui/dialog/index.js";
 import * as ScrollArea from "#lib/components/ui/scroll-area/index.js";
@@ -22,6 +23,7 @@ import {
 	assembleUrl,
 	clearProfileForm,
 	dialogState,
+	editProfile,
 	openProfileExport,
 	snapshotProfileForm,
 } from "./state.svelte.js";
@@ -30,7 +32,8 @@ const saving = new Task();
 const deleting = new Task();
 
 // The manager is mounted once, in the app sidebar; open it from elsewhere with
-// `openProfileManager()`. Each opening starts from an empty editor.
+// `openProfileManager()`. Each opening starts from an empty editor, or from
+// the profile it was opened for.
 $effect(() => {
 	if (!dialogState.managerOpen) {
 		return;
@@ -41,6 +44,12 @@ $effect(() => {
 	dialogState.editorMode = "profile";
 	clearProfileForm();
 	dialogState.projectDialogOpen = false;
+
+	const focus = dialogState.focusProfileId
+		? profileService.find(dialogState.focusProfileId)
+		: undefined;
+	dialogState.focusProfileId = undefined;
+	if (focus) editProfile(focus);
 });
 
 // A failure belongs to the profile it was made on, not the next one.
@@ -131,6 +140,16 @@ async function saveProfile() {
 	if (updated) dialogState.originalProfile = snapshotProfileForm();
 }
 
+const editing = $derived(
+	dialogState.editorMode === "new-profile" || !!dialogState.selectedProfileId,
+);
+
+const projectName = $derived(
+	profileService
+		.getCatalog()
+		.projects.find((p) => p.id === dialogState.selectedProjectId)?.name ?? "",
+);
+
 const hasChanges = $derived(
 	dialogState.editorMode === "new-profile" ||
 		!dialogState.originalProfile ||
@@ -148,108 +167,108 @@ const hasChanges = $derived(
 
 <Dialog.Root bind:open={dialogState.managerOpen}>
 	<Dialog.Content
-		class="sm:max-w-[min(96vw,72rem)] max-h-[88vh] p-0 overflow-hidden border-border/70 bg-background shadow-2xl"
+		class="h-[min(680px,calc(100vh-48px))] overflow-hidden sm:max-w-[min(1060px,calc(100%-2rem))]"
 	>
 		<div
-			class="grid max-h-[88vh] min-h-0 grid-cols-1 overflow-hidden md:grid-cols-[18rem_minmax(0,1fr)]"
+			class="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[280px_minmax(0,1fr)]"
 		>
 			<ManagerSidebar />
 
-			<section class="min-h-0 overflow-hidden">
-				<div class="flex h-full min-h-0 flex-col">
-					<Dialog.Header class="border-b border-border/60 px-6 py-5">
-						<Dialog.Title class="text-xl font-semibold"
-							>Profile Configurations</Dialog.Title
+			<section class="flex min-h-0 flex-col">
+				<Dialog.Header class="border-line border-b pb-4">
+					<Dialog.Title>Profile configurations</Dialog.Title>
+					<Dialog.Description>
+						Where to reach a collector and how to sample it. Stored locally.
+					</Dialog.Description>
+				</Dialog.Header>
+
+				<ScrollArea.Root class="min-h-0 flex-1">
+					{#if editing}
+						<div
+							class="mx-auto flex max-w-[600px] flex-col gap-5 px-6 py-[22px]"
 						>
-						<Dialog.Description>
-							Create, delete or edit locally stored collection profiles.
-						</Dialog.Description>
-					</Dialog.Header>
+							<div>
+								<span class="eyebrow">
+									{dialogState.editorMode === "new-profile"
+										? `New profile in ${projectName}`
+										: projectName}
+								</span>
+								<h3 class="mt-1 text-[22px] font-[650] tracking-[-0.02em]">
+									{#if dialogState.editorMode === "new-profile"}
+										Create profile
+									{:else}
+										{dialogState.profileName || "Untitled profile"}
+									{/if}
+								</h3>
+							</div>
 
-					<ScrollArea.Root class="min-h-0 flex-1 mr-1">
-						<div class="px-6 py-6">
-							{#if dialogState.editorMode === "new-profile" ||
-								dialogState.selectedProfileId}
-								<div class="mx-auto max-w-xl space-y-6">
-									<div>
-										<p class="text-sm font-medium text-muted-foreground">
-											{#if dialogState.editorMode === "new-profile"}
-												New profile
-											{:else}
-												Selected profile
-											{/if}
-										</p>
-										<h3 class="text-2xl font-semibold tracking-tight">
-											{#if dialogState.editorMode === "new-profile"}
-												Create profile
-											{:else}
-												{dialogState.profileName || "Untitled profile"}
-											{/if}
-										</h3>
-									</div>
+							<ProfileForm />
 
-									<div class="space-y-6">
-										<ProfileForm />
-
-										<ErrorAlert message={saving.error} />
-
-										<div class="flex flex-wrap gap-2 pt-2">
-											<Button
-												variant="default"
-												onclick={saveProfile}
-												disabled={!hasChanges || saving.pending}
-											>
-												<CheckIcon class="size-4" />
-												<span>
-													{dialogState.editorMode === "new-profile"
-														? "Create profile"
-														: "Save profile"}
-												</span>
-											</Button>
-											{#if dialogState.selectedProfileId}
-												<Button
-													variant="destructive"
-													onclick={() =>
-														openDeleteProfileDialog(
-															dialogState.selectedProfileId,
-														)}
-												>
-													<TrashIcon class="size-4" />
-													<span>Delete</span>
-												</Button>
-												<Button
-													variant="outline"
-													onclick={() =>
-														openProfileExport(
-															dialogState.profileName,
-															dialogState.selectedProfileId ?? "",
-														)}
-												>
-													<UploadIcon class="size-4" />
-													<span>Export</span>
-												</Button>
-											{/if}
-											<ConnectionTester />
-										</div>
-									</div>
-								</div>
-							{:else}
-								<div class="flex h-113 items-center justify-center">
-									<div class="max-w-sm text-center">
-										<p class="text-sm font-medium text-foreground">
-											Select a profile or create a new one
-										</p>
-										<p class="mt-2 text-sm text-muted-foreground">
-											Use the sidebar on the left to add a profile to a project,
-											or select an existing profile to edit it or view its
-											details.
-										</p>
-									</div>
-								</div>
+							{#if dialogState.pingStatus === "success"}
+								<Notice tone="ok">{dialogState.pingMessage}</Notice>
+							{:else if dialogState.pingStatus === "error"}
+								<Notice tone="bad">{dialogState.pingMessage}</Notice>
 							{/if}
+
+							<ErrorAlert message={saving.error} />
 						</div>
-					</ScrollArea.Root>
-				</div>
+					{:else}
+						<div
+							class="flex h-full min-h-[360px] flex-col items-center justify-center gap-2.5 p-6 text-center"
+						>
+							<div
+								class="bg-acc-soft text-acc flex size-12 items-center justify-center rounded-xl"
+							>
+								<PlugIcon class="size-5" />
+							</div>
+							<p class="font-semibold">Select a profile or create a new one</p>
+							<p class="text-muted-foreground max-w-[340px] text-[13px]">
+								Pick a profile on the left to edit it, or use + on a project to
+								add one.
+							</p>
+						</div>
+					{/if}
+				</ScrollArea.Root>
+
+				{#if editing}
+					<div
+						class="border-line bg-surface-2 flex flex-wrap items-center gap-2 border-t px-6 py-3.5"
+					>
+						<ConnectionTester />
+						<span class="flex-1"></span>
+						{#if dialogState.selectedProfileId}
+							<Button
+								variant="ghost"
+								class="text-bad hover:text-bad"
+								onclick={() =>
+									openDeleteProfileDialog(dialogState.selectedProfileId)}
+							>
+								<TrashIcon />
+								Delete
+							</Button>
+							<Button
+								variant="outline"
+								onclick={() =>
+									openProfileExport(
+										dialogState.profileName,
+										dialogState.selectedProfileId ?? "",
+									)}
+							>
+								<UploadIcon />
+								Export
+							</Button>
+						{/if}
+						<Button
+							onclick={saveProfile}
+							disabled={!hasChanges || saving.pending}
+						>
+							<CheckIcon />
+							{dialogState.editorMode === "new-profile"
+								? "Create profile"
+								: "Save changes"}
+						</Button>
+					</div>
+				{/if}
 			</section>
 		</div>
 	</Dialog.Content>

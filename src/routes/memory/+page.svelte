@@ -4,181 +4,156 @@
 -->
 
 <script lang="ts">
-import {
-	BoxesIcon,
-	HardDriveIcon,
-	LayersIcon,
-	MemoryStickIcon,
-	RecycleIcon,
-	WrenchIcon,
-} from "@lucide/svelte";
+import { LayersIcon } from "@lucide/svelte";
 import { collectionService } from "#lib/app.svelte.js";
 import CompositionChart from "#lib/components/composition-chart.svelte";
-import EmptyState from "#lib/components/empty-state.svelte";
-import MetricChart from "#lib/components/metric-chart.svelte";
-import PageShell from "#lib/components/page-shell.svelte";
+import MetricChart, {
+	type ChartRow,
+} from "#lib/components/metric-chart.svelte";
 import StatGrid from "#lib/components/stat-grid.svelte";
 import { fmtBytes, fmtBytesAxis } from "#lib/utils";
+import DashboardShell from "../dashboard-shell.svelte";
+import { windowed } from "../sample-window.svelte.js";
 
 const collectionState = collectionService.getState();
 
-const chartData = $derived(
-	(collectionState.data ?? []).map((frame, i) => {
+const rows = $derived(
+	(collectionState.data ?? []).map((frame, i): ChartRow => {
 		const m = frame.memory;
-		const heapObject = Number(m?.heapObjectBytes ?? 0);
-		const heapUnused = Number(m?.heapUnusedBytes ?? 0);
-		const heapFree = Number(m?.heapFreeBytes ?? 0);
-		const heapReleased = Number(m?.heapReleasedBytes ?? 0);
-		const heapStack = Number(m?.heapStackBytes ?? 0);
-		const osStack = Number(m?.osStackBytes ?? 0);
-		const mcacheInuse = Number(m?.mcacheInuseBytes ?? 0);
-		const mcacheFree = Number(m?.mcacheFreeBytes ?? 0);
-		const mspanInuse = Number(m?.mspanInuseBytes ?? 0);
-		const mspanFree = Number(m?.mspanFreeBytes ?? 0);
-		const otherMetadata = Number(m?.otherMetadataBytes ?? 0);
-		const profilingBucket = Number(m?.profilingBucketBytes ?? 0);
-		const other = Number(m?.otherBytes ?? 0);
-
+		const n = (v: bigint | undefined) => Number(v ?? 0);
+		const heapUnused = n(m?.heapUnusedBytes);
+		const heapFree = n(m?.heapFreeBytes);
+		const mcache = n(m?.mcacheInuseBytes) + n(m?.mcacheFreeBytes);
+		const mspan = n(m?.mspanInuseBytes) + n(m?.mspanFreeBytes);
+		const metadata =
+			n(m?.otherMetadataBytes) + n(m?.profilingBucketBytes) + n(m?.otherBytes);
 		return {
 			sample: i + 1,
-			heapObject,
+			at: collectionState.dataTimestamps?.[i],
+			heapObject: n(m?.heapObjectBytes),
 			heapUnused,
 			heapFree,
-			heapReleased,
+			heapReleased: n(m?.heapReleasedBytes),
 			heapIdle: heapUnused + heapFree,
-			stacks: heapStack + osStack,
-			offHeap:
-				mcacheInuse +
-				mcacheFree +
-				mspanInuse +
-				mspanFree +
-				otherMetadata +
-				profilingBucket +
-				other,
-			mcache: mcacheInuse + mcacheFree,
-			mspan: mspanInuse + mspanFree,
-			metadata: otherMetadata + profilingBucket + other,
-			total: Number(m?.totalBytes ?? 0),
+			stacks: n(m?.heapStackBytes) + n(m?.osStackBytes),
+			mcache,
+			mspan,
+			metadata,
+			offHeap: mcache + mspan + metadata,
+			total: n(m?.totalBytes),
 		};
 	}),
 );
 
-const latest = $derived(chartData.at(-1));
-const hasData = $derived(chartData.length > 0);
+const data = $derived(windowed(rows));
+const latest = $derived(rows.at(-1) ?? { sample: 0 });
+const history = (key: string) => rows.slice(-40).map((r) => r[key] ?? 0);
+
+const stat = (label: string, key: string, color: string) => ({
+	label,
+	value: fmtBytes(latest[key] ?? 0),
+	history: history(key),
+	color,
+});
+
+const stats = $derived([
+	stat("Total mapped", "total", "var(--chart-1)"),
+	stat("Heap in-use", "heapObject", "var(--chart-1)"),
+	stat("Heap idle", "heapIdle", "var(--chart-2)"),
+	stat("Released to OS", "heapReleased", "var(--chart-5)"),
+	stat("Stacks", "stacks", "var(--chart-3)"),
+	stat("Off-heap", "offHeap", "var(--chart-4)"),
+]);
 
 const composition = $derived([
 	{
 		key: "heapObject",
-		label: "Heap In-Use",
-		value: latest?.heapObject ?? 0,
+		label: "Heap in-use",
+		value: latest.heapObject ?? 0,
+		color: "var(--chart-1)",
 	},
-	{ key: "heapIdle", label: "Heap Idle", value: latest?.heapIdle ?? 0 },
+	{
+		key: "heapIdle",
+		label: "Heap idle",
+		value: latest.heapIdle ?? 0,
+		color: "var(--chart-2)",
+	},
 	{
 		key: "heapReleased",
 		label: "Released to OS",
-		value: latest?.heapReleased ?? 0,
-	},
-	{ key: "stacks", label: "Stacks", value: latest?.stacks ?? 0 },
-	{ key: "offHeap", label: "Off-Heap", value: latest?.offHeap ?? 0 },
-]);
-
-const stats = $derived([
-	{
-		label: "Total",
-		value: fmtBytes(latest?.total ?? 0),
-		description: "Total memory mapped by the runtime",
-		Icon: MemoryStickIcon,
+		value: latest.heapReleased ?? 0,
+		color: "var(--chart-5)",
 	},
 	{
-		label: "Heap In-Use",
-		value: fmtBytes(latest?.heapObject ?? 0),
-		description: "Memory occupied by live objects",
-		Icon: BoxesIcon,
-	},
-	{
-		label: "Heap Idle",
-		value: fmtBytes(latest?.heapIdle ?? 0),
-		description: "Allocated heap not holding objects",
-		Icon: HardDriveIcon,
-	},
-	{
-		label: "Released",
-		value: fmtBytes(latest?.heapReleased ?? 0),
-		description: "Heap returned to the OS",
-		Icon: RecycleIcon,
-	},
-	{
+		key: "stacks",
 		label: "Stacks",
-		value: fmtBytes(latest?.stacks ?? 0),
-		description: "Goroutine and OS thread stacks",
-		Icon: LayersIcon,
+		value: latest.stacks ?? 0,
+		color: "var(--chart-3)",
 	},
 	{
-		label: "Off-Heap",
-		value: fmtBytes(latest?.offHeap ?? 0),
-		description: "Runtime structures and metadata",
-		Icon: WrenchIcon,
+		key: "offHeap",
+		label: "Off-heap",
+		value: latest.offHeap ?? 0,
+		color: "var(--chart-4)",
 	},
 ]);
 </script>
 
-<PageShell
+<DashboardShell
 	title="Memory"
-	description="Heap composition, idle memory, and runtime structure footprint"
+	icon={LayersIcon}
+	description="How the runtime’s mapped memory splits between live heap, idle heap, stacks and runtime structures."
 >
-	{#if !hasData}
-		<EmptyState icon={MemoryStickIcon}>
-			Select a profile and start collecting to see memory metrics.
-		</EmptyState>
-	{:else}
-		<StatGrid {stats} />
+	<StatGrid {stats} />
 
-		<div class="grid gap-6 lg:grid-cols-[2fr_3fr]">
-			<CompositionChart
-				title="Memory Composition"
-				description="Where memory currently lives in the latest sample"
-				slices={composition}
-			/>
-
-			<MetricChart
-				title="Heap Breakdown"
-				description="In-use, unused, free, and released heap over time"
-				data={chartData}
-				format={fmtBytesAxis}
-				stacked
-				height="h-64"
-				series={[
-					{ key: "heapObject", label: "In-Use" },
-					{ key: "heapUnused", label: "Unused" },
-					{ key: "heapFree", label: "Free" },
-					{ key: "heapReleased", label: "Released" },
-				]}
-			/>
-		</div>
+	<div class="panel-grid">
+		<CompositionChart
+			title="Composition"
+			description="Where memory lives in the latest sample."
+			totalLabel="mapped by the runtime"
+			format={fmtBytes}
+			slices={composition}
+		/>
 
 		<MetricChart
-			title="Total Footprint"
-			description="Total mapped memory and live heap over time"
-			data={chartData}
-			format={fmtBytesAxis}
+			title="Heap breakdown"
+			description="In-use, unused, free and released heap, stacked."
+			{data}
+			stacked
+			format={fmtBytes}
+			axisFormat={fmtBytesAxis}
+			series={[
+				{ key: "heapObject", label: "In-use", color: "var(--chart-1)" },
+				{ key: "heapUnused", label: "Unused", color: "var(--chart-2)" },
+				{ key: "heapFree", label: "Free", color: "var(--chart-3)" },
+				{ key: "heapReleased", label: "Released", color: "var(--chart-5)" },
+			]}
+		/>
+
+		<MetricChart
+			title="Total footprint"
+			description="Total mapped memory against the live heap."
+			{data}
+			format={fmtBytes}
+			axisFormat={fmtBytesAxis}
 			series={[
 				{ key: "total", label: "Total" },
-				{ key: "heapObject", label: "Heap In-Use" },
+				{ key: "heapObject", label: "Heap in-use" },
 			]}
 		/>
 
 		<MetricChart
-			title="Runtime Structures"
-			description="Stacks, span/cache allocators, and metadata over time"
-			type="line"
-			data={chartData}
-			format={fmtBytesAxis}
+			title="Runtime structures"
+			description="Stacks, span and cache allocators, and metadata."
+			{data}
+			format={fmtBytes}
+			axisFormat={fmtBytesAxis}
 			series={[
 				{ key: "stacks", label: "Stacks" },
+				{ key: "metadata", label: "Metadata" },
 				{ key: "mspan", label: "MSpan" },
 				{ key: "mcache", label: "MCache" },
-				{ key: "metadata", label: "Metadata" },
 			]}
 		/>
-	{/if}
-</PageShell>
+	</div>
+</DashboardShell>

@@ -5,8 +5,8 @@
 
 <script lang="ts">
 import {
-	CircleCheck,
-	CloudDownload,
+	CircleCheckIcon,
+	CloudDownloadIcon,
 	CloudOffIcon,
 	LoaderCircleIcon,
 	RefreshCwIcon,
@@ -14,80 +14,77 @@ import {
 import { serviceWorkerService } from "#lib/app.svelte.js";
 import ErrorAlert from "#lib/components/error-alert.svelte";
 import { Button } from "#lib/components/ui/button/index.js";
-import * as Card from "#lib/components/ui/card/index.js";
 import { Task } from "#lib/task.svelte.js";
+import Section from "./section.svelte";
 
 const swState = serviceWorkerService.getState();
 const checking = new Task();
 </script>
 
-<Card.Root class="border-border/60">
-	<Card.Header>
-		<Card.Title class="text-base">Offline &amp; updates</Card.Title>
-		<Card.Description>
-			The app installs itself into the browser cache so it keeps working without
-			a connection to the server it is hosted on.
-		</Card.Description>
-	</Card.Header>
-	<Card.Content>
-		{#if !swState.supported}
-			<div class="flex items-center gap-3 text-sm text-muted-foreground">
-				<CloudOffIcon class="size-4" />
-				This browser does not support offline installation.
-			</div>
-		{:else if swState.updateReady}
-			<div class="flex items-start justify-between gap-4">
-				<div class="space-y-1">
-					<p class="text-sm font-medium">A newer version is ready.</p>
-					<p class="text-sm text-muted-foreground">
-						Reloading swaps it in. Any running collection is stopped.
-					</p>
-				</div>
-				<Button
-					class="shrink-0"
-					onclick={() => serviceWorkerService.applyUpdate()}
-				>
-					<CloudDownload class="size-4" />
-					Reload to update
-				</Button>
-			</div>
-		{:else}
-			<div class="flex items-center justify-between gap-4">
-				<div class="flex items-center gap-3 text-sm">
-					{#if swState.ready}
-						<CircleCheck class="size-4 text-green-500" />
-						<span>
-							Available offline{swState.installed
-								? ", running as an installed app"
-								: ""}.
-						</span>
+<Section
+	id="updates"
+	title="Offline & updates"
+	description="The app installs itself into the browser cache so it keeps working without the server it is hosted on."
+>
+	<div class="flex flex-wrap items-center justify-between gap-x-5 gap-y-3">
+		<div class="flex items-center gap-2.5">
+			{#if !swState.supported}
+				<CloudOffIcon class="text-muted-foreground size-4 shrink-0" />
+			{:else if swState.updateReady}
+				<CloudDownloadIcon class="text-acc size-4 shrink-0" />
+			{:else if swState.ready}
+				<CircleCheckIcon class="text-ok size-4 shrink-0" />
+			{:else}
+				<LoaderCircleIcon
+					class="text-muted-foreground size-4 shrink-0 animate-spin"
+				/>
+			{/if}
+			<div>
+				<div class="text-[13.5px] font-[550]">
+					{#if !swState.supported}
+						Offline use is unavailable
+					{:else if swState.updateReady}
+						A newer version is ready
+					{:else if swState.ready}
+						Available offline{swState.installed
+							? ", running as an installed app"
+							: ""}
 					{:else}
-						<LoaderCircleIcon
-							class="size-4 animate-spin text-muted-foreground"
-						/>
-						<span class="text-muted-foreground"
-							>Preparing offline support…</span
-						>
+						Preparing offline support…
 					{/if}
 				</div>
-				<Button
-					variant="outline"
-					size="sm"
-					class="shrink-0"
-					disabled={!swState.ready || swState.checking}
-					onclick={() =>
-						checking.run(() => serviceWorkerService.checkForUpdate())}
-				>
-					{#if swState.checking}
-						<LoaderCircleIcon class="size-3.5 animate-spin" />
-						Checking…
+				<div class="text-muted-foreground mt-0.5 max-w-[460px] text-[13px]">
+					{#if !swState.supported}
+						This browser does not support offline installation.
+					{:else if swState.updateReady}
+						Reloading swaps it in. A running collection is stopped.
 					{:else}
-						<RefreshCwIcon class="size-3.5" />
-						Check for updates
+						The app shell is cached in this browser.
 					{/if}
-				</Button>
+				</div>
 			</div>
+		</div>
+		{#if swState.updateReady}
+			<Button onclick={() => serviceWorkerService.applyUpdate()}>
+				<CloudDownloadIcon class="size-3.5" />
+				Reload to update
+			</Button>
+		{:else if swState.supported}
+			<Button
+				variant="outline"
+				disabled={!swState.ready || swState.checking}
+				onclick={() =>
+					checking.run(() => serviceWorkerService.checkForUpdate())}
+			>
+				{#if swState.checking}
+					<LoaderCircleIcon class="size-3.5 animate-spin" />
+					Checking…
+				{:else}
+					<RefreshCwIcon class="size-3.5" />
+					Check for updates
+				{/if}
+			</Button>
 		{/if}
-		<ErrorAlert class="mt-4" message={checking.error} />
-	</Card.Content>
-</Card.Root>
+	</div>
+	<ErrorAlert message={checking.error} />
+</Section>

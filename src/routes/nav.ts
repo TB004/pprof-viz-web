@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import {
-	ActivityIcon,
 	ArchiveIcon,
 	BracesIcon,
 	CpuIcon,
-	House,
+	HistoryIcon,
+	HouseIcon,
 	LayersIcon,
 	PackageIcon,
-	RotateCcwClockIcon,
+	RefreshCcwIcon,
 	SettingsIcon,
 } from "@lucide/svelte";
 import type { Component } from "svelte";
@@ -20,19 +20,43 @@ export type NavRoute = {
 	icon: Component;
 };
 
-/** The telemetry dashboards — the sidebar's main menu and the home page grid. */
-export const dataRoutes: NavRoute[] = [
+export const overviewRoute: NavRoute = {
+	title: "Overview",
+	url: "/",
+	icon: HouseIcon,
+};
+
+/** The telemetry dashboards. */
+export const dashboardRoutes: NavRoute[] = [
 	{ title: "CPU", url: "/cpu", icon: CpuIcon },
-	{ title: "GC", url: "/gc", icon: ActivityIcon },
+	{ title: "GC", url: "/gc", icon: RefreshCcwIcon },
 	{ title: "Memory", url: "/memory", icon: LayersIcon },
-	{ title: "Scheduler", url: "/scheduler", icon: RotateCcwClockIcon },
+	{ title: "Scheduler", url: "/scheduler", icon: HistoryIcon },
 	{ title: "Miscellaneous", url: "/miscellaneous", icon: PackageIcon },
-	{ title: "Raw", url: "/raw", icon: BracesIcon },
 ];
 
-/** Everything that isn't a dashboard, shown in the sidebar footer. */
-export const shellRoutes: NavRoute[] = [
-	{ title: "Home", url: "/", icon: House },
+/** The current session's frames, and what is kept in this browser. */
+export const dataRoutes: NavRoute[] = [
+	{ title: "Raw frames", url: "/raw", icon: BracesIcon },
 	{ title: "Archive", url: "/archive", icon: ArchiveIcon },
-	{ title: "Settings", url: "/settings", icon: SettingsIcon },
+];
+
+export const settingsRoute: NavRoute = {
+	title: "Settings",
+	url: "/settings",
+	icon: SettingsIcon,
+};
+
+/** Pages that show the current session, as opposed to stored data. */
+export const sessionUrls = new Set([
+	overviewRoute.url,
+	...dashboardRoutes.map((r) => r.url),
+	"/raw",
+]);
+
+export const allRoutes: NavRoute[] = [
+	overviewRoute,
+	...dashboardRoutes,
+	...dataRoutes,
+	settingsRoute,
 ];

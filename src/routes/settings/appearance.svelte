@@ -4,55 +4,99 @@
 -->
 
 <script lang="ts">
-import { CheckIcon, MonitorIcon, MoonIcon, SunIcon } from "@lucide/svelte";
+import { MonitorIcon, MoonIcon, SunIcon } from "@lucide/svelte";
 import { settingsService } from "#lib/app.svelte.js";
-import * as Card from "#lib/components/ui/card/index.js";
 import { ThemeMode } from "#lib/settings.svelte.js";
+import Section from "./section.svelte";
 
-const themeOptions: Array<{
-	value: ThemeMode;
-	label: string;
-	icon: typeof MonitorIcon;
-}> = [
-	{ value: ThemeMode.System, label: "System", icon: MonitorIcon },
-	{ value: ThemeMode.Light, label: "Light", icon: SunIcon },
-	{ value: ThemeMode.Dark, label: "Dark", icon: MoonIcon },
+// Each preview is a miniature of the app in that palette; "System" shows both.
+const themeOptions = [
+	{
+		value: ThemeMode.System,
+		label: "System",
+		icon: MonitorIcon,
+		side: "linear-gradient(135deg,#f1f4f8 50%,#0a1020 50%)",
+		main: "linear-gradient(135deg,#ffffff 50%,#0e1527 50%)",
+		card: "#94a3b8",
+		bar: "#94a3b8",
+	},
+	{
+		value: ThemeMode.Light,
+		label: "Light",
+		icon: SunIcon,
+		side: "#f1f4f8",
+		main: "#ffffff",
+		card: "#e2e7ee",
+		bar: "#cdd5df",
+	},
+	{
+		value: ThemeMode.Dark,
+		label: "Dark",
+		icon: MoonIcon,
+		side: "#0a1020",
+		main: "#0e1527",
+		card: "#1b2640",
+		bar: "#2a3756",
+	},
 ];
 
 const settings = settingsService.getSettings();
 </script>
 
-<Card.Root class="border-border/60">
-	<Card.Header>
-		<Card.Title class="text-base">Appearance</Card.Title>
-		<Card.Description
-			>Choose how pprof-viz looks on your device.</Card.Description
-		>
-	</Card.Header>
-	<Card.Content>
-		<div>
-			<p class="mb-3 text-sm font-medium text-foreground">Theme</p>
-			<div class="grid grid-cols-3 gap-3">
-				{#each themeOptions as option (option.value)}
-					{@const isSelected = settings.theme === option.value}
-					<button
-						type="button"
-						class={`relative flex flex-col items-center gap-3 rounded-xl border p-4 text-sm font-medium transition-colors ${isSelected ? "border-primary bg-primary/5 text-foreground" : "border-border/70 bg-muted/25 text-muted-foreground hover:border-primary/30 hover:text-foreground"}`}
-						onclick={() =>
-							settingsService.updateSettings({ theme: option.value })}
+<Section
+	id="appearance"
+	title="Appearance"
+	description="Choose how Pprof-Viz looks on this device."
+>
+	<div role="radiogroup" aria-label="Theme" class="grid grid-cols-3 gap-3">
+		{#each themeOptions as option (option.value)}
+			<label
+				class="border-line-2 bg-surface text-ink hover:border-faint has-checked:border-acc has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-(--focus) flex cursor-pointer flex-col gap-2.5 rounded-xl border p-2.5 text-left text-[13px] font-medium has-checked:shadow-[0_0_0_3px_var(--acc-soft)]"
+			>
+				<input
+					type="radio"
+					name="theme"
+					class="sr-only"
+					checked={settings.theme === option.value}
+					onchange={() =>
+						settingsService.updateSettings({ theme: option.value })}
+				>
+				<span
+					aria-hidden="true"
+					class="border-line flex h-[74px] overflow-hidden rounded-lg border"
+				>
+					<span
+						class="flex w-[28%] flex-col gap-[5px] px-1.5 py-2"
+						style:background={option.side}
 					>
-						<option.icon class="size-5" />
-						<span>{option.label}</span>
-						{#if isSelected}
-							<div
-								class="absolute right-2.5 top-2.5 flex size-4 items-center justify-center rounded-full bg-primary text-primary-foreground"
-							>
-								<CheckIcon class="size-2.5" />
-							</div>
-						{/if}
-					</button>
-				{/each}
-			</div>
-		</div>
-	</Card.Content>
-</Card.Root>
+						{#each [70, 100, 80] as width (width)}
+							<i
+								class="block h-1.5 rounded-[3px]"
+								style:background={option.bar}
+								style:width="{width}%"
+							></i>
+						{/each}
+					</span>
+					<span
+						class="flex flex-1 flex-col gap-1.5 p-2"
+						style:background={option.main}
+					>
+						<i
+							class="block h-[22px] rounded"
+							style:background={option.card}
+						></i>
+						<i class="block h-1.5 w-1/2 rounded-[3px] bg-[#22d3ee]"></i>
+						<i
+							class="block h-1.5 w-3/4 rounded-[3px]"
+							style:background={option.bar}
+						></i>
+					</span>
+				</span>
+				<span class="flex items-center gap-2">
+					<option.icon class="size-4" />
+					{option.label}
+				</span>
+			</label>
+		{/each}
+	</div>
+</Section>

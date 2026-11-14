@@ -4,43 +4,47 @@
 -->
 
 <script lang="ts" module>
-import type { Component } from "svelte";
-
 export type Stat = {
 	label: string;
 	value: string;
-	description: string;
-	Icon: Component;
+	/** The line under the value; a trend when omitted and `history` is set. */
+	sub?: string;
+	/** Recent values, drawn as a sparkline. */
+	history?: number[];
+	color?: string;
 };
 </script>
 
 <script lang="ts">
-import * as Card from "#lib/components/ui/card";
+import { trendLabel } from "#lib/utils";
+import Sparkline from "./sparkline.svelte";
 
-let {
-	stats,
-	class: className = "grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6",
-}: {
-	stats: Stat[];
-	class?: string;
-} = $props();
+let { stats }: { stats: Stat[] } = $props();
 </script>
 
-<div class={className}>
-	{#each stats as { label, value, description, Icon } (label)}
-		<Card.Root>
-			<Card.Content class="p-4">
-				<div class="flex items-center justify-between">
-					<span class="text-muted-foreground text-xs font-medium">{label}</span>
-					<Icon class="text-muted-foreground size-3.5" />
-				</div>
-				<div class="mt-2">
-					<span class="font-mono text-xl font-semibold tabular-nums">
-						{value}
-					</span>
-				</div>
-				<p class="text-muted-foreground mt-1 text-xs">{description}</p>
-			</Card.Content>
-		</Card.Root>
+<ul
+	class="m-0 list-none p-0 border-line bg-line shadow-panel grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-px overflow-hidden rounded-panel border"
+>
+	{#each stats as stat (stat.label)}
+		<li class="bg-surface flex min-w-0 flex-col gap-0.5 px-4 pt-3.5 pb-3">
+			<span class="text-muted-foreground text-xs font-medium"
+				>{stat.label}</span
+			>
+			<span
+				class="mono truncate text-[22px] leading-[1.3] font-[550] tracking-[-0.02em]"
+			>
+				{stat.value}
+			</span>
+			<span class="text-muted-foreground truncate text-[11.5px]">
+				{stat.sub ?? (stat.history ? trendLabel(stat.history) : "")}
+			</span>
+			{#if stat.history}
+				<Sparkline
+					values={stat.history.slice(-40)}
+					color={stat.color ?? "var(--chart-1)"}
+					class="mt-1.5 h-7 w-full overflow-visible"
+				/>
+			{/if}
+		</li>
 	{/each}
-</div>
+</ul>

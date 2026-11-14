@@ -27,7 +27,7 @@ let {
 		bind:ref
 		data-slot="dialog-content"
 		class={cn(
-			"bg-popover text-popover-foreground data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 ring-foreground/5 dark:ring-foreground/10 grid max-w-[calc(100%-2rem)] gap-6 rounded-4xl p-6 text-sm shadow-xl ring-1 duration-100 sm:max-w-md fixed top-1/2 left-1/2 z-50 w-full -translate-x-1/2 -translate-y-1/2 outline-none",
+			"bg-surface text-ink border-line-2 data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 flex max-h-[calc(100vh-48px)] max-w-[calc(100%-2rem)] flex-col overflow-auto rounded-dialog border p-0 text-sm shadow-pop duration-100 sm:max-w-[480px] fixed top-1/2 left-1/2 z-50 w-full -translate-x-1/2 -translate-y-1/2 outline-none",
 			className,
 		)}
 		{...restProps}
@@ -35,12 +35,10 @@ let {
 		{@render children?.()}
 		{#if showCloseButton}
 			<DialogPrimitive.Close data-slot="dialog-close">
-				{#snippet child({
-					props,
-				})}
+				{#snippet child({ props })}
 					<Button
 						variant="ghost"
-						class="bg-secondary absolute top-4 right-4"
+						class="absolute top-4 right-4"
 						size="icon-sm"
 						{...props}
 					>

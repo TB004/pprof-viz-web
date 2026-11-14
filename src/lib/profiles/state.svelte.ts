@@ -12,6 +12,8 @@ import { buildUrl, type Scheme, splitUrl } from "./url-field.svelte";
 
 export type EditorMode = "profile" | "new-profile";
 
+export type PingStatus = "idle" | "pending" | "success" | "error";
+
 export type ProfileSnapshot = {
 	name: string;
 	scheme: Scheme;
@@ -25,6 +27,8 @@ export type ProfileSnapshot = {
 export const dialogState = $state({
 	/** The manager itself; mounted once, in the app sidebar. */
 	managerOpen: false,
+	/** The profile the manager should show when it next opens, if any. */
+	focusProfileId: undefined as string | undefined,
 	selectedProjectId: undefined as string | undefined,
 	selectedProfileId: undefined as string | undefined,
 	editorMode: "profile" as EditorMode,
@@ -36,6 +40,9 @@ export const dialogState = $state({
 	profileIntervalSeconds: 1,
 	profileNumberOfCycles: 0,
 	originalProfile: null as ProfileSnapshot | null,
+	/** The last "Test connection" for the profile in the editor. */
+	pingStatus: "idle" as PingStatus,
+	pingMessage: "",
 	projectDialogOpen: false,
 	projectDialogMode: "create" as "create" | "rename",
 	projectDialogProjectId: undefined as string | undefined,
@@ -52,9 +59,27 @@ export const dialogState = $state({
 	exportDialogProfileCount: 0,
 });
 
-/** Open the profile manager from anywhere in the app. */
-export function openProfileManager() {
+/** Open the profile manager from anywhere in the app, optionally on a profile. */
+export function openProfileManager(profileId?: string) {
+	dialogState.focusProfileId = profileId;
 	dialogState.managerOpen = true;
+}
+
+/** Show a stored profile in the editor. */
+export function editProfile(profile: ProfileRow) {
+	dialogState.selectedProjectId = profile.projectId;
+	dialogState.selectedProfileId = profile.id;
+	dialogState.editorMode = "profile";
+	loadProfileIntoForm(profile);
+}
+
+/** Start a new profile in a project, from the profile defaults. */
+export function startNewProfile(projectId: string) {
+	dialogState.selectedProjectId = projectId;
+	dialogState.selectedProfileId = undefined;
+	dialogState.editorMode = "new-profile";
+	dialogState.originalProfile = null;
+	clearProfileForm();
 }
 
 /** Open the export dialog for one project and everything under it. */

@@ -4,6 +4,11 @@
 
 **A self-hostable, installable web dashboard for visualizing Go runtime telemetry in real time.**
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/gc-dark.png">
+  <img src="docs/screenshots/gc-light.png" alt="The garbage collector dashboard streaming live heap, heap goal and allocation rates">
+</picture>
+
 ## 🔍 Overview
 
 `Pprof-Viz Web` is a static Svelte 5 app that talks directly to the
@@ -23,6 +28,16 @@ collection behavior, memory allocation and scheduler latencies, as they happen.
   uploaded anywhere.
 - **📈 Dedicated Dashboards**: Route-based views for CPU, GC, Memory, Scheduler and more.
 - **🐳 Self-Hosted**: Ships as a small Caddy container image you can run with Podman or Docker.
+
+## 📸 Screenshots
+
+Every page comes in a light and a dark theme; pick one in Settings or follow the system.
+
+| Light | Dark |
+| --- | --- |
+| ![Overview of a live session, light theme](docs/screenshots/overview-light.png) | ![Overview of a live session, dark theme](docs/screenshots/overview-dark.png) |
+| ![Garbage collector dashboard, light theme](docs/screenshots/gc-light.png) | ![Garbage collector dashboard, dark theme](docs/screenshots/gc-dark.png) |
+| ![Scheduler dashboard, light theme](docs/screenshots/scheduler-light.png) | ![Scheduler dashboard, dark theme](docs/screenshots/scheduler-dark.png) |
 
 ## 🛠️ Getting Started
 

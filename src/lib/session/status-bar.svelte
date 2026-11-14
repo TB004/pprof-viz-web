@@ -4,197 +4,122 @@
 -->
 
 <script lang="ts">
-import {
-	CircleAlertIcon,
-	LoaderCircle,
-	PauseIcon,
-	SaveIcon,
-	XIcon,
-} from "@lucide/svelte";
+import { CheckIcon, TriangleAlertIcon, XIcon } from "@lucide/svelte";
 import { fly } from "svelte/transition";
-import { archiveService, collectionService } from "#lib/app.svelte.js";
-import NameDescriptionDialog from "#lib/components/name-description-dialog.svelte";
+import {
+	collectionService,
+	profileService,
+	serviceWorkerService,
+} from "#lib/app.svelte.js";
 import { Button } from "#lib/components/ui/button/index.js";
-import * as Card from "#lib/components/ui/card/index.js";
-import { Task } from "#lib/task.svelte.js";
-import { CollectionStatus, CollectionType } from "#lib/types";
-import { fmtElapsed } from "#lib/utils";
+import { openProfileManager } from "#lib/profiles/state.svelte.js";
+import { fmtClock, fmtCount } from "#lib/utils";
+import { modeLabel, sessionStatus } from "./status.js";
+import StatusDot from "./status-dot.svelte";
 
 const collectionState = collectionService.getState();
+const swState = serviceWorkerService.getState();
 
 let showError = $state(false);
-let saveOpen = $state(false);
-let saveName = $state("");
-let saveDescription = $state("");
-const saving = new Task();
 
 // A new failure is worth looking at; it opens itself once.
 $effect(() => {
 	showError = collectionState.error !== null;
 });
 
-// Only offer to save freshly collected data — not a session loaded from disk,
-// and only once it has stopped (Idle) with samples in hand.
-const canSave = $derived(
-	collectionState.status === CollectionStatus.Idle &&
-		collectionState.collectedSamples > 0 &&
-		!collectionState.loaded &&
-		!collectionState.saved,
-);
+const status = $derived(sessionStatus(collectionState));
 
-const isRunning = $derived(collectionState.status === CollectionStatus.Running);
-
-const modeLabel = $derived(
-	collectionState.mode === CollectionType.Snapshot
-		? "Snapshot"
-		: collectionState.mode === CollectionType.Stream
-			? "Stream"
+const mode = $derived(
+	modeLabel(
+		collectionState.selectedProfile && !collectionState.loaded
+			? profileService.find(collectionState.selectedProfile)
 			: undefined,
+		collectionState.mode,
+	),
 );
-
-const urlLabel = $derived(collectionState.url?.toString() ?? undefined);
-
-const saveSubtitle = $derived(
-	`Store the current ${collectionState.collectedSamples} sample${
-		collectionState.collectedSamples === 1 ? "" : "s"
-	} to disk as a .ppvz file.`,
-);
-
-function openSave() {
-	saving.reset();
-	saveOpen = true;
-}
-
-async function confirmSave() {
-	if (!saveName.trim()) return;
-	const ok = await saving.run(() =>
-		archiveService.save(saveName, saveDescription.trim() || null),
-	);
-	if (ok) {
-		saveOpen = false;
-		saveName = "";
-		saveDescription = "";
-	}
-}
 
 function dismissError() {
 	showError = false;
 	collectionService.clearError();
 }
+
+function editProfile() {
+	showError = false;
+	openProfileManager(collectionState.selectedProfile);
+}
 </script>
 
-{#snippet pill(
-	label: string,
-	value: string | undefined,
-)}
-	<div
-		class="flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1.5 shadow-sm"
-	>
-		<span class="text-muted-foreground">{label}</span>
-		<span
-			class={value
-				? "truncate font-medium"
-				: "font-medium text-muted-foreground"}
-		>
-			{value ?? "undefined"}
-		</span>
-	</div>
-{/snippet}
-
 <footer
-	class="border-sidebar-border/70 bg-sidebar/90 text-sidebar-foreground shrink-0 border-t"
+	class="border-line bg-surface text-ink-2 flex min-h-9 shrink-0 flex-wrap items-center gap-x-[18px] gap-y-1.5 border-t px-4 py-1.5 text-xs sm:px-6"
 >
-	<div
-		class="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 text-xs"
-	>
-		<div
-			class="flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1.5 shadow-sm"
-		>
-			{#if isRunning}
-				<LoaderCircle class="size-3.5 animate-spin text-foreground" />
-			{:else}
-				<PauseIcon class="size-3.5 text-muted-foreground" />
-			{/if}
-			<span class="font-medium">{isRunning ? "Running" : "Idle"}</span>
-		</div>
-
-		{@render pill("URL", urlLabel)}
-		{@render pill("Mode", modeLabel)}
-		{@render pill("Samples", String(collectionState.collectedSamples))}
-		{@render pill("Time", fmtElapsed(collectionState.elapsedSeconds))}
-
+	<span class="inline-flex items-center gap-[7px] whitespace-nowrap">
+		<StatusDot tone={status.tone} />
+		<b class="font-semibold">{status.label}</b>
+	</span>
+	<span class="mono truncate max-sm:hidden">
+		{collectionState.url?.toString() ?? "no collector"}
+	</span>
+	<span class="whitespace-nowrap max-md:hidden">{mode}</span>
+	<span class="inline-flex items-center gap-[7px] whitespace-nowrap">
+		<span class="text-muted-foreground">Samples</span>
+		<span class="mono">{fmtCount(collectionState.collectedSamples)}</span>
+	</span>
+	<span class="inline-flex items-center gap-[7px] whitespace-nowrap">
+		<span class="text-muted-foreground">Elapsed</span>
+		<span class="mono">{fmtClock(collectionState.elapsedSeconds)}</span>
+	</span>
+	<span class="flex-1"></span>
+	{#if collectionState.error}
 		<button
 			type="button"
-			disabled={!canSave}
-			onclick={openSave}
-			class="ml-auto inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm transition-all hover:bg-muted/80 disabled:cursor-not-allowed disabled:opacity-50"
+			class="bg-bad-soft text-bad inline-flex h-[26px] cursor-pointer items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold"
+			onclick={() => (showError = !showError)}
 		>
-			<SaveIcon class="size-3.5" />
-			<span>Save</span>
+			<TriangleAlertIcon class="size-3.5" />
+			Collection failed
 		</button>
-
-		{#if collectionState.error}
-			<button
-				type="button"
-				onclick={() => (showError = !showError)}
-				class="inline-flex items-center gap-2 rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-600 shadow-sm transition-all hover:bg-red-500/15"
-			>
-				<CircleAlertIcon class="size-3.5 text-red-500" />
-				<span>Collection failed</span>
-			</button>
-		{/if}
-	</div>
+	{/if}
+	{#if swState.ready}
+		<span
+			class="text-muted-foreground inline-flex items-center gap-[7px] whitespace-nowrap"
+		>
+			<CheckIcon class="size-3.5" />
+			Available offline
+		</span>
+	{/if}
 </footer>
 
 {#if showError && collectionState.error}
 	<div
-		class="fixed right-4 bottom-20 z-50 w-[min(24rem,calc(100vw-2rem))]"
+		role="alert"
+		class="border-line-2 bg-surface shadow-pop fixed right-5 bottom-14 z-50 w-[min(400px,calc(100vw-40px))] overflow-hidden rounded-panel border"
 		transition:fly={{ y: 12, duration: 160 }}
 	>
-		<Card.Root
-			class="gap-0 rounded-2xl border border-border/70 bg-popover/95 py-0 text-popover-foreground shadow-2xl ring-0 backdrop-blur-xl"
-		>
-			<Card.Header class="border-b border-border/60 px-4 py-3">
-				<Card.Title class="flex items-center gap-2 text-sm font-semibold mt-2">
-					<CircleAlertIcon class="size-4 text-red-500" />
-					Collection failed
-				</Card.Title>
-				<Card.Action>
-					<Button
-						variant="ghost"
-						class="bg-secondary"
-						size="icon-sm"
-						onclick={() => (showError = false)}
-					>
-						<XIcon class="size-3.5" />
-						<span class="sr-only">Close</span>
+		<div class="border-line flex items-center gap-2.5 border-b px-4 py-3.5">
+			<TriangleAlertIcon class="text-bad size-4" />
+			<b class="text-sm">Collection failed</b>
+			<Button
+				variant="ghost"
+				size="icon-sm"
+				class="ml-auto"
+				aria-label="Close"
+				onclick={() => (showError = false)}
+			>
+				<XIcon />
+			</Button>
+		</div>
+		<div class="flex flex-col gap-3 px-4 py-3.5">
+			<p class="mono text-ink-2 text-xs leading-relaxed wrap-break-word">
+				{collectionState.error}
+			</p>
+			<div class="flex justify-end gap-2">
+				{#if collectionState.selectedProfile}
+					<Button variant="outline" size="sm" onclick={editProfile}>
+						Edit profile
 					</Button>
-				</Card.Action>
-			</Card.Header>
-			<Card.Content class="flex flex-col gap-3 p-4">
-				<p class="text-sm wrap-break-word">{collectionState.error}</p>
-				<Button
-					variant="outline"
-					size="sm"
-					class="self-end"
-					onclick={dismissError}
-				>
-					Dismiss
-				</Button>
-			</Card.Content>
-		</Card.Root>
+				{/if}
+				<Button size="sm" onclick={dismissError}>Dismiss</Button>
+			</div>
+		</div>
 	</div>
 {/if}
-
-<NameDescriptionDialog
-	bind:open={saveOpen}
-	title="Save collection"
-	subtitle={saveSubtitle}
-	bind:name={saveName}
-	bind:description={saveDescription}
-	namePlaceholder="My collection"
-	descriptionPlaceholder="What this captures…"
-	pending={saving.pending}
-	error={saving.error}
-	onConfirm={confirmSave}
-/>
